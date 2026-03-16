@@ -108,9 +108,6 @@ namespace ESAPI_EQD2Viewer.UI.ViewModels
             }
         }
 
-        /// <summary>
-        /// Convenience booleans for RadioButton binding.
-        /// </summary>
         public bool IsLineMode
         {
             get => _doseDisplayMode == DoseDisplayMode.Line;
@@ -139,6 +136,74 @@ namespace ESAPI_EQD2Viewer.UI.ViewModels
         {
             get => _colorwashMinPercent;
             set { if (SetProperty(ref _colorwashMinPercent, value)) RequestRender(); }
+        }
+
+        #endregion
+
+        #region Isodose Unit (% / Gy)
+
+        private IsodoseUnit _isodoseUnit = IsodoseUnit.Percent;
+        public IsodoseUnit IsodoseUnit
+        {
+            get => _isodoseUnit;
+            set
+            {
+                if (SetProperty(ref _isodoseUnit, value))
+                {
+                    OnPropertyChanged(nameof(IsPercentMode));
+                    OnPropertyChanged(nameof(IsGyMode));
+                    OnPropertyChanged(nameof(IsodoseColumnHeader));
+                    UpdateIsodoseLabels();
+                }
+            }
+        }
+
+        public bool IsPercentMode
+        {
+            get => _isodoseUnit == IsodoseUnit.Percent;
+            set { if (value) IsodoseUnit = IsodoseUnit.Percent; }
+        }
+
+        public bool IsGyMode
+        {
+            get => _isodoseUnit == IsodoseUnit.Gy;
+            set { if (value) IsodoseUnit = IsodoseUnit.Gy; }
+        }
+
+        /// <summary>
+        /// Dynamic column header text for the isodose levels DataGrid.
+        /// </summary>
+        public string IsodoseColumnHeader => _isodoseUnit == IsodoseUnit.Gy ? "Dose (Gy)" : "Level %";
+
+        /// <summary>
+        /// Reference dose in Gy (prescription * normalization), used for %/Gy label conversion.
+        /// </summary>
+        public double ReferenceDoseGy
+        {
+            get
+            {
+                double prescGy = GetPrescriptionGy();
+                double norm = _plan?.PlanNormalizationValue ?? 100.0;
+                if (double.IsNaN(norm) || norm <= 0) norm = 100.0;
+                else if (norm < 5.0) norm *= 100.0;
+                double refGy = prescGy * (norm / 100.0);
+                return refGy < 0.1 ? prescGy : refGy;
+            }
+        }
+
+        /// <summary>
+        /// Updates all isodose level labels when switching between % and Gy mode.
+        /// </summary>
+        private void UpdateIsodoseLabels()
+        {
+            double refGy = ReferenceDoseGy;
+            foreach (var level in IsodoseLevels)
+            {
+                if (_isodoseUnit == IsodoseUnit.Gy)
+                    level.Label = $"{(level.Fraction * refGy):F1} Gy";
+                else
+                    level.Label = $"{(level.Fraction * 100):F0}%";
+            }
         }
 
         #endregion
@@ -235,9 +300,6 @@ namespace ESAPI_EQD2Viewer.UI.ViewModels
         public ObservableCollection<IsodoseLevel> IsodoseLevels { get; }
         private IsodoseLevel[] _isodoseLevelArray;
 
-        /// <summary>
-        /// Selected preset name for UI display.
-        /// </summary>
         private string _isodosePresetName = "Default (4)";
         public string IsodosePresetName
         {
@@ -266,7 +328,6 @@ namespace ESAPI_EQD2Viewer.UI.ViewModels
             IsodoseLevels.CollectionChanged += (s, e) =>
             {
                 RebuildIsodoseArray();
-                // Subscribe to new items' PropertyChanged
                 if (e.NewItems != null)
                     foreach (IsodoseLevel item in e.NewItems)
                         item.PropertyChanged += OnIsodoseLevelChanged;
@@ -602,17 +663,18 @@ namespace ESAPI_EQD2Viewer.UI.ViewModels
                 IsodoseLevels.Add(l);
 
             RebuildIsodoseArray();
+            UpdateIsodoseLabels();
             RequestRender();
         }
 
         [RelayCommand]
         private void AddIsodoseLevel()
         {
-            // Add a new level at 60% by default, user can edit
             var newLevel = new IsodoseLevel(0.60, "60%", 0xFF9900FF);
             newLevel.PropertyChanged += OnIsodoseLevelChanged;
             IsodoseLevels.Add(newLevel);
             RebuildIsodoseArray();
+            UpdateIsodoseLabels();
             RequestRender();
         }
 
@@ -676,7 +738,7 @@ namespace ESAPI_EQD2Viewer.UI.ViewModels
     }
 
     /// <summary>
-    /// Per-structure α/β setting for the UI DataGrid.
+    /// Per-structure alpha/beta setting for the UI DataGrid.
     /// </summary>
     public class StructureAlphaBetaItem : INotifyPropertyChanged
     {

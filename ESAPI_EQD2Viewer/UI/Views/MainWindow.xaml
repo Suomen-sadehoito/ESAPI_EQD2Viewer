@@ -166,6 +166,18 @@
                     <StackPanel>
                         <TextBlock Text="ISODOSE LEVELS" Style="{StaticResource SectionHeader}"/>
 
+                        <!-- ======== NEW: Gy / % unit toggle ======== -->
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,6">
+                            <TextBlock Text="Display: " Foreground="#aaa" VerticalAlignment="Center" FontSize="11"/>
+                            <RadioButton Content="  %  " IsChecked="{Binding IsPercentMode}"
+                                         Foreground="White" Margin="0,0,10,0" GroupName="IsodoseUnit"
+                                         ToolTip="Show levels as percentage of reference dose"/>
+                            <RadioButton Content="  Gy  " IsChecked="{Binding IsGyMode}"
+                                         Foreground="White" GroupName="IsodoseUnit"
+                                         ToolTip="Show levels as absolute dose in Gy"/>
+                        </StackPanel>
+                        <!-- ======== END NEW ======== -->
+
                         <!-- Preset buttons -->
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,6">
                             <Button Content="Eclipse (10)" Style="{StaticResource SmallButton}" FontSize="10"
@@ -209,26 +221,22 @@
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
-                                <DataGridTextColumn Header="Level %" Width="60"
-                                    Binding="{Binding Fraction, StringFormat=P0, UpdateSourceTrigger=LostFocus}">
+                                <!-- Label column now shows either "107%" or "53.5 Gy" depending on mode -->
+                                <DataGridTextColumn Header="Level" Width="70"
+                                    Binding="{Binding Label}">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="Foreground" Value="White"/>
                                             <Setter Property="VerticalAlignment" Value="Center"/>
                                         </Style>
                                     </DataGridTextColumn.ElementStyle>
-                                    <DataGridTextColumn.EditingElementStyle>
-                                        <Style TargetType="TextBox">
-                                            <Setter Property="Background" Value="#333"/>
-                                            <Setter Property="Foreground" Value="White"/>
-                                        </Style>
-                                    </DataGridTextColumn.EditingElementStyle>
                                 </DataGridTextColumn>
-                                <DataGridTextColumn Header="Label" Width="*"
-                                    Binding="{Binding Label, UpdateSourceTrigger=LostFocus}">
+                                <DataGridTextColumn Header="Fraction" Width="55"
+                                    Binding="{Binding Fraction, StringFormat=F3, UpdateSourceTrigger=LostFocus}">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">
-                                            <Setter Property="Foreground" Value="White"/>
+                                            <Setter Property="Foreground" Value="#999"/>
+                                            <Setter Property="VerticalAlignment" Value="Center"/>
                                         </Style>
                                     </DataGridTextColumn.ElementStyle>
                                     <DataGridTextColumn.EditingElementStyle>

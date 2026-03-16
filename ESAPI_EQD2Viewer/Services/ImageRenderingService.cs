@@ -245,7 +245,7 @@ namespace ESAPI_EQD2Viewer.Services
                 switch (displayMode)
                 {
                     case DoseDisplayMode.Line:
-                        RenderLineMode(pDoseBuffer, doseStride, ctImage, dose, doseSlice,
+                        RenderLineMode(pDoseBuffer, doseStride, ctImage, dose, currentSlice,
                             doseGyGrid, dx, dy, referenceDoseGy, levels);
                         break;
 
@@ -273,20 +273,22 @@ namespace ESAPI_EQD2Viewer.Services
             }
         }
 
-        #region Line Mode (Eclipse default)
+        #region Line Mode — SMOOTH (bilinear interpolation at CT resolution)
 
         /// <summary>
-        /// Renders isodose contour lines. A dose voxel is a "boundary" voxel for level L
-        /// if its dose is >= the level threshold but at least one 4-connected neighbor is below it
-        /// (or the voxel is at the edge of the dose grid). This produces 1-dose-voxel-wide contour
-        /// lines that, when mapped to CT pixel space, appear ~2-5 pixels thick (matching Eclipse).
+        /// Renders smooth isodose contour lines by interpolating the dose grid
+        /// to CT pixel resolution using bilinear interpolation, then detecting
+        /// boundaries at the fine CT pixel grid.
+        /// 
+        /// This eliminates the blocky "pixel mess" caused by the original method
+        /// which operated at coarse dose grid resolution.
         /// </summary>
         private unsafe void RenderLineMode(byte* pBuffer, int stride, Image ctImage, Dose dose,
-            int doseSlice, double[,] doseGyGrid, int dx, int dy, double refDoseGy, IsodoseLevel[] levels)
+            int currentSlice, double[,] doseGyGrid, int dx, int dy, double refDoseGy, IsodoseLevel[] levels)
         {
             if (levels == null || levels.Length == 0) return;
 
-            // Build filtered level list (visible only, sorted descending by fraction)
+            // Build filtered level list (visible only)
             int visibleCount = 0;
             for (int i = 0; i < levels.Length; i++)
                 if (levels[i].IsVisible) visibleCount++;
@@ -297,50 +299,131 @@ namespace ESAPI_EQD2Viewer.Services
             for (int i = 0; i < levels.Length; i++)
                 if (levels[i].IsVisible) visLevels[vi++] = levels[i];
 
-            // Pass 1: Classify each dose voxel to its highest matching isodose level index
-            // -1 means below all levels
-            int[,] levelMap = new int[dx, dy];
-            for (int y = 0; y < dy; y++)
+            // Precompute absolute dose thresholds (Gy) for each visible level
+            double[] thresholds = new double[visibleCount];
+            for (int i = 0; i < visibleCount; i++)
+                thresholds[i] = refDoseGy * visLevels[i].Fraction;
+
+            // ================================================================
+            // Precompute CT pixel → dose grid coordinate mapping coefficients.
+            // For CT pixel (px, py) on the current slice:
+            //   world = ctBase + ctXDir * (px * ctXRes) + ctYDir * (py * ctYRes)
+            //   diff  = world - doseOrigin
+            //   doseXf = diff · doseXDir / doseXRes
+            //   doseYf = diff · doseYDir / doseYRes
+            //
+            // This simplifies to linear functions of (px, py) with constant coefficients.
+            // ================================================================
+            VVector ctBase = ctImage.Origin + ctImage.ZDirection * (currentSlice * ctImage.ZRes);
+            VVector baseDiff = ctBase - dose.Origin;
+
+            double baseX = baseDiff.Dot(dose.XDirection) / dose.XRes;
+            double baseY = baseDiff.Dot(dose.YDirection) / dose.YRes;
+
+            double dxPerPx = ctImage.XRes * ctImage.XDirection.Dot(dose.XDirection) / dose.XRes;
+            double dxPerPy = ctImage.YRes * ctImage.YDirection.Dot(dose.XDirection) / dose.XRes;
+            double dyPerPx = ctImage.XRes * ctImage.XDirection.Dot(dose.YDirection) / dose.YRes;
+            double dyPerPy = ctImage.YRes * ctImage.YDirection.Dot(dose.YDirection) / dose.YRes;
+
+            // ================================================================
+            // Pass 1: Build CT-resolution dose map via bilinear interpolation
+            // ================================================================
+            int w = _width;
+            int h = _height;
+            double[] ctDoseMap = new double[w * h]; // flat array for cache performance
+
+            for (int py = 0; py < h; py++)
             {
-                for (int x = 0; x < dx; x++)
+                double rowDoseXBase = baseX + py * dxPerPy;
+                double rowDoseYBase = baseY + py * dyPerPy;
+
+                for (int px = 0; px < w; px++)
                 {
-                    double dGy = doseGyGrid[x, y];
-                    levelMap[x, y] = -1;
-                    for (int i = 0; i < visLevels.Length; i++)
+                    double fx = rowDoseXBase + px * dxPerPx;
+                    double fy = rowDoseYBase + px * dyPerPx;
+
+                    ctDoseMap[py * w + px] = BilinearSample(doseGyGrid, dx, dy, fx, fy);
+                }
+            }
+
+            // ================================================================
+            // Pass 2: Classify each CT pixel to its highest matching isodose level
+            // ================================================================
+            int[] levelMap = new int[w * h];
+            for (int i = 0; i < w * h; i++)
+            {
+                double dGy = ctDoseMap[i];
+                levelMap[i] = -1;
+                for (int li = 0; li < visibleCount; li++)
+                {
+                    if (dGy >= thresholds[li])
                     {
-                        if (dGy >= refDoseGy * visLevels[i].Fraction)
-                        {
-                            levelMap[x, y] = i;
-                            break;
-                        }
+                        levelMap[i] = li;
+                        break;
                     }
                 }
             }
 
-            // Pass 2: Find boundary voxels and draw them
-            for (int y = 0; y < dy; y++)
+            // ================================================================
+            // Pass 3: Find boundary pixels and draw contour lines
+            // A pixel is a boundary if any 4-connected neighbor has a different
+            // level classification. This produces 1-CT-pixel-wide contour lines
+            // that are smooth because the underlying dose was interpolated.
+            // ================================================================
+            for (int py = 0; py < h; py++)
             {
-                for (int x = 0; x < dx; x++)
+                uint* row = (uint*)(pBuffer + py * stride);
+                for (int px = 0; px < w; px++)
                 {
-                    int myLevel = levelMap[x, y];
+                    int idx = py * w + px;
+                    int myLevel = levelMap[idx];
                     if (myLevel < 0) continue;
 
-                    // Check 4-connected neighbors for different classification
                     bool isBoundary = false;
 
-                    if (x == 0 || levelMap[x - 1, y] != myLevel) isBoundary = true;
-                    else if (x == dx - 1 || levelMap[x + 1, y] != myLevel) isBoundary = true;
-                    else if (y == 0 || levelMap[x, y - 1] != myLevel) isBoundary = true;
-                    else if (y == dy - 1 || levelMap[x, y + 1] != myLevel) isBoundary = true;
+                    if (px == 0 || levelMap[idx - 1] != myLevel) isBoundary = true;
+                    else if (px == w - 1 || levelMap[idx + 1] != myLevel) isBoundary = true;
+                    else if (py == 0 || levelMap[idx - w] != myLevel) isBoundary = true;
+                    else if (py == h - 1 || levelMap[idx + w] != myLevel) isBoundary = true;
 
                     if (!isBoundary) continue;
 
-                    // Line mode uses full opacity for crisp contour lines
+                    // Full opacity for crisp contour lines
                     uint color = (visLevels[myLevel].Color & 0x00FFFFFF) | 0xFF000000;
-
-                    MapDoseVoxelToCT(pBuffer, stride, ctImage, dose, doseSlice, x, y, color);
+                    row[px] = color;
                 }
             }
+        }
+
+        /// <summary>
+        /// Bilinear interpolation of a 2D grid at continuous coordinates (fx, fy).
+        /// Returns 0 if outside the grid bounds (with 0.5-pixel margin for center-of-voxel convention).
+        /// </summary>
+        private static double BilinearSample(double[,] grid, int gridW, int gridH, double fx, double fy)
+        {
+            // Clamp to valid interpolation range
+            if (fx < 0 || fy < 0 || fx >= gridW - 1 || fy >= gridH - 1)
+            {
+                // Nearest-neighbor for edge pixels (within grid but outside interpolation range)
+                int nx = (int)Math.Round(fx);
+                int ny = (int)Math.Round(fy);
+                if (nx >= 0 && nx < gridW && ny >= 0 && ny < gridH)
+                    return grid[nx, ny];
+                return 0;
+            }
+
+            int x0 = (int)fx;
+            int y0 = (int)fy;
+            int x1 = x0 + 1;
+            int y1 = y0 + 1;
+
+            double tx = fx - x0;
+            double ty = fy - y0;
+
+            return grid[x0, y0] * (1 - tx) * (1 - ty)
+                 + grid[x1, y0] * tx * (1 - ty)
+                 + grid[x0, y1] * (1 - tx) * ty
+                 + grid[x1, y1] * tx * ty;
         }
 
         #endregion
@@ -385,14 +468,14 @@ namespace ESAPI_EQD2Viewer.Services
 
         /// <summary>
         /// Continuous jet colormap from dose = minPercent*ref to dose >= ref.
-        /// Maps every voxel above the minimum threshold to a smooth blue→cyan→green→yellow→red gradient.
+        /// Maps every voxel above the minimum threshold to a smooth blue-cyan-green-yellow-red gradient.
         /// </summary>
         private unsafe void RenderColorwashMode(byte* pBuffer, int stride, Image ctImage, Dose dose,
             int doseSlice, double[,] doseGyGrid, int dx, int dy, double refDoseGy,
             byte alpha, double minPercent)
         {
             double minDoseGy = refDoseGy * minPercent;
-            double maxDoseGy = refDoseGy * 1.15; // colormap extends to 115% for hot spots
+            double maxDoseGy = refDoseGy * 1.15;
 
             for (int y = 0; y < dy; y++)
             {
@@ -412,39 +495,22 @@ namespace ESAPI_EQD2Viewer.Services
         }
 
         /// <summary>
-        /// Jet/rainbow colormap matching Eclipse's colorwash appearance.
-        /// fraction 0.0 = deep blue (low dose), 1.0 = dark red (high dose).
+        /// Jet/rainbow colormap. fraction 0.0 = deep blue, 1.0 = dark red.
         /// </summary>
         private static uint JetColormap(double t, byte alpha)
         {
             double r, g, b;
 
-            if (t < 0.125)
-            {
-                r = 0; g = 0; b = 0.5 + t * 4.0;
-            }
-            else if (t < 0.375)
-            {
-                r = 0; g = (t - 0.125) * 4.0; b = 1.0;
-            }
-            else if (t < 0.625)
-            {
-                r = (t - 0.375) * 4.0; g = 1.0; b = 1.0 - (t - 0.375) * 4.0;
-            }
-            else if (t < 0.875)
-            {
-                r = 1.0; g = 1.0 - (t - 0.625) * 4.0; b = 0;
-            }
-            else
-            {
-                r = 1.0 - (t - 0.875) * 4.0; g = 0; b = 0;
-            }
+            if (t < 0.125) { r = 0; g = 0; b = 0.5 + t * 4.0; }
+            else if (t < 0.375) { r = 0; g = (t - 0.125) * 4.0; b = 1.0; }
+            else if (t < 0.625) { r = (t - 0.375) * 4.0; g = 1.0; b = 1.0 - (t - 0.375) * 4.0; }
+            else if (t < 0.875) { r = 1.0; g = 1.0 - (t - 0.625) * 4.0; b = 0; }
+            else { r = 1.0 - (t - 0.875) * 4.0; g = 0; b = 0; }
 
             byte rb = (byte)(Clamp01(r) * 255);
             byte gb = (byte)(Clamp01(g) * 255);
             byte bb = (byte)(Clamp01(b) * 255);
 
-            // Format: 0xAARRGGBB (written as uint to BGRA32 memory on little-endian)
             return ((uint)alpha << 24) | ((uint)rb << 16) | ((uint)gb << 8) | bb;
         }
 
@@ -452,12 +518,11 @@ namespace ESAPI_EQD2Viewer.Services
 
         #endregion
 
-        #region Shared: Dose voxel → CT pixel mapping
+        #region Shared: Dose voxel to CT pixel mapping (used by Fill and Colorwash modes)
 
         /// <summary>
         /// Maps a single dose grid voxel (doseX, doseY) to the CT image pixel space
         /// and writes the given color to all covered CT pixels.
-        /// Shared by all three rendering modes.
         /// </summary>
         private unsafe void MapDoseVoxelToCT(byte* pBuffer, int stride, Image ctImage, Dose dose,
             int doseSlice, int doseX, int doseY, uint color)
@@ -500,7 +565,6 @@ namespace ESAPI_EQD2Viewer.Services
 
         /// <summary>
         /// Returns the dose in Gy at a given CT pixel coordinate.
-        /// Used for dose-under-cursor display in the status bar.
         /// </summary>
         public double GetDoseAtPixel(Image ctImage, Dose dose, int currentSlice, int pixelX, int pixelY,
             EQD2Settings eqd2Settings = null)
@@ -510,13 +574,11 @@ namespace ESAPI_EQD2Viewer.Services
             if (pixelX < 0 || pixelX >= _width || pixelY < 0 || pixelY >= _height)
                 return double.NaN;
 
-            // CT pixel to world coordinates
             VVector worldPos = ctImage.Origin +
                                ctImage.XDirection * (pixelX * ctImage.XRes) +
                                ctImage.YDirection * (pixelY * ctImage.YRes) +
                                ctImage.ZDirection * (currentSlice * ctImage.ZRes);
 
-            // World to dose voxel indices
             VVector diffToDose = worldPos - dose.Origin;
             int doseX = (int)Math.Round(diffToDose.Dot(dose.XDirection) / dose.XRes);
             int doseY = (int)Math.Round(diffToDose.Dot(dose.YDirection) / dose.YRes);
