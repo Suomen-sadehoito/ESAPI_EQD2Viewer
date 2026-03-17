@@ -30,10 +30,7 @@ namespace ESAPI_EQD2Viewer.Core.Interfaces
 
         /// <summary>
         /// Generates vector isodose contours using marching squares.
-        /// Returns one IsodoseContourData per visible level, each containing
-        /// a frozen StreamGeometry that scales perfectly at any zoom level.
         /// </summary>
-        /// <returns>Contour data list and status text</returns>
         ContourGenerationResult GenerateVectorContours(Image ctImage, Dose dose, int currentSlice,
             double planTotalDoseGy, double planNormalization, IsodoseLevel[] levels,
             EQD2Settings eqd2Settings = null);
@@ -44,6 +41,13 @@ namespace ESAPI_EQD2Viewer.Core.Interfaces
         /// </summary>
         double GetDoseAtPixel(Image ctImage, Dose dose, int currentSlice, int pixelX, int pixelY,
             EQD2Settings eqd2Settings = null);
+
+        /// <summary>
+        /// Generates structure contour geometries for the current slice.
+        /// Converts ESAPI structure contours to WPF StreamGeometry for overlay rendering.
+        /// </summary>
+        List<StructureContourData> GenerateStructureContours(Image ctImage, int currentSlice,
+            IEnumerable<Structure> structures);
     }
 
     /// <summary>

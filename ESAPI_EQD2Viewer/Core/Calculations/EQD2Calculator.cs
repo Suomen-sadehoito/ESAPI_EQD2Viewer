@@ -1,4 +1,4 @@
-﻿using System.Linq;
+using System.Linq;
 using VMS.TPS.Common.Model.Types;
 
 namespace ESAPI_EQD2Viewer.Core.Calculations
@@ -9,14 +9,6 @@ namespace ESAPI_EQD2Viewer.Core.Calculations
     /// </summary>
     public static class EQD2Calculator
     {
-        /// <summary>
-        /// Converts a single total dose value to EQD2.
-        /// Used for both individual voxels (isodose rendering) and DVH point conversion.
-        /// </summary>
-        /// <param name="totalDoseGy">Total physical dose in Gy at this point</param>
-        /// <param name="numberOfFractions">Number of treatment fractions</param>
-        /// <param name="alphaBeta">α/β ratio in Gy (e.g. 10.0 for tumor, 3.0 for late-responding tissue)</param>
-        /// <returns>EQD2 dose in Gy</returns>
         public static double ToEQD2(double totalDoseGy, int numberOfFractions, double alphaBeta)
         {
             if (numberOfFractions <= 0 || alphaBeta <= 0)
@@ -26,12 +18,6 @@ namespace ESAPI_EQD2Viewer.Core.Calculations
             return totalDoseGy * (dosePerFraction + alphaBeta) / (2.0 + alphaBeta);
         }
 
-        /// <summary>
-        /// Pre-calculates scaling factors for fast voxel-level EQD2 conversion during rendering.
-        /// Since EQD2 = D * (D/n + αβ) / (2 + αβ) = D²/(n*(2+αβ)) + D*αβ/(2+αβ),
-        /// this can be expressed as: EQD2 = A*D² + B*D where A and B are constants.
-        /// This avoids division per-voxel in the hot rendering loop.
-        /// </summary>
         public static void GetVoxelScalingFactors(int numberOfFractions, double alphaBeta,
             out double quadraticFactor, out double linearFactor)
         {
@@ -43,26 +29,15 @@ namespace ESAPI_EQD2Viewer.Core.Calculations
                 return;
             }
 
-            // EQD2 = D * (D/n + αβ) / (2 + αβ)
-            //       = D²/(n*(2+αβ)) + D*αβ/(2+αβ)
-            //       = A*D² + B*D
             quadraticFactor = 1.0 / (numberOfFractions * denom);
             linearFactor = alphaBeta / denom;
         }
 
-        /// <summary>
-        /// Fast inline EQD2 conversion using pre-calculated factors.
-        /// Call GetVoxelScalingFactors once, then use this per-voxel.
-        /// </summary>
         public static double ToEQD2Fast(double totalDoseGy, double quadraticFactor, double linearFactor)
         {
             return totalDoseGy * totalDoseGy * quadraticFactor + totalDoseGy * linearFactor;
         }
 
-        /// <summary>
-        /// Converts an entire cumulative DVH curve to EQD2 form.
-        /// Each dose point on the curve is independently converted.
-        /// </summary>
         public static DVHPoint[] ConvertCurveToEQD2(DVHPoint[] originalCurve, int numberOfFractions, double alphaBeta)
         {
             if (originalCurve == null || originalCurve.Length == 0)
@@ -75,10 +50,6 @@ namespace ESAPI_EQD2Viewer.Core.Calculations
             )).ToArray();
         }
 
-        /// <summary>
-        /// Calculates biological mean dose (EQD2 Dmean) using differential DVH weighting.
-        /// More accurate than simply converting the physical Dmean, especially for heterogeneous dose distributions.
-        /// </summary>
         public static double CalculateMeanEQD2FromDVH(DVHPoint[] cumulativeCurve, int numberOfFractions, double alphaBeta)
         {
             if (cumulativeCurve == null || cumulativeCurve.Length < 2)

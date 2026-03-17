@@ -1,25 +1,25 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
 using ESAPI_EQD2Viewer.Core.Calculations;
 using ESAPI_EQD2Viewer.Core.Extensions;
 using ESAPI_EQD2Viewer.Core.Interfaces;
+using ESAPI_EQD2Viewer.Core.Logging;
 using ESAPI_EQD2Viewer.Core.Models;
 
 namespace ESAPI_EQD2Viewer.Services
 {
     /// <summary>
-    /// Two-phase dose summation service with CT overlay support for registration verification.
+    /// Two-phase dose summation with structure mask caching for DVH.
     /// 
-    /// PHASE 1 — PrepareData() — UI THREAD (required by ESAPI)
-    ///   Reads all ESAPI objects (dose voxels, CT voxels, geometry) into plain arrays.
-    /// 
-    /// PHASE 2 — ComputeAsync() — BACKGROUND THREAD (no ESAPI calls)
-    ///   Pure arithmetic on cached arrays. Reports progress. Can be cancelled.
+    /// Phase 1 — PrepareData() — UI thread: reads ESAPI data into plain arrays,
+    ///   also rasterizes structure contours into bitmasks for DVH.
+    /// Phase 2 — ComputeAsync() — background: pure arithmetic.
     /// </summary>
     public class SummationService : ISummationService
     {
@@ -30,11 +30,16 @@ namespace ESAPI_EQD2Viewer.Services
         private int _refW, _refH, _refZ;
         private int _refHuOffset;
         private string _referenceFOR;
+        private double _voxelVolumeCc;
+
+        // Structure masks: structureId → [sliceIndex] → bool[w*h]
+        private Dictionary<string, bool[][]> _structureMasks;
+        private List<string> _cachedStructureIds;
 
         // Phase 2 output
         private double[][] _summedSlices;
         private double _summedReferenceDoseGy;
-        private bool _hasSummedDose;
+        private volatile bool _hasSummedDose;
         private bool _disposed;
 
         private readonly Patient _patient;
@@ -42,6 +47,7 @@ namespace ESAPI_EQD2Viewer.Services
 
         public bool HasSummedDose => _hasSummedDose;
         public double SummedReferenceDoseGy => _summedReferenceDoseGy;
+        public int SliceCount => _refZ;
 
         public SummationService(Patient patient, Image referenceImage)
         {
@@ -68,6 +74,9 @@ namespace ESAPI_EQD2Viewer.Services
                 _refH = _referenceImage.YSize;
                 _refZ = _referenceImage.ZSize;
 
+                // Voxel volume in cm³ for DVH
+                _voxelVolumeCc = (_referenceImage.XRes * _referenceImage.YRes * _referenceImage.ZRes) / 1000.0;
+
                 _refGeo = new CachedRefGeometry
                 {
                     Ox = _referenceImage.Origin.x,
@@ -84,10 +93,7 @@ namespace ESAPI_EQD2Viewer.Services
                     Zz = _referenceImage.ZDirection.z * _referenceImage.ZRes,
                 };
 
-                // Determine HU offset for reference CT
                 _refHuOffset = DetermineHuOffset(_referenceImage);
-
-                // Cache reference FOR for registration direction detection
                 _referenceFOR = _referenceImage.FOR ?? "";
 
                 _cachedPlans = new List<CachedPlanData>();
@@ -103,6 +109,9 @@ namespace ESAPI_EQD2Viewer.Services
                     _cachedPlans.Add(cached);
                 }
 
+                // Cache structure masks from the reference plan for DVH calculation
+                CacheStructureMasks();
+
                 return new SummationResult
                 {
                     Success = true,
@@ -111,8 +120,96 @@ namespace ESAPI_EQD2Viewer.Services
             }
             catch (Exception ex)
             {
+                SimpleLogger.Error("PrepareData failed", ex);
                 return new SummationResult { Success = false, StatusMessage = $"Load error: {ex.Message}" };
             }
+        }
+
+        /// <summary>
+        /// Rasterizes all non-empty structures from the reference plan's structure set
+        /// into per-slice bitmasks for DVH computation.
+        /// </summary>
+        private void CacheStructureMasks()
+        {
+            _structureMasks = new Dictionary<string, bool[][]>();
+            _cachedStructureIds = new List<string>();
+
+            // Find the reference plan to get its structure set
+            var refEntry = _config.Plans.FirstOrDefault(p => p.IsReference);
+            if (refEntry == null) return;
+
+            var course = _patient.Courses.FirstOrDefault(c => c.Id == refEntry.CourseId);
+            var plan = course?.PlanSetups.FirstOrDefault(p => p.Id == refEntry.PlanId);
+            if (plan?.StructureSet == null) return;
+
+            double imgOx = _referenceImage.Origin.x;
+            double imgOy = _referenceImage.Origin.y;
+            double imgOz = _referenceImage.Origin.z;
+            double xDirX = _referenceImage.XDirection.x;
+            double xDirY = _referenceImage.XDirection.y;
+            double xDirZ = _referenceImage.XDirection.z;
+            double yDirX = _referenceImage.YDirection.x;
+            double yDirY = _referenceImage.YDirection.y;
+            double yDirZ = _referenceImage.YDirection.z;
+            double xRes = _referenceImage.XRes;
+            double yRes = _referenceImage.YRes;
+
+            foreach (var structure in plan.StructureSet.Structures)
+            {
+                if (structure.IsEmpty) continue;
+
+                try
+                {
+                    bool[][] sliceMasks = new bool[_refZ][];
+                    bool hasAnyContour = false;
+
+                    for (int z = 0; z < _refZ; z++)
+                    {
+                        var contours = structure.GetContoursOnImagePlane(z);
+                        if (contours == null || contours.Length == 0)
+                        {
+                            sliceMasks[z] = null; // No contour on this slice
+                            continue;
+                        }
+
+                        hasAnyContour = true;
+                        var masks = new List<bool[]>();
+
+                        foreach (var contour in contours)
+                        {
+                            if (contour.Length < 3) continue;
+
+                            // Convert world coordinates to CT pixel coordinates
+                            var pixelPoints = new Point[contour.Length];
+                            for (int i = 0; i < contour.Length; i++)
+                            {
+                                double dx = contour[i].x - imgOx;
+                                double dy = contour[i].y - imgOy;
+                                double dz = contour[i].z - imgOz;
+                                double px = (dx * xDirX + dy * xDirY + dz * xDirZ) / xRes;
+                                double py = (dx * yDirX + dy * yDirY + dz * yDirZ) / yRes;
+                                pixelPoints[i] = new Point(px, py);
+                            }
+
+                            masks.Add(StructureRasterizer.RasterizePolygon(pixelPoints, _refW, _refH));
+                        }
+
+                        sliceMasks[z] = StructureRasterizer.CombineContourMasks(masks, _refW, _refH);
+                    }
+
+                    if (hasAnyContour)
+                    {
+                        _structureMasks[structure.Id] = sliceMasks;
+                        _cachedStructureIds.Add(structure.Id);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    SimpleLogger.Warning($"Could not rasterize structure '{structure.Id}': {ex.Message}");
+                }
+            }
+
+            SimpleLogger.Info($"Cached {_cachedStructureIds.Count} structure masks for DVH");
         }
 
         private int DetermineHuOffset(Image ctImage)
@@ -120,43 +217,34 @@ namespace ESAPI_EQD2Viewer.Services
             int midSlice = ctImage.ZSize / 2;
             var slice = new int[ctImage.XSize, ctImage.YSize];
             ctImage.GetVoxels(midSlice, slice);
-
-            int xSize = ctImage.XSize, ySize = ctImage.YSize;
-            int step = 8, countAbove = 0, total = 0;
-            for (int y = 0; y < ySize; y += step)
-                for (int x = 0; x < xSize; x += step)
-                {
-                    total++;
-                    if (slice[x, y] > 30000) countAbove++;
-                }
-            return (total > 0 && countAbove > total / 2) ? 32768 : 0;
+            return ImageUtils.DetermineHuOffset(slice, ctImage.XSize, ctImage.YSize);
         }
 
         /// <summary>
         /// Reads all ESAPI data for one plan into plain arrays.
-        /// Now also caches CT voxels for registration verification overlay.
-        /// 
-        /// REGISTRATION DIRECTION FIX:
-        /// ESAPI TransformPoint maps SourceFOR → RegisteredFOR.
-        /// AccumulateRegistered needs ref→plan direction (starts at ref pixel, finds plan voxel).
-        /// 
-        /// If Registration.SourceFOR == planFOR and RegisteredFOR == refFOR:
-        ///   TransformPoint does plan→ref. We need INVERSE (ref→plan).
-        /// If Registration.SourceFOR == refFOR and RegisteredFOR == planFOR:
-        ///   TransformPoint does ref→plan. Use DIRECTLY.
+        /// Fix #3: proper logging instead of silent catches.
+        /// Fix #6: uses MatrixMath.Invert4x4 for proper inversion.
         /// </summary>
         private CachedPlanData CachePlanData(SummationPlanEntry entry, SummationMethod method,
             double alphaBeta, string referenceFOR)
         {
             var course = _patient.Courses.FirstOrDefault(c => c.Id == entry.CourseId);
-            if (course == null) return null;
+            if (course == null)
+            {
+                SimpleLogger.Error($"Course not found: {entry.CourseId}");
+                return null;
+            }
+
             var plan = course.PlanSetups.FirstOrDefault(p => p.Id == entry.PlanId);
-            if (plan?.Dose == null) return null;
+            if (plan?.Dose == null)
+            {
+                SimpleLogger.Error($"Plan or dose not found: {entry.PlanId}");
+                return null;
+            }
 
             var dose = plan.Dose;
             int dx = dose.XSize, dy = dose.YSize, dz = dose.ZSize;
 
-            // Preload dose voxels
             int[][,] doseVoxels = new int[dz][,];
             for (int z = 0; z < dz; z++)
             {
@@ -164,88 +252,72 @@ namespace ESAPI_EQD2Viewer.Services
                 dose.GetVoxels(z, doseVoxels[z]);
             }
 
-            // Dose value scaling
             DoseValue dv0 = dose.VoxelToDoseValue(0);
-            DoseValue dvRef = dose.VoxelToDoseValue(10000);
-            double rawScale = (dvRef.Dose - dv0.Dose) / 10000.0;
+            DoseValue dvRef = dose.VoxelToDoseValue(RenderConstants.DoseCalibrationRawValue);
+            double rawScale = (dvRef.Dose - dv0.Dose) / (double)RenderConstants.DoseCalibrationRawValue;
             double rawOffset = dv0.Dose;
             double unitToGy;
             if (dvRef.Unit == DoseValue.DoseUnit.Percent) unitToGy = entry.TotalDoseGy / 100.0;
             else if (dvRef.Unit == DoseValue.DoseUnit.cGy) unitToGy = 0.01;
             else unitToGy = 1.0;
 
-            // EQD2 factors
             double eqd2Q = 0, eqd2L = 1.0;
             bool useEqd2 = method == SummationMethod.EQD2 && entry.NumberOfFractions > 0 && alphaBeta > 0;
             if (useEqd2)
                 EQD2Calculator.GetVoxelScalingFactors(entry.NumberOfFractions, alphaBeta, out eqd2Q, out eqd2L);
 
-            // Cache dose grid geometry
             var dg = new CachedDoseGeometry
             {
-                Ox = dose.Origin.x,
-                Oy = dose.Origin.y,
-                Oz = dose.Origin.z,
-                XDx = dose.XDirection.x,
-                XDy = dose.XDirection.y,
-                XDz = dose.XDirection.z,
-                YDx = dose.YDirection.x,
-                YDy = dose.YDirection.y,
-                YDz = dose.YDirection.z,
-                ZDx = dose.ZDirection.x,
-                ZDy = dose.ZDirection.y,
-                ZDz = dose.ZDirection.z,
-                XRes = dose.XRes,
-                YRes = dose.YRes,
-                ZRes = dose.ZRes,
-                XSize = dx,
-                YSize = dy,
-                ZSize = dz
+                Ox = dose.Origin.x, Oy = dose.Origin.y, Oz = dose.Origin.z,
+                XDx = dose.XDirection.x, XDy = dose.XDirection.y, XDz = dose.XDirection.z,
+                YDx = dose.YDirection.x, YDy = dose.YDirection.y, YDz = dose.YDirection.z,
+                ZDx = dose.ZDirection.x, ZDy = dose.ZDirection.y, ZDz = dose.ZDirection.z,
+                XRes = dose.XRes, YRes = dose.YRes, ZRes = dose.ZRes,
+                XSize = dx, YSize = dy, ZSize = dz
             };
 
-            // Registration matrix — must map ref→plan direction
+            // Registration (Fix #6: uses MatrixMath.Invert4x4)
             double[,] regMatrix = null;
             if (!entry.IsReference && !string.IsNullOrEmpty(entry.RegistrationId))
             {
                 var reg = _patient.Registrations?.FirstOrDefault(r => r.Id == entry.RegistrationId);
                 if (reg != null)
                 {
-                    // Build the forward matrix (Source→Registered)
                     var forwardMatrix = BuildTransformMatrix(reg);
-
                     if (forwardMatrix != null)
                     {
-                        // Get the plan's image FOR
                         string planFOR = "";
-                        try { planFOR = plan.StructureSet?.Image?.FOR ?? ""; } catch { }
+                        try { planFOR = plan.StructureSet?.Image?.FOR ?? ""; }
+                        catch (Exception ex) { SimpleLogger.Warning($"Could not get plan FOR: {ex.Message}"); }
 
-                        // Determine direction:
-                        // We need ref→plan for AccumulateRegistered (start at ref pixel, find plan voxel)
-                        bool sourceIsPlan = string.Equals(reg.SourceFOR, planFOR, StringComparison.OrdinalIgnoreCase);
-                        bool registeredIsRef = string.Equals(reg.RegisteredFOR, referenceFOR, StringComparison.OrdinalIgnoreCase);
                         bool sourceIsRef = string.Equals(reg.SourceFOR, referenceFOR, StringComparison.OrdinalIgnoreCase);
                         bool registeredIsPlan = string.Equals(reg.RegisteredFOR, planFOR, StringComparison.OrdinalIgnoreCase);
+                        bool sourceIsPlan = string.Equals(reg.SourceFOR, planFOR, StringComparison.OrdinalIgnoreCase);
+                        bool registeredIsRef = string.Equals(reg.RegisteredFOR, referenceFOR, StringComparison.OrdinalIgnoreCase);
 
                         if (sourceIsRef && registeredIsPlan)
                         {
-                            // TransformPoint does ref→plan — exactly what we need
                             regMatrix = forwardMatrix;
+                            SimpleLogger.Info($"Registration {reg.Id}: ref→plan (direct)");
                         }
                         else if (sourceIsPlan && registeredIsRef)
                         {
-                            // TransformPoint does plan→ref — we need the INVERSE
-                            regMatrix = Invert4x4(forwardMatrix);
+                            regMatrix = MatrixMath.Invert4x4(forwardMatrix);
+                            if (regMatrix == null)
+                                SimpleLogger.Error($"Registration {reg.Id}: matrix inversion failed (singular)");
+                            else
+                                SimpleLogger.Info($"Registration {reg.Id}: plan→ref (inverted)");
                         }
                         else
                         {
-                            // Unexpected direction — use forward as fallback
                             regMatrix = forwardMatrix;
+                            SimpleLogger.Warning($"Registration {reg.Id}: unexpected FOR direction, using forward as fallback");
                         }
                     }
                 }
             }
 
-            // ---- Cache CT voxels for non-reference plans (registration overlay) ----
+            // Cache CT voxels for non-reference plans (registration overlay)
             int[][,] ctVoxels = null;
             CachedCtGeometry ctGeo = null;
             int ctHuOffset = 0;
@@ -267,50 +339,33 @@ namespace ESAPI_EQD2Viewer.Services
 
                         ctGeo = new CachedCtGeometry
                         {
-                            Ox = img.Origin.x,
-                            Oy = img.Origin.y,
-                            Oz = img.Origin.z,
-                            XDx = img.XDirection.x,
-                            XDy = img.XDirection.y,
-                            XDz = img.XDirection.z,
-                            YDx = img.YDirection.x,
-                            YDy = img.YDirection.y,
-                            YDz = img.YDirection.z,
-                            ZDx = img.ZDirection.x,
-                            ZDy = img.ZDirection.y,
-                            ZDz = img.ZDirection.z,
-                            XRes = img.XRes,
-                            YRes = img.YRes,
-                            ZRes = img.ZRes,
-                            XSize = cx,
-                            YSize = cy,
-                            ZSize = cz
+                            Ox = img.Origin.x, Oy = img.Origin.y, Oz = img.Origin.z,
+                            XDx = img.XDirection.x, XDy = img.XDirection.y, XDz = img.XDirection.z,
+                            YDx = img.YDirection.x, YDy = img.YDirection.y, YDz = img.YDirection.z,
+                            ZDx = img.ZDirection.x, ZDy = img.ZDirection.y, ZDz = img.ZDirection.z,
+                            XRes = img.XRes, YRes = img.YRes, ZRes = img.ZRes,
+                            XSize = cx, YSize = cy, ZSize = cz
                         };
 
-                        ctHuOffset = DetermineHuOffset(img);
+                        int midZ = cz / 2;
+                        ctHuOffset = ImageUtils.DetermineHuOffset(ctVoxels[midZ], cx, cy);
                     }
                 }
-                catch { /* CT loading optional — overlay won't work but summation still does */ }
+                catch (Exception ex)
+                {
+                    SimpleLogger.Warning($"CT loading failed for {entry.DisplayLabel}: {ex.Message}");
+                }
             }
 
             return new CachedPlanData
             {
                 Entry = entry,
-                DoseVoxels = doseVoxels,
-                DoseGeo = dg,
-                RawScale = rawScale,
-                RawOffset = rawOffset,
-                UnitToGy = unitToGy,
-                UseEQD2 = useEqd2,
-                EQD2Q = eqd2Q,
-                EQD2L = eqd2L,
-                Weight = entry.Weight,
-                IsReference = entry.IsReference,
+                DoseVoxels = doseVoxels, DoseGeo = dg,
+                RawScale = rawScale, RawOffset = rawOffset, UnitToGy = unitToGy,
+                UseEQD2 = useEqd2, EQD2Q = eqd2Q, EQD2L = eqd2L,
+                Weight = entry.Weight, IsReference = entry.IsReference,
                 TransformMatrix = regMatrix,
-                // CT overlay data
-                CtVoxels = ctVoxels,
-                CtGeo = ctGeo,
-                CtHuOffset = ctHuOffset
+                CtVoxels = ctVoxels, CtGeo = ctGeo, CtHuOffset = ctHuOffset
             };
         }
 
@@ -331,38 +386,11 @@ namespace ESAPI_EQD2Viewer.Services
                 M[3, 0] = 0; M[3, 1] = 0; M[3, 2] = 0; M[3, 3] = 1;
                 return M;
             }
-            catch { return null; }
-        }
-
-        /// <summary>
-        /// Inverts a 4x4 affine transformation matrix.
-        /// For rigid registrations [R|t; 0|1], inverse = [R^T | -R^T*t; 0 | 1].
-        /// This is numerically exact and fast for orthogonal rotation matrices.
-        /// Falls back to general Gauss-Jordan elimination if R is not orthogonal.
-        /// </summary>
-        private static double[,] Invert4x4(double[,] M)
-        {
-            if (M == null) return null;
-
-            // For rigid transforms: R^T and -R^T * t
-            // This is the common case for CT-CT registrations
-            var inv = new double[4, 4];
-
-            // Transpose the 3x3 rotation part
-            inv[0, 0] = M[0, 0]; inv[0, 1] = M[1, 0]; inv[0, 2] = M[2, 0];
-            inv[1, 0] = M[0, 1]; inv[1, 1] = M[1, 1]; inv[1, 2] = M[2, 1];
-            inv[2, 0] = M[0, 2]; inv[2, 1] = M[1, 2]; inv[2, 2] = M[2, 2];
-
-            // Translation: -R^T * t
-            double tx = M[0, 3], ty = M[1, 3], tz = M[2, 3];
-            inv[0, 3] = -(inv[0, 0] * tx + inv[0, 1] * ty + inv[0, 2] * tz);
-            inv[1, 3] = -(inv[1, 0] * tx + inv[1, 1] * ty + inv[1, 2] * tz);
-            inv[2, 3] = -(inv[2, 0] * tx + inv[2, 1] * ty + inv[2, 2] * tz);
-
-            // Bottom row
-            inv[3, 0] = 0; inv[3, 1] = 0; inv[3, 2] = 0; inv[3, 3] = 1;
-
-            return inv;
+            catch (Exception ex)
+            {
+                SimpleLogger.Error($"BuildTransformMatrix failed for {registration.Id}", ex);
+                return null;
+            }
         }
 
         // ====================================================================
@@ -401,7 +429,7 @@ namespace ESAPI_EQD2Viewer.Services
 
                     _summedSlices[z] = sliceData;
 
-                    if (z % 4 == 0)
+                    if (z % RenderConstants.SummationProgressInterval == 0)
                         progress?.Report((int)((z + 1) * 100.0 / refZ));
                 }
 
@@ -437,19 +465,43 @@ namespace ESAPI_EQD2Viewer.Services
             catch (Exception ex)
             {
                 _hasSummedDose = false;
+                SimpleLogger.Error("ComputeCore failed", ex);
                 return new SummationResult { Success = false, StatusMessage = $"Compute error: {ex.Message}" };
             }
         }
 
         // ====================================================================
-        // CT OVERLAY: Get secondary CT mapped onto reference grid
+        // Structure mask API
         // ====================================================================
 
-        /// <summary>
-        /// Returns secondary plan's CT voxels mapped onto the reference CT grid.
-        /// Uses the same registration transform as dose summation.
-        /// Output is HU values (with offset subtracted) in a flat array [y * refW + x].
-        /// </summary>
+        public bool[] GetStructureMask(string structureId, int sliceIndex)
+        {
+            if (_structureMasks == null || string.IsNullOrEmpty(structureId))
+                return null;
+
+            if (!_structureMasks.TryGetValue(structureId, out var masks))
+                return null;
+
+            if (sliceIndex < 0 || sliceIndex >= masks.Length)
+                return null;
+
+            return masks[sliceIndex];
+        }
+
+        public IReadOnlyList<string> GetCachedStructureIds()
+        {
+            return _cachedStructureIds ?? (IReadOnlyList<string>)new string[0];
+        }
+
+        public double GetVoxelVolumeCc()
+        {
+            return _voxelVolumeCc;
+        }
+
+        // ====================================================================
+        // CT Overlay
+        // ====================================================================
+
         public int[] GetRegisteredCtSlice(string planDisplayLabel, int sliceIndex)
         {
             if (_cachedPlans == null || string.IsNullOrEmpty(planDisplayLabel))
@@ -472,7 +524,6 @@ namespace ESAPI_EQD2Viewer.Services
 
             if (cp.TransformMatrix == null)
             {
-                // Same CT or no registration — direct affine mapping
                 double baseWx = rg.Ox + sliceIndex * rg.Zx;
                 double baseWy = rg.Oy + sliceIndex * rg.Zy;
                 double baseWz = rg.Oz + sliceIndex * rg.Zz;
@@ -501,9 +552,8 @@ namespace ESAPI_EQD2Viewer.Services
                     int ro = py * refW;
                     for (int px = 0; px < refW; px++)
                     {
-                        double fx = rx + px * dxPerPx;
-                        double fy = ry + px * dyPerPx;
-                        int ix = (int)Math.Round(fx), iy = (int)Math.Round(fy);
+                        int ix = (int)Math.Round(rx + px * dxPerPx);
+                        int iy = (int)Math.Round(ry + px * dyPerPx);
                         if (ix >= 0 && ix < cxSize && iy >= 0 && iy < cySize)
                             result[ro + px] = ctSlice[ix, iy] - huOff;
                     }
@@ -511,7 +561,6 @@ namespace ESAPI_EQD2Viewer.Services
             }
             else
             {
-                // Registered — use transform matrix
                 var M = cp.TransformMatrix;
 
                 double rpxX = M[0, 0] * rg.Xx + M[0, 1] * rg.Xy + M[0, 2] * rg.Xz;
@@ -529,9 +578,9 @@ namespace ESAPI_EQD2Viewer.Services
                 double rbY = M[1, 0] * bwx + M[1, 1] * bwy + M[1, 2] * bwz + M[1, 3];
                 double rbZ = M[2, 0] * bwx + M[2, 1] * bwy + M[2, 2] * bwz + M[2, 3];
 
-                double cOrigDotX = (cg.Ox * cg.XDx + cg.Oy * cg.XDy + cg.Oz * cg.XDz);
-                double cOrigDotY = (cg.Ox * cg.YDx + cg.Oy * cg.YDy + cg.Oz * cg.YDz);
-                double cOrigDotZ = (cg.Ox * cg.ZDx + cg.Oy * cg.ZDy + cg.Oz * cg.ZDz);
+                double cOrigDotX = cg.Ox * cg.XDx + cg.Oy * cg.XDy + cg.Oz * cg.XDz;
+                double cOrigDotY = cg.Ox * cg.YDx + cg.Oy * cg.YDy + cg.Oz * cg.YDz;
+                double cOrigDotZ = cg.Ox * cg.ZDx + cg.Oy * cg.ZDy + cg.Oz * cg.ZDz;
 
                 double baseFcx = ((rbX * cg.XDx + rbY * cg.XDy + rbZ * cg.XDz) - cOrigDotX) / cg.XRes;
                 double baseFcy = ((rbX * cg.YDx + rbY * cg.YDy + rbZ * cg.YDz) - cOrigDotY) / cg.YRes;
@@ -557,14 +606,12 @@ namespace ESAPI_EQD2Viewer.Services
 
                     for (int px = 0; px < refW; px++)
                     {
-                        double fx = rowFcx + px * fcxPerPx;
-                        double fy = rowFcy + px * fcyPerPx;
                         double fz = rowFcz + px * fczPerPx;
-
                         int iz = (int)Math.Round(fz);
                         if (iz < 0 || iz >= czSize) continue;
 
-                        int ix = (int)Math.Round(fx), iy = (int)Math.Round(fy);
+                        int ix = (int)Math.Round(rowFcx + px * fcxPerPx);
+                        int iy = (int)Math.Round(rowFcy + px * fcyPerPx);
                         if (ix >= 0 && ix < cxSize && iy >= 0 && iy < cySize)
                             result[ro + px] = cp.CtVoxels[iz][ix, iy] - huOff;
                     }
@@ -575,7 +622,7 @@ namespace ESAPI_EQD2Viewer.Services
         }
 
         // ====================================================================
-        // Dose accumulation (unchanged from original)
+        // Dose accumulation (Fix #7: uses shared ImageUtils.BilinearSampleRaw)
         // ====================================================================
 
         private void AccumulateDirect(CachedPlanData cp, int sliceZ, int refW, int refH, double[] sliceData)
@@ -587,9 +634,7 @@ namespace ESAPI_EQD2Viewer.Services
             double baseWy = rg.Oy + sliceZ * rg.Zy;
             double baseWz = rg.Oz + sliceZ * rg.Zz;
 
-            double diffX = baseWx - dg.Ox;
-            double diffY = baseWy - dg.Oy;
-            double diffZ = baseWz - dg.Oz;
+            double diffX = baseWx - dg.Ox, diffY = baseWy - dg.Oy, diffZ = baseWz - dg.Oz;
 
             double zDose = (diffX * dg.ZDx + diffY * dg.ZDy + diffZ * dg.ZDz) / dg.ZRes;
             int doseSliceZ = (int)Math.Round(zDose);
@@ -621,7 +666,7 @@ namespace ESAPI_EQD2Viewer.Services
                     double fx = rx + px * dxPerPx;
                     double fy = ry + px * dyPerPx;
 
-                    double dGy = BilinearSample(doseSlice, dxSize, dySize, fx, fy, rawScale, rawOffset, unitToGy);
+                    double dGy = ImageUtils.BilinearSampleRaw(doseSlice, dxSize, dySize, fx, fy, rawScale, rawOffset, unitToGy);
                     if (dGy <= 0) continue;
 
                     if (useEqd2)
@@ -653,9 +698,9 @@ namespace ESAPI_EQD2Viewer.Services
             double rbY = M[1, 0] * bwx + M[1, 1] * bwy + M[1, 2] * bwz + M[1, 3];
             double rbZ = M[2, 0] * bwx + M[2, 1] * bwy + M[2, 2] * bwz + M[2, 3];
 
-            double dOrigDotX = (dg.Ox * dg.XDx + dg.Oy * dg.XDy + dg.Oz * dg.XDz);
-            double dOrigDotY = (dg.Ox * dg.YDx + dg.Oy * dg.YDy + dg.Oz * dg.YDz);
-            double dOrigDotZ = (dg.Ox * dg.ZDx + dg.Oy * dg.ZDy + dg.Oz * dg.ZDz);
+            double dOrigDotX = dg.Ox * dg.XDx + dg.Oy * dg.XDy + dg.Oz * dg.XDz;
+            double dOrigDotY = dg.Ox * dg.YDx + dg.Oy * dg.YDy + dg.Oz * dg.YDz;
+            double dOrigDotZ = dg.Ox * dg.ZDx + dg.Oy * dg.ZDy + dg.Oz * dg.ZDz;
 
             double baseFdx = ((rbX * dg.XDx + rbY * dg.XDy + rbZ * dg.XDz) - dOrigDotX) / dg.XRes;
             double baseFdy = ((rbX * dg.YDx + rbY * dg.YDy + rbZ * dg.YDz) - dOrigDotY) / dg.YRes;
@@ -684,45 +729,21 @@ namespace ESAPI_EQD2Viewer.Services
 
                 for (int px = 0; px < refW; px++)
                 {
-                    double fx = rowFdx + px * fdxPerPx;
-                    double fy = rowFdy + px * fdyPerPx;
                     double fz = rowFdz + px * fdzPerPx;
-
                     int iz = (int)Math.Round(fz);
                     if (iz < 0 || iz >= dzSize) continue;
 
+                    double fx = rowFdx + px * fdxPerPx;
+                    double fy = rowFdy + px * fdyPerPx;
+
                     int[,] doseSlice = cp.DoseVoxels[iz];
-                    double dGy = BilinearSample(doseSlice, dxSize, dySize, fx, fy, rawScale, rawOffset, unitToGy);
+                    double dGy = ImageUtils.BilinearSampleRaw(doseSlice, dxSize, dySize, fx, fy, rawScale, rawOffset, unitToGy);
                     if (dGy <= 0) continue;
 
-                    if (useEqd2)
-                        dGy = dGy * dGy * eq + dGy * el;
-
+                    if (useEqd2) dGy = dGy * dGy * eq + dGy * el;
                     sliceData[ro + px] += dGy * weight;
                 }
             }
-        }
-
-        // ====================================================================
-        // Bilinear sampling
-        // ====================================================================
-
-        private static double BilinearSample(int[,] grid, int gw, int gh,
-            double fx, double fy, double rawScale, double rawOffset, double unitToGy)
-        {
-            if (fx < 0 || fy < 0 || fx >= gw - 1 || fy >= gh - 1)
-            {
-                int nx = (int)Math.Round(fx), ny = (int)Math.Round(fy);
-                return (nx >= 0 && nx < gw && ny >= 0 && ny < gh)
-                    ? (grid[nx, ny] * rawScale + rawOffset) * unitToGy : 0;
-            }
-            int x0 = (int)fx, y0 = (int)fy;
-            double tx = fx - x0, ty = fy - y0;
-            double raw = grid[x0, y0] * (1 - tx) * (1 - ty)
-                       + grid[x0 + 1, y0] * tx * (1 - ty)
-                       + grid[x0, y0 + 1] * (1 - tx) * ty
-                       + grid[x0 + 1, y0 + 1] * tx * ty;
-            return (raw * rawScale + rawOffset) * unitToGy;
         }
 
         public double[] GetSummedSlice(int sliceIndex)
@@ -738,6 +759,7 @@ namespace ESAPI_EQD2Viewer.Services
             _disposed = true;
             _summedSlices = null;
             _cachedPlans = null;
+            _structureMasks = null;
         }
 
         // ====================================================================
@@ -762,10 +784,6 @@ namespace ESAPI_EQD2Viewer.Services
             public int XSize, YSize, ZSize;
         }
 
-        /// <summary>
-        /// CT geometry for registration overlay (secondary plan's CT).
-        /// Same layout as CachedDoseGeometry but for CT images.
-        /// </summary>
         private class CachedCtGeometry
         {
             public double Ox, Oy, Oz;
@@ -787,8 +805,6 @@ namespace ESAPI_EQD2Viewer.Services
             public bool UseEQD2;
             public double EQD2Q, EQD2L;
             public double[,] TransformMatrix;
-
-            // CT overlay data (for registration verification)
             public int[][,] CtVoxels;
             public CachedCtGeometry CtGeo;
             public int CtHuOffset;

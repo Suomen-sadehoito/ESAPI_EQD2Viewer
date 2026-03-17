@@ -1,484 +1,170 @@
-﻿<Window x:Class="ESAPI_EQD2Viewer.UI.Views.PlanSummationDialog"
+<Window x:Class="ESAPI_EQD2Viewer.UI.Views.PlanSummationDialog"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Dose Summation — Re-irradiation Assessment"
         Height="700" Width="820"
         WindowStartupLocation="CenterOwner"
-        Background="#0C0E12" Foreground="#F0F2F5"
-        FontFamily="Segoe UI">
+        Background="#0C0E12" Foreground="#F0F2F5" FontFamily="Segoe UI">
 
-	<Window.Resources>
-		<BooleanToVisibilityConverter x:Key="BoolToVis"/>
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/ESAPI_EQD2Viewer;component/UI/Styles/SharedStyles.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+            <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+        </ResourceDictionary>
+    </Window.Resources>
 
-		<Style x:Key="Card" TargetType="Border">
-			<Setter Property="Background" Value="#12151B"/>
-			<Setter Property="BorderBrush" Value="#2A3040"/>
-			<Setter Property="BorderThickness" Value="1"/>
-			<Setter Property="CornerRadius" Value="6"/>
-			<Setter Property="Padding" Value="14,12"/>
-			<Setter Property="Margin" Value="0,0,0,8"/>
-		</Style>
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
 
-		<Style x:Key="Btn" TargetType="Button">
-			<Setter Property="Padding" Value="14,7"/>
-			<Setter Property="Background" Value="#222830"/>
-			<Setter Property="Foreground" Value="#F0F2F5"/>
-			<Setter Property="BorderBrush" Value="#2A3040"/>
-			<Setter Property="BorderThickness" Value="1"/>
-			<Setter Property="FontSize" Value="12"/>
-			<Setter Property="Cursor" Value="Hand"/>
-			<Setter Property="Template">
-				<Setter.Value>
-					<ControlTemplate TargetType="Button">
-						<Border x:Name="bg" Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="4" Padding="{TemplateBinding Padding}">
-							<ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-						</Border>
-						<ControlTemplate.Triggers>
-							<Trigger Property="IsMouseOver" Value="True">
-								<Setter TargetName="bg" Property="Background" Value="#2A3040"/>
-							</Trigger>
-							<Trigger Property="IsEnabled" Value="False">
-								<Setter Property="Opacity" Value="0.4"/>
-							</Trigger>
-						</ControlTemplate.Triggers>
-					</ControlTemplate>
-				</Setter.Value>
-			</Setter>
-		</Style>
+        <!-- HEADER -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,16">
+            <TextBlock Text="Dose Summation" FontSize="18" FontWeight="SemiBold" Foreground="#F0F2F5" Margin="0,0,0,6"/>
+            <TextBlock TextWrapping="Wrap" Foreground="#9BA3B0" FontSize="11.5" LineHeight="18">
+                Configure multi-plan dose summation for re-irradiation assessment.
+                Each plan's dose is converted to EQD2 independently using its own fractionation,
+                then summed voxel-by-voxel on the reference plan's CT grid.
+            </TextBlock>
+        </StackPanel>
 
-		<Style x:Key="BtnPrimary" TargetType="Button" BasedOn="{StaticResource Btn}">
-			<Setter Property="Background" Value="#1A3A2A"/>
-			<Setter Property="BorderBrush" Value="#2A5A3A"/>
-			<Setter Property="Foreground" Value="#4CAF6E"/>
-			<Setter Property="FontWeight" Value="SemiBold"/>
-		</Style>
+        <!-- METHOD + α/β -->
+        <Border Grid.Row="1" Style="{StaticResource Card}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="Method" Foreground="#5C6475" FontSize="10" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                    <RadioButton x:Name="RbEQD2" Content=" EQD2 summation" IsChecked="True" Foreground="#F0F2F5" Margin="0,0,16,0" GroupName="SumMethod" FontSize="11" VerticalContentAlignment="Center"/>
+                    <RadioButton x:Name="RbPhysical" Content=" Physical dose" Foreground="#9BA3B0" GroupName="SumMethod" FontSize="11" VerticalContentAlignment="Center"/>
+                </StackPanel>
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="Global α/β" Foreground="#5C6475" FontSize="10" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <TextBox x:Name="TbAlphaBeta" Text="3.0" Width="48" Background="#222830" Foreground="#F0F2F5" BorderBrush="#2A3040" Padding="6,3" FontSize="11" VerticalContentAlignment="Center"/>
+                    <TextBlock Text=" Gy" Foreground="#5C6475" VerticalAlignment="Center" FontSize="11"/>
+                </StackPanel>
+            </Grid>
+        </Border>
 
-		<!-- ═══════════════════════════════════════════════════════
-             DARK COMBOBOX — full custom template with dark dropdown
-             WPF's default ComboBox popup is white. We override the
-             entire template to make the dropdown dark.
-             ═══════════════════════════════════════════════════════ -->
-
-		<!-- Toggle button for the ComboBox (the clickable area) -->
-		<ControlTemplate x:Key="ComboBoxToggleButton" TargetType="ToggleButton">
-			<Grid>
-				<Grid.ColumnDefinitions>
-					<ColumnDefinition/>
-					<ColumnDefinition Width="20"/>
-				</Grid.ColumnDefinitions>
-				<Border x:Name="Border" Grid.ColumnSpan="2"
-                        Background="#222830" BorderBrush="#2A3040" BorderThickness="1"
-                        CornerRadius="3"/>
-				<Border Grid.Column="0" Background="Transparent" Margin="1"/>
-				<!-- Dropdown arrow -->
-				<Path Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center"
-                      Data="M 0 0 L 4 4 L 8 0 Z" Fill="#9BA3B0"/>
-			</Grid>
-			<ControlTemplate.Triggers>
-				<Trigger Property="IsMouseOver" Value="True">
-					<Setter TargetName="Border" Property="BorderBrush" Value="#363E50"/>
-				</Trigger>
-			</ControlTemplate.Triggers>
-		</ControlTemplate>
-
-		<!-- TextBox inside the editable ComboBox (not used here but needed) -->
-		<ControlTemplate x:Key="ComboBoxTextBox" TargetType="TextBox">
-			<Border x:Name="PART_ContentHost" Focusable="False"
-                    Background="Transparent"/>
-		</ControlTemplate>
-
-		<!-- Full ComboBox style with dark dropdown popup -->
-		<Style x:Key="DarkCombo" TargetType="ComboBox">
-			<Setter Property="Foreground" Value="#F0F2F5"/>
-			<Setter Property="FontSize" Value="11"/>
-			<Setter Property="MinHeight" Value="26"/>
-			<Setter Property="SnapsToDevicePixels" Value="True"/>
-			<Setter Property="OverridesDefaultStyle" Value="True"/>
-			<Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Auto"/>
-			<Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto"/>
-			<Setter Property="ScrollViewer.CanContentScroll" Value="True"/>
-			<Setter Property="Template">
-				<Setter.Value>
-					<ControlTemplate TargetType="ComboBox">
-						<Grid>
-							<ToggleButton x:Name="ToggleButton"
-                                          Template="{StaticResource ComboBoxToggleButton}"
-                                          Focusable="False"
-                                          IsChecked="{Binding Path=IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
-                                          ClickMode="Press"/>
-							<ContentPresenter x:Name="ContentSite"
-                                              IsHitTestVisible="False"
-                                              Content="{TemplateBinding SelectionBoxItem}"
-                                              ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
-                                              ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}"
-                                              Margin="6,3,23,3"
-                                              VerticalAlignment="Center"
-                                              HorizontalAlignment="Left"/>
-							<!-- Dark dropdown popup -->
-							<Popup x:Name="Popup"
-                                   Placement="Bottom"
-                                   IsOpen="{TemplateBinding IsDropDownOpen}"
-                                   AllowsTransparency="True"
-                                   Focusable="False"
-                                   PopupAnimation="Slide">
-								<Grid x:Name="DropDown"
-                                      SnapsToDevicePixels="True"
-                                      MinWidth="{TemplateBinding ActualWidth}"
-                                      MaxHeight="{TemplateBinding MaxDropDownHeight}">
-									<Border x:Name="DropDownBorder"
-                                            Background="#1A1E26"
-                                            BorderBrush="#363E50"
-                                            BorderThickness="1"
-                                            CornerRadius="3"
-                                            Padding="0,2"/>
-									<ScrollViewer Margin="2,4" SnapsToDevicePixels="True">
-										<StackPanel IsItemsHost="True"
-                                                    KeyboardNavigation.DirectionalNavigation="Contained"/>
-									</ScrollViewer>
-								</Grid>
-							</Popup>
-						</Grid>
-					</ControlTemplate>
-				</Setter.Value>
-			</Setter>
-			<!-- Dark dropdown item style -->
-			<Setter Property="ItemContainerStyle">
-				<Setter.Value>
-					<Style TargetType="ComboBoxItem">
-						<Setter Property="Foreground" Value="#F0F2F5"/>
-						<Setter Property="Background" Value="Transparent"/>
-						<Setter Property="Padding" Value="6,4"/>
-						<Setter Property="FontSize" Value="11"/>
-						<Setter Property="Template">
-							<Setter.Value>
-								<ControlTemplate TargetType="ComboBoxItem">
-									<Border x:Name="Bd"
-                                            Background="{TemplateBinding Background}"
-                                            Padding="{TemplateBinding Padding}">
-										<ContentPresenter/>
-									</Border>
-									<ControlTemplate.Triggers>
-										<Trigger Property="IsHighlighted" Value="True">
-											<Setter TargetName="Bd" Property="Background" Value="#2A3040"/>
-										</Trigger>
-										<Trigger Property="IsSelected" Value="True">
-											<Setter TargetName="Bd" Property="Background" Value="#1A3A2A"/>
-										</Trigger>
-									</ControlTemplate.Triggers>
-								</ControlTemplate>
-							</Setter.Value>
-						</Setter>
-					</Style>
-				</Setter.Value>
-			</Setter>
-		</Style>
-	</Window.Resources>
-
-	<Grid Margin="20">
-		<Grid.RowDefinitions>
-			<RowDefinition Height="Auto"/>
-			<RowDefinition Height="Auto"/>
-			<RowDefinition Height="*"/>
-			<RowDefinition Height="Auto"/>
-			<RowDefinition Height="Auto"/>
-			<RowDefinition Height="Auto"/>
-		</Grid.RowDefinitions>
-
-		<!-- ═══ HEADER ═══ -->
-		<StackPanel Grid.Row="0" Margin="0,0,0,16">
-			<TextBlock Text="Dose Summation" FontSize="18" FontWeight="SemiBold"
-                       Foreground="#F0F2F5" Margin="0,0,0,6"/>
-			<TextBlock TextWrapping="Wrap" Foreground="#9BA3B0" FontSize="11.5" LineHeight="18">
-				Configure multi-plan dose summation for re-irradiation assessment.
-				Each plan's dose is converted to EQD2 independently using its own fractionation,
-				then summed voxel-by-voxel on the reference plan's CT grid.
-			</TextBlock>
-		</StackPanel>
-
-		<!-- ═══ METHOD + α/β ═══ -->
-		<Border Grid.Row="1" Style="{StaticResource Card}">
-			<Grid>
-				<Grid.ColumnDefinitions>
-					<ColumnDefinition Width="Auto"/>
-					<ColumnDefinition Width="*"/>
-					<ColumnDefinition Width="Auto"/>
-				</Grid.ColumnDefinitions>
-
-				<StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-					<TextBlock Text="Method" Foreground="#5C6475" FontSize="10" FontWeight="SemiBold"
-                               VerticalAlignment="Center" Margin="0,0,12,0"/>
-					<RadioButton x:Name="RbEQD2" Content=" EQD2 summation" IsChecked="True"
-                                 Foreground="#F0F2F5" Margin="0,0,16,0" GroupName="SumMethod"
-                                 FontSize="11" VerticalContentAlignment="Center"/>
-					<RadioButton x:Name="RbPhysical" Content=" Physical dose"
-                                 Foreground="#9BA3B0" GroupName="SumMethod"
-                                 FontSize="11" VerticalContentAlignment="Center"/>
-				</StackPanel>
-
-				<StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-					<TextBlock Text="Global α/β" Foreground="#5C6475" FontSize="10" FontWeight="SemiBold"
-                               VerticalAlignment="Center" Margin="0,0,8,0"/>
-					<TextBox x:Name="TbAlphaBeta" Text="3.0" Width="48" Background="#222830"
-                             Foreground="#F0F2F5" BorderBrush="#2A3040" Padding="6,3"
-                             FontSize="11" VerticalContentAlignment="Center"
-                             ToolTip="Tissue-specific α/β ratio. Adjustable from main window after computation."/>
-					<TextBlock Text=" Gy" Foreground="#5C6475" VerticalAlignment="Center" FontSize="11"/>
-				</StackPanel>
-			</Grid>
-		</Border>
-
-		<!-- ═══ PLAN TABLE ═══ -->
-		<Border Grid.Row="2" Style="{StaticResource Card}" Padding="0" Margin="0,0,0,8">
-			<Grid>
-				<Grid.RowDefinitions>
-					<RowDefinition Height="Auto"/>
-					<RowDefinition Height="*"/>
-				</Grid.RowDefinitions>
-
-				<Border Grid.Row="0" Background="#1A1E26" Padding="14,8" CornerRadius="6,6,0,0"
-                        BorderBrush="#2A3040" BorderThickness="0,0,0,1">
-					<TextBlock Foreground="#5C6475" FontSize="10">
-						<Run FontWeight="SemiBold">Include</Run>
-						<Run Text=" — select plans to sum  |  "/>
-						<Run FontWeight="SemiBold">Ref</Run>
-						<Run Text=" — reference CT grid (one only)  |  "/>
-						<Run FontWeight="SemiBold">Fx</Run>
-						<Run Text=" — fractions (editable)  |  "/>
-						<Run FontWeight="SemiBold">Wt</Run>
-						<Run Text=" — weight factor  |  "/>
-						<Run FontWeight="SemiBold">Registration</Run>
-						<Run Text=" — spatial mapping to reference CT"/>
-					</TextBlock>
-				</Border>
-
-				<DataGrid Grid.Row="1" x:Name="PlanGrid"
-                          AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False"
+        <!-- PLAN TABLE -->
+        <Border Grid.Row="2" Style="{StaticResource Card}" Padding="0" Margin="0,0,0,8">
+            <Grid>
+                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                <Border Grid.Row="0" Background="#1A1E26" Padding="14,8" CornerRadius="6,6,0,0" BorderBrush="#2A3040" BorderThickness="0,0,0,1">
+                    <TextBlock Foreground="#5C6475" FontSize="10">
+                        <Run FontWeight="SemiBold">Include</Run><Run Text=" — select plans  |  "/>
+                        <Run FontWeight="SemiBold">Ref</Run><Run Text=" — reference CT grid  |  "/>
+                        <Run FontWeight="SemiBold">Fx</Run><Run Text=" — fractions  |  "/>
+                        <Run FontWeight="SemiBold">Wt</Run><Run Text=" — weight  |  "/>
+                        <Run FontWeight="SemiBold">Registration</Run><Run Text=" — spatial mapping"/>
+                    </TextBlock>
+                </Border>
+                <DataGrid Grid.Row="1" x:Name="PlanGrid" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False"
                           SelectionMode="Single" SelectionUnit="FullRow"
-                          Background="#0C0E12" Foreground="#F0F2F5"
-                          RowBackground="#12151B" AlternatingRowBackground="#161B22"
-                          GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="#1A1E26"
-                          BorderThickness="0" FontSize="11"
-                          HeadersVisibility="Column"
-                          RowHeight="32">
-					<DataGrid.ColumnHeaderStyle>
-						<Style TargetType="DataGridColumnHeader">
-							<Setter Property="Background" Value="#1A1E26"/>
-							<Setter Property="Foreground" Value="#5C6475"/>
-							<Setter Property="Padding" Value="8,6"/>
-							<Setter Property="FontSize" Value="10"/>
-							<Setter Property="FontWeight" Value="SemiBold"/>
-							<Setter Property="BorderThickness" Value="0"/>
-						</Style>
-					</DataGrid.ColumnHeaderStyle>
-					<DataGrid.Columns>
-						<DataGridCheckBoxColumn Header="Include" Width="55"
-                            Binding="{Binding IsIncluded, UpdateSourceTrigger=PropertyChanged}"/>
+                          Background="#0C0E12" Foreground="#F0F2F5" RowBackground="#12151B" AlternatingRowBackground="#161B22"
+                          GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="#1A1E26" BorderThickness="0" FontSize="11" HeadersVisibility="Column" RowHeight="32">
+                    <DataGrid.ColumnHeaderStyle><Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource GridHeader}"/></DataGrid.ColumnHeaderStyle>
+                    <DataGrid.Columns>
+                        <DataGridCheckBoxColumn Header="Include" Width="55" Binding="{Binding IsIncluded, UpdateSourceTrigger=PropertyChanged}"/>
+                        <DataGridTemplateColumn Header="Ref" Width="35">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <RadioButton IsChecked="{Binding IsReference, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}" GroupName="ReferencePlan" HorizontalAlignment="Center"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTextColumn Header="Course" Width="75" IsReadOnly="True" Binding="{Binding CourseId}">
+                            <DataGridTextColumn.ElementStyle><Style TargetType="TextBlock"><Setter Property="Foreground" Value="#F0F2F5"/></Style></DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="Plan" Width="75" IsReadOnly="True" Binding="{Binding PlanId}">
+                            <DataGridTextColumn.ElementStyle><Style TargetType="TextBlock"><Setter Property="Foreground" Value="#F0F2F5"/></Style></DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="Image" Width="65" IsReadOnly="True" Binding="{Binding ImageId}">
+                            <DataGridTextColumn.ElementStyle><Style TargetType="TextBlock"><Setter Property="Foreground" Value="#5C6475"/></Style></DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="FOR" Width="70" IsReadOnly="True" Binding="{Binding ShortFOR}">
+                            <DataGridTextColumn.ElementStyle><Style TargetType="TextBlock"><Setter Property="Foreground" Value="#5C6475"/><Setter Property="FontFamily" Value="Consolas"/><Setter Property="FontSize" Value="9"/><Setter Property="ToolTip" Value="{Binding ImageFOR}"/></Style></DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="Dose (Gy)" Width="65" IsReadOnly="True" Binding="{Binding TotalDoseGy, StringFormat=F1}">
+                            <DataGridTextColumn.ElementStyle><Style TargetType="TextBlock"><Setter Property="Foreground" Value="#9BA3B0"/></Style></DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="Fx" Width="38" Binding="{Binding NumberOfFractions, UpdateSourceTrigger=PropertyChanged}">
+                            <DataGridTextColumn.ElementStyle><Style TargetType="TextBlock"><Setter Property="Foreground" Value="#F0F2F5"/></Style></DataGridTextColumn.ElementStyle>
+                            <DataGridTextColumn.EditingElementStyle><Style TargetType="TextBox"><Setter Property="Background" Value="#222830"/><Setter Property="Foreground" Value="#F0F2F5"/></Style></DataGridTextColumn.EditingElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="Wt" Width="38" Binding="{Binding Weight, StringFormat=F1, UpdateSourceTrigger=PropertyChanged}">
+                            <DataGridTextColumn.ElementStyle><Style TargetType="TextBlock"><Setter Property="Foreground" Value="#F0F2F5"/></Style></DataGridTextColumn.ElementStyle>
+                            <DataGridTextColumn.EditingElementStyle><Style TargetType="TextBox"><Setter Property="Background" Value="#222830"/><Setter Property="Foreground" Value="#F0F2F5"/></Style></DataGridTextColumn.EditingElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTemplateColumn Header="Registration" Width="*" MinWidth="180">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Grid>
+                                        <TextBlock Text="Reference CT — base grid" Foreground="#4CAF6E" FontSize="10.5" FontStyle="Italic" VerticalAlignment="Center" Padding="6,0">
+                                            <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers><DataTrigger Binding="{Binding IsReference}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers>
+                                            </Style></TextBlock.Style>
+                                        </TextBlock>
+                                        <ComboBox ItemsSource="{Binding RelevantRegistrations}" SelectedValue="{Binding SelectedRegistrationId, UpdateSourceTrigger=PropertyChanged}" SelectedValuePath="Id" DisplayMemberPath="DisplayName">
+                                            <ComboBox.Style><Style TargetType="ComboBox" BasedOn="{StaticResource DarkCombo}"><Setter Property="Visibility" Value="Visible"/>
+                                                <Style.Triggers><DataTrigger Binding="{Binding IsReference}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers>
+                                            </Style></ComboBox.Style>
+                                        </ComboBox>
+                                    </Grid>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Grid>
+        </Border>
 
-						<DataGridTemplateColumn Header="Ref" Width="35">
-							<DataGridTemplateColumn.CellTemplate>
-								<DataTemplate>
-									<RadioButton IsChecked="{Binding IsReference, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"
-                                                 GroupName="ReferencePlan" HorizontalAlignment="Center"/>
-								</DataTemplate>
-							</DataGridTemplateColumn.CellTemplate>
-						</DataGridTemplateColumn>
+        <!-- FORMULA -->
+        <Border Grid.Row="3" Style="{StaticResource Card}" Margin="0,0,0,8">
+            <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <StackPanel>
+                    <TextBlock Foreground="#5C6475" FontSize="10" FontWeight="SemiBold" Margin="0,0,0,4">HOW IT WORKS</TextBlock>
+                    <TextBlock Foreground="#9BA3B0" FontSize="10.5" TextWrapping="Wrap" LineHeight="16">
+                        Each plan's dose is converted to EQD2 voxel-by-voxel, mapped via registration, and summed.
+                        DVH is automatically calculated for structures in the reference plan's structure set.
+                    </TextBlock>
+                </StackPanel>
+                <Border Grid.Column="1" Background="#1A1E26" CornerRadius="4" Padding="12,8" Margin="12,0,0,0" VerticalAlignment="Center">
+                    <TextBlock Foreground="#4CAF6E" FontSize="10.5" FontFamily="Consolas" TextAlignment="Center">
+                        EQD2 = Σᵢ Dᵢ·(dᵢ + α/β)/(2 + α/β)
+                    </TextBlock>
+                </Border>
+            </Grid>
+        </Border>
 
-						<DataGridTextColumn Header="Course" Width="75" IsReadOnly="True"
-                            Binding="{Binding CourseId}">
-							<DataGridTextColumn.ElementStyle>
-								<Style TargetType="TextBlock">
-									<Setter Property="Foreground" Value="#F0F2F5"/>
-								</Style>
-							</DataGridTextColumn.ElementStyle>
-						</DataGridTextColumn>
+        <!-- DEBUG -->
+        <Expander Grid.Row="4" Header="Registration diagnostics" Foreground="#5C6475" FontSize="10" Margin="0,0,0,8" IsExpanded="False">
+            <Border Background="#12151B" BorderBrush="#2A3040" BorderThickness="1" CornerRadius="0,0,6,6" Padding="10,8">
+                <Grid>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                    <Button Grid.Row="0" Content="Copy debug report to clipboard" Click="CopyDebug_Click" HorizontalAlignment="Left" Padding="8,4" Margin="0,0,0,6"
+                            Background="#1A2A3A" Foreground="#4C9EEB" BorderBrush="#2A3A5A" FontSize="10" Cursor="Hand"/>
+                    <ScrollViewer Grid.Row="1" MaxHeight="200" VerticalScrollBarVisibility="Auto">
+                        <TextBlock x:Name="TbDebugInfo" Foreground="#9BA3B0" FontSize="9.5" FontFamily="Consolas" TextWrapping="Wrap"/>
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+        </Expander>
 
-						<DataGridTextColumn Header="Plan" Width="75" IsReadOnly="True"
-                            Binding="{Binding PlanId}">
-							<DataGridTextColumn.ElementStyle>
-								<Style TargetType="TextBlock">
-									<Setter Property="Foreground" Value="#F0F2F5"/>
-								</Style>
-							</DataGridTextColumn.ElementStyle>
-						</DataGridTextColumn>
-
-						<DataGridTextColumn Header="Image" Width="65" IsReadOnly="True"
-                            Binding="{Binding ImageId}">
-							<DataGridTextColumn.ElementStyle>
-								<Style TargetType="TextBlock">
-									<Setter Property="Foreground" Value="#5C6475"/>
-								</Style>
-							</DataGridTextColumn.ElementStyle>
-						</DataGridTextColumn>
-
-						<DataGridTextColumn Header="FOR" Width="70" IsReadOnly="True"
-                            Binding="{Binding ShortFOR}"
-                            ToolTipService.ToolTip="Frame of Reference UID — plans on same CT share the same FOR">
-							<DataGridTextColumn.ElementStyle>
-								<Style TargetType="TextBlock">
-									<Setter Property="Foreground" Value="#5C6475"/>
-									<Setter Property="FontFamily" Value="Consolas"/>
-									<Setter Property="FontSize" Value="9"/>
-									<Setter Property="ToolTip" Value="{Binding ImageFOR}"/>
-								</Style>
-							</DataGridTextColumn.ElementStyle>
-						</DataGridTextColumn>
-
-						<DataGridTextColumn Header="Dose (Gy)" Width="65" IsReadOnly="True"
-                            Binding="{Binding TotalDoseGy, StringFormat=F1}">
-							<DataGridTextColumn.ElementStyle>
-								<Style TargetType="TextBlock">
-									<Setter Property="Foreground" Value="#9BA3B0"/>
-								</Style>
-							</DataGridTextColumn.ElementStyle>
-						</DataGridTextColumn>
-
-						<DataGridTextColumn Header="Fx" Width="38"
-                            Binding="{Binding NumberOfFractions, UpdateSourceTrigger=PropertyChanged}">
-							<DataGridTextColumn.ElementStyle>
-								<Style TargetType="TextBlock">
-									<Setter Property="Foreground" Value="#F0F2F5"/>
-								</Style>
-							</DataGridTextColumn.ElementStyle>
-							<DataGridTextColumn.EditingElementStyle>
-								<Style TargetType="TextBox">
-									<Setter Property="Background" Value="#222830"/>
-									<Setter Property="Foreground" Value="#F0F2F5"/>
-								</Style>
-							</DataGridTextColumn.EditingElementStyle>
-						</DataGridTextColumn>
-
-						<DataGridTextColumn Header="Wt" Width="38"
-                            Binding="{Binding Weight, StringFormat=F1, UpdateSourceTrigger=PropertyChanged}">
-							<DataGridTextColumn.ElementStyle>
-								<Style TargetType="TextBlock">
-									<Setter Property="Foreground" Value="#F0F2F5"/>
-								</Style>
-							</DataGridTextColumn.ElementStyle>
-							<DataGridTextColumn.EditingElementStyle>
-								<Style TargetType="TextBox">
-									<Setter Property="Background" Value="#222830"/>
-									<Setter Property="Foreground" Value="#F0F2F5"/>
-								</Style>
-							</DataGridTextColumn.EditingElementStyle>
-						</DataGridTextColumn>
-
-						<!-- ═══════════════════════════════════════
-                             REGISTRATION COLUMN
-                             Reference → static green text
-                             Non-reference → dark ComboBox with filtered registrations
-                             ═══════════════════════════════════════ -->
-						<DataGridTemplateColumn Header="Registration" Width="*" MinWidth="180">
-							<DataGridTemplateColumn.CellTemplate>
-								<DataTemplate>
-									<Grid>
-										<!-- Reference plan: no registration needed -->
-										<TextBlock Text="Reference CT — base grid"
-                                                   Foreground="#4CAF6E" FontSize="10.5"
-                                                   FontStyle="Italic" VerticalAlignment="Center"
-                                                   Padding="6,0">
-											<TextBlock.Style>
-												<Style TargetType="TextBlock">
-													<Setter Property="Visibility" Value="Collapsed"/>
-													<Style.Triggers>
-														<DataTrigger Binding="{Binding IsReference}" Value="True">
-															<Setter Property="Visibility" Value="Visible"/>
-														</DataTrigger>
-													</Style.Triggers>
-												</Style>
-											</TextBlock.Style>
-										</TextBlock>
-
-										<!-- Non-reference: ComboBox with dark dropdown -->
-										<ComboBox ItemsSource="{Binding RelevantRegistrations}"
-                                                  SelectedValue="{Binding SelectedRegistrationId, UpdateSourceTrigger=PropertyChanged}"
-                                                  SelectedValuePath="Id"
-                                                  DisplayMemberPath="DisplayName">
-											<ComboBox.Style>
-												<Style TargetType="ComboBox" BasedOn="{StaticResource DarkCombo}">
-													<Setter Property="Visibility" Value="Visible"/>
-													<Style.Triggers>
-														<DataTrigger Binding="{Binding IsReference}" Value="True">
-															<Setter Property="Visibility" Value="Collapsed"/>
-														</DataTrigger>
-													</Style.Triggers>
-												</Style>
-											</ComboBox.Style>
-										</ComboBox>
-									</Grid>
-								</DataTemplate>
-							</DataGridTemplateColumn.CellTemplate>
-						</DataGridTemplateColumn>
-					</DataGrid.Columns>
-				</DataGrid>
-			</Grid>
-		</Border>
-
-		<!-- ═══ FORMULA + HINTS ═══ -->
-		<Border Grid.Row="3" Style="{StaticResource Card}" Margin="0,0,0,8">
-			<Grid>
-				<Grid.ColumnDefinitions>
-					<ColumnDefinition Width="*"/>
-					<ColumnDefinition Width="Auto"/>
-				</Grid.ColumnDefinitions>
-
-				<StackPanel Grid.Column="0">
-					<TextBlock Foreground="#5C6475" FontSize="10" FontWeight="SemiBold" Margin="0,0,0,4">
-						HOW IT WORKS
-					</TextBlock>
-					<TextBlock Foreground="#9BA3B0" FontSize="10.5" TextWrapping="Wrap" LineHeight="16">
-						Each plan's dose is converted to EQD2 voxel-by-voxel using its fractionation schedule,
-						then mapped to the reference CT via the selected registration and summed.
-						The α/β value can be adjusted from the main window slider after computation.
-					</TextBlock>
-				</StackPanel>
-
-				<Border Grid.Column="1" Background="#1A1E26" CornerRadius="4" Padding="12,8" Margin="12,0,0,0"
-                        VerticalAlignment="Center">
-					<TextBlock Foreground="#4CAF6E" FontSize="10.5" FontFamily="Consolas" TextAlignment="Center">
-						EQD2 = Σᵢ Dᵢ·(dᵢ + α/β)/(2 + α/β)
-					</TextBlock>
-				</Border>
-			</Grid>
-		</Border>
-
-		<!-- ═══ DEBUG: Registration diagnostics ═══ -->
-		<Expander Grid.Row="4" Header="Registration diagnostics" Foreground="#5C6475"
-                  FontSize="10" Margin="0,0,0,8" IsExpanded="False">
-			<Border Background="#12151B" BorderBrush="#2A3040" BorderThickness="1"
-                    CornerRadius="0,0,6,6" Padding="10,8">
-				<Grid>
-					<Grid.RowDefinitions>
-						<RowDefinition Height="Auto"/>
-						<RowDefinition Height="*"/>
-					</Grid.RowDefinitions>
-					<Button Grid.Row="0" Content="Copy debug report to clipboard"
-                            Click="CopyDebug_Click" HorizontalAlignment="Left"
-                            Padding="8,4" Margin="0,0,0,6"
-                            Background="#1A2A3A" Foreground="#4C9EEB" BorderBrush="#2A3A5A"
-                            FontSize="10" Cursor="Hand"/>
-					<ScrollViewer Grid.Row="1" MaxHeight="200" VerticalScrollBarVisibility="Auto">
-						<TextBlock x:Name="TbDebugInfo" Foreground="#9BA3B0" FontSize="9.5"
-                                   FontFamily="Consolas" TextWrapping="Wrap"/>
-					</ScrollViewer>
-				</Grid>
-			</Border>
-		</Expander>
-
-		<!-- ═══ ACTION BUTTONS ═══ -->
-		<Grid Grid.Row="5">
-			<Grid.ColumnDefinitions>
-				<ColumnDefinition Width="*"/>
-				<ColumnDefinition Width="Auto"/>
-				<ColumnDefinition Width="Auto"/>
-			</Grid.ColumnDefinitions>
-
-			<Button Grid.Column="1" Content="Compute summation" Style="{StaticResource BtnPrimary}"
-                    Click="Compute_Click" IsDefault="True" Width="160" Margin="0,0,8,0"/>
-			<Button Grid.Column="2" Content="Cancel" Style="{StaticResource Btn}"
-                    IsCancel="True" Width="80"/>
-		</Grid>
-	</Grid>
+        <!-- ACTIONS -->
+        <Grid Grid.Row="5">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+            <Button Grid.Column="1" Content="Compute summation" Style="{StaticResource BtnPrimary}" Click="Compute_Click" IsDefault="True" Width="160" Margin="0,0,8,0" FontWeight="SemiBold"/>
+            <Button Grid.Column="2" Content="Cancel" Style="{StaticResource Btn}" IsCancel="True" Width="80"/>
+        </Grid>
+    </Grid>
 </Window>

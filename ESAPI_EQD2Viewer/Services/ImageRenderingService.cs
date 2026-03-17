@@ -1,5 +1,6 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -9,6 +10,7 @@ using ESAPI_EQD2Viewer.Core.Interfaces;
 using ESAPI_EQD2Viewer.Core.Extensions;
 using ESAPI_EQD2Viewer.Core.Models;
 using ESAPI_EQD2Viewer.Core.Calculations;
+using ESAPI_EQD2Viewer.Core.Logging;
 
 namespace ESAPI_EQD2Viewer.Services
 {
@@ -30,11 +32,8 @@ namespace ESAPI_EQD2Viewer.Services
 
         public void Initialize(int width, int height)
         {
-            if (width <= 0)
-                throw new ArgumentOutOfRangeException(nameof(width), "Width must be positive.");
-            if (height <= 0)
-                throw new ArgumentOutOfRangeException(nameof(height), "Height must be positive.");
-
+            if (width <= 0) throw new ArgumentOutOfRangeException(nameof(width));
+            if (height <= 0) throw new ArgumentOutOfRangeException(nameof(height));
             _width = width;
             _height = height;
         }
@@ -49,7 +48,9 @@ namespace ESAPI_EQD2Viewer.Services
                     _ctCache[z] = new int[ctImage.XSize, ctImage.YSize];
                     ctImage.GetVoxels(z, _ctCache[z]);
                 }
-                _huOffset = DetermineHuOffset(ctImage);
+
+                int midSlice = ctImage.ZSize / 2;
+                _huOffset = ImageUtils.DetermineHuOffset(_ctCache[midSlice], ctImage.XSize, ctImage.YSize);
             }
 
             if (dose != null)
@@ -62,9 +63,9 @@ namespace ESAPI_EQD2Viewer.Services
                 }
 
                 DoseValue dv0 = dose.VoxelToDoseValue(0);
-                DoseValue dvRef = dose.VoxelToDoseValue(10000);
+                DoseValue dvRef = dose.VoxelToDoseValue(RenderConstants.DoseCalibrationRawValue);
 
-                _doseRawScale = (dvRef.Dose - dv0.Dose) / 10000.0;
+                _doseRawScale = (dvRef.Dose - dv0.Dose) / (double)RenderConstants.DoseCalibrationRawValue;
                 _doseRawOffset = dv0.Dose;
 
                 if (dvRef.Unit == DoseValue.DoseUnit.Percent)
@@ -78,28 +79,20 @@ namespace ESAPI_EQD2Viewer.Services
             }
         }
 
-        private int DetermineHuOffset(Image ctImage)
+        // ================================================================
+        // Fix #1: Stride assertion helper
+        // ================================================================
+        private static void AssertBitmapCompatible(WriteableBitmap bmp, int width, int height)
         {
-            int midSlice = ctImage.ZSize / 2;
-            if (_ctCache == null || midSlice < 0 || midSlice >= _ctCache.Length)
-                return 0;
-
-            int[,] slice = _ctCache[midSlice];
-            int xSize = ctImage.XSize;
-            int ySize = ctImage.YSize;
-            int step = 8;
-            int countAboveThreshold = 0;
-            int totalSamples = 0;
-
-            for (int y = 0; y < ySize; y += step)
-                for (int x = 0; x < xSize; x += step)
-                {
-                    totalSamples++;
-                    if (slice[x, y] > 30000) countAboveThreshold++;
-                }
-
-            return (totalSamples > 0 && countAboveThreshold > totalSamples / 2) ? 32768 : 0;
+            Debug.Assert(bmp.PixelWidth == width && bmp.PixelHeight == height,
+                $"Bitmap size mismatch: expected {width}x{height}, got {bmp.PixelWidth}x{bmp.PixelHeight}");
+            Debug.Assert(bmp.BackBufferStride >= width * 4,
+                $"Stride too small: {bmp.BackBufferStride} < {width * 4}");
         }
+
+        // ================================================================
+        // CT Rendering
+        // ================================================================
 
         public unsafe void RenderCtImage(Image ctImage, WriteableBitmap targetBitmap, int currentSlice,
             double windowLevel, double windowWidth)
@@ -108,6 +101,8 @@ namespace ESAPI_EQD2Viewer.Services
 
             int[,] currentCtSlice = _ctCache[currentSlice];
             if (currentCtSlice.GetLength(0) != _width || currentCtSlice.GetLength(1) != _height) return;
+
+            AssertBitmapCompatible(targetBitmap, _width, _height);
 
             targetBitmap.Lock();
             try
@@ -134,7 +129,9 @@ namespace ESAPI_EQD2Viewer.Services
             finally { targetBitmap.Unlock(); }
         }
 
-        #region Shared: Dose Grid Computation
+        // ================================================================
+        // Shared: Dose Grid Computation
+        // ================================================================
 
         private DoseGridData PrepareDoseGrid(Image ctImage, Dose dose, int currentSlice,
             double planTotalDoseGy, double planNormalization, EQD2Settings eqd2Settings)
@@ -146,11 +143,14 @@ namespace ESAPI_EQD2Viewer.Services
 
             double prescriptionGy = planTotalDoseGy;
             double normalization = planNormalization;
-            if (double.IsNaN(normalization) || normalization <= 0) normalization = 100.0;
-            else if (normalization < 5.0) normalization *= 100.0;
+            if (double.IsNaN(normalization) || normalization <= 0)
+                normalization = 100.0;
+            else if (normalization < RenderConstants.NormalizationFractionThreshold)
+                normalization *= 100.0;
 
             double referenceDoseGy = prescriptionGy * (normalization / 100.0);
-            if (referenceDoseGy < 0.1) referenceDoseGy = prescriptionGy;
+            if (referenceDoseGy < RenderConstants.MinReferenceDoseGy)
+                referenceDoseGy = prescriptionGy;
 
             bool eqd2Active = eqd2Settings != null && eqd2Settings.IsEnabled
                               && eqd2Settings.NumberOfFractions > 0 && eqd2Settings.AlphaBeta > 0;
@@ -203,7 +203,6 @@ namespace ESAPI_EQD2Viewer.Services
             result.DyPerPx = ctImage.XRes * ctImage.XDirection.Dot(dose.YDirection) / dose.YRes;
             result.DyPerPy = ctImage.YRes * ctImage.YDirection.Dot(dose.YDirection) / dose.YRes;
 
-            string label = eqd2Active ? "EQD2" : "Physical";
             result.StatusText = $"CT Z: {currentSlice} | Dose Z: {doseSlice} | " +
                                 $"Max: {maxDose:F2} Gy | Ref: {referenceDoseGy:F2} Gy";
             return result;
@@ -218,7 +217,7 @@ namespace ESAPI_EQD2Viewer.Services
                 double rxBase = g.BaseX + py * g.DxPerPy;
                 double ryBase = g.BaseY + py * g.DyPerPy;
                 for (int px = 0; px < w; px++)
-                    map[py * w + px] = BilinearSample(g.DoseGyGrid, g.DoseWidth, g.DoseHeight,
+                    map[py * w + px] = ImageUtils.BilinearSample(g.DoseGyGrid, g.DoseWidth, g.DoseHeight,
                         rxBase + px * g.DxPerPx, ryBase + px * g.DyPerPx);
             }
             return map;
@@ -235,16 +234,17 @@ namespace ESAPI_EQD2Viewer.Services
             public bool IsValid => DoseGyGrid != null;
         }
 
-        #endregion
-
-        #region RenderDoseImage (Fill & Colorwash bitmap; Line mode clears only)
+        // ================================================================
+        // Dose Rendering
+        // ================================================================
 
         public unsafe string RenderDoseImage(Image ctImage, Dose dose, WriteableBitmap targetBitmap,
             int currentSlice, double planTotalDoseGy, double planNormalization, IsodoseLevel[] levels,
-            DoseDisplayMode displayMode = DoseDisplayMode.Line,
-            double colorwashOpacity = 0.5, double colorwashMinPercent = 0.1,
-            EQD2Settings eqd2Settings = null)
+            DoseDisplayMode displayMode, double colorwashOpacity, double colorwashMinPercent,
+            EQD2Settings eqd2Settings)
         {
+            AssertBitmapCompatible(targetBitmap, _width, _height);
+
             targetBitmap.Lock();
             try
             {
@@ -284,13 +284,13 @@ namespace ESAPI_EQD2Viewer.Services
             finally { targetBitmap.Unlock(); }
         }
 
-        #endregion
-
-        #region Vector Contours (Line mode — marching squares)
+        // ================================================================
+        // Vector Contours
+        // ================================================================
 
         public ContourGenerationResult GenerateVectorContours(Image ctImage, Dose dose, int currentSlice,
             double planTotalDoseGy, double planNormalization, IsodoseLevel[] levels,
-            EQD2Settings eqd2Settings = null)
+            EQD2Settings eqd2Settings)
         {
             var result = new ContourGenerationResult { Contours = new List<IsodoseContourData>() };
 
@@ -325,7 +325,7 @@ namespace ESAPI_EQD2Viewer.Services
                 geometry.Freeze();
 
                 uint c = levels[i].Color;
-                var brush = new SolidColorBrush(System.Windows.Media.Color.FromRgb(
+                var brush = new SolidColorBrush(Color.FromRgb(
                     (byte)((c >> 16) & 0xFF), (byte)((c >> 8) & 0xFF), (byte)(c & 0xFF)));
                 brush.Freeze();
 
@@ -342,26 +342,113 @@ namespace ESAPI_EQD2Viewer.Services
             return result;
         }
 
-        #endregion
+        // ================================================================
+        // Structure Contours (NEW)
+        // ================================================================
 
-        #region Bilinear Interpolation
-
-        private static double BilinearSample(double[,] grid, int gw, int gh, double fx, double fy)
+        public List<StructureContourData> GenerateStructureContours(Image ctImage, int currentSlice,
+            IEnumerable<Structure> structures)
         {
-            if (fx < 0 || fy < 0 || fx >= gw - 1 || fy >= gh - 1)
+            var result = new List<StructureContourData>();
+            if (structures == null || ctImage == null) return result;
+
+            foreach (var structure in structures)
             {
-                int nx = (int)Math.Round(fx), ny = (int)Math.Round(fy);
-                return (nx >= 0 && nx < gw && ny >= 0 && ny < gh) ? grid[nx, ny] : 0;
+                try
+                {
+                    var contours = structure.MeshGeometry; // check if structure has geometry
+                    if (contours == null) continue;
+
+                    // Get contour points on this image plane
+                    var contourPoints = structure.GetContoursOnImagePlane(currentSlice);
+                    if (contourPoints == null || contourPoints.Length == 0) continue;
+
+                    var geometry = new StreamGeometry();
+                    using (var ctx = geometry.Open())
+                    {
+                        foreach (var contour in contourPoints)
+                        {
+                            if (contour.Length < 3) continue;
+
+                            // Convert DICOM mm to CT pixel coordinates
+                            var firstPt = WorldToPixel(contour[0], ctImage);
+                            ctx.BeginFigure(firstPt, false, true); // closed contour
+
+                            for (int i = 1; i < contour.Length; i++)
+                            {
+                                ctx.LineTo(WorldToPixel(contour[i], ctImage), true, false);
+                            }
+                        }
+                    }
+                    geometry.Freeze();
+
+                    var brush = new SolidColorBrush(Color.FromArgb(
+                        structure.Color.A, structure.Color.R, structure.Color.G, structure.Color.B));
+                    brush.Freeze();
+
+                    var contourData = new StructureContourData
+                    {
+                        Geometry = geometry,
+                        Stroke = brush,
+                        StrokeThickness = RenderConstants.StructureContourThickness,
+                        StructureId = structure.Id
+                    };
+
+                    // Dashed line for support structures
+                    if (structure.DicomType == "SUPPORT" || structure.DicomType == "EXTERNAL")
+                    {
+                        contourData.StrokeDashArray = new DoubleCollection { 4, 2 };
+                        contourData.StrokeDashArray.Freeze();
+                    }
+
+                    result.Add(contourData);
+                }
+                catch (Exception ex)
+                {
+                    SimpleLogger.Warning($"Could not render structure '{structure.Id}': {ex.Message}");
+                }
             }
-            int x0 = (int)fx, y0 = (int)fy;
-            double tx = fx - x0, ty = fy - y0;
-            return grid[x0, y0] * (1 - tx) * (1 - ty) + grid[x0 + 1, y0] * tx * (1 - ty)
-                 + grid[x0, y0 + 1] * (1 - tx) * ty + grid[x0 + 1, y0 + 1] * tx * ty;
+
+            return result;
         }
 
-        #endregion
+        private static Point WorldToPixel(VVector worldPoint, Image ctImage)
+        {
+            VVector diff = worldPoint - ctImage.Origin;
+            double px = (diff.x * ctImage.XDirection.x + diff.y * ctImage.XDirection.y + diff.z * ctImage.XDirection.z) / ctImage.XRes;
+            double py = (diff.x * ctImage.YDirection.x + diff.y * ctImage.YDirection.y + diff.z * ctImage.YDirection.z) / ctImage.YRes;
+            return new Point(px, py);
+        }
 
-        #region Fill Mode — CT-resolution
+        // ================================================================
+        // GetDoseAtPixel
+        // ================================================================
+
+        public double GetDoseAtPixel(Image ctImage, Dose dose, int currentSlice, int pixelX, int pixelY,
+            EQD2Settings eqd2Settings)
+        {
+            if (dose == null || _doseCache == null || !_doseScalingReady) return double.NaN;
+            if (pixelX < 0 || pixelX >= _width || pixelY < 0 || pixelY >= _height) return double.NaN;
+
+            VVector worldPos = ctImage.Origin + ctImage.XDirection * (pixelX * ctImage.XRes)
+                             + ctImage.YDirection * (pixelY * ctImage.YRes) + ctImage.ZDirection * (currentSlice * ctImage.ZRes);
+            VVector diff = worldPos - dose.Origin;
+            int dx = (int)Math.Round(diff.Dot(dose.XDirection) / dose.XRes);
+            int dy = (int)Math.Round(diff.Dot(dose.YDirection) / dose.YRes);
+            int dz = (int)Math.Round(diff.Dot(dose.ZDirection) / dose.ZRes);
+
+            if (dx < 0 || dx >= dose.XSize || dy < 0 || dy >= dose.YSize || dz < 0 || dz >= dose.ZSize)
+                return double.NaN;
+
+            double dGy = (_doseCache[dz][dx, dy] * _doseRawScale + _doseRawOffset) * _doseUnitToGyFactor;
+            if (eqd2Settings != null && eqd2Settings.IsEnabled && eqd2Settings.NumberOfFractions > 0 && eqd2Settings.AlphaBeta > 0)
+                dGy = EQD2Calculator.ToEQD2(dGy, eqd2Settings.NumberOfFractions, eqd2Settings.AlphaBeta);
+            return dGy;
+        }
+
+        // ================================================================
+        // Fill Mode (Fix #7: uses shared ColorMaps)
+        // ================================================================
 
         private unsafe void RenderFillMode(byte* pBuffer, int stride, double[] ctDoseMap,
             double refDoseGy, IsodoseLevel[] levels)
@@ -398,14 +485,15 @@ namespace ESAPI_EQD2Viewer.Services
             }
         }
 
-        #endregion
-
-        #region Colorwash Mode — CT-resolution
+        // ================================================================
+        // Colorwash Mode (Fix #7: uses shared ColorMaps)
+        // ================================================================
 
         private unsafe void RenderColorwashMode(byte* pBuffer, int stride, double[] ctDoseMap,
             double refDoseGy, byte alpha, double minPercent)
         {
-            double minGy = refDoseGy * minPercent, maxGy = refDoseGy * 1.15;
+            double minGy = refDoseGy * minPercent;
+            double maxGy = refDoseGy * RenderConstants.ColorwashMaxFraction;
             double range = maxGy - minGy;
             if (range <= 0) return;
 
@@ -420,52 +508,10 @@ namespace ESAPI_EQD2Viewer.Services
                     if (d < minGy) continue;
                     double f = (d - minGy) / range;
                     if (f > 1.0) f = 1.0;
-                    row[px] = JetColormap(f, alpha);
+                    row[px] = ColorMaps.Jet(f, alpha);
                 }
             }
         }
-
-        private static uint JetColormap(double t, byte a)
-        {
-            double r, g, b;
-            if (t < 0.125) { r = 0; g = 0; b = 0.5 + t * 4.0; }
-            else if (t < 0.375) { r = 0; g = (t - 0.125) * 4.0; b = 1.0; }
-            else if (t < 0.625) { r = (t - 0.375) * 4.0; g = 1.0; b = 1.0 - (t - 0.375) * 4.0; }
-            else if (t < 0.875) { r = 1.0; g = 1.0 - (t - 0.625) * 4.0; b = 0; }
-            else { r = 1.0 - (t - 0.875) * 4.0; g = 0; b = 0; }
-            byte rb = (byte)(Clamp01(r) * 255), gb = (byte)(Clamp01(g) * 255), bb = (byte)(Clamp01(b) * 255);
-            return ((uint)a << 24) | ((uint)rb << 16) | ((uint)gb << 8) | bb;
-        }
-
-        private static double Clamp01(double v) => v < 0 ? 0 : (v > 1 ? 1 : v);
-
-        #endregion
-
-        #region GetDoseAtPixel
-
-        public double GetDoseAtPixel(Image ctImage, Dose dose, int currentSlice, int pixelX, int pixelY,
-            EQD2Settings eqd2Settings = null)
-        {
-            if (dose == null || _doseCache == null || !_doseScalingReady) return double.NaN;
-            if (pixelX < 0 || pixelX >= _width || pixelY < 0 || pixelY >= _height) return double.NaN;
-
-            VVector worldPos = ctImage.Origin + ctImage.XDirection * (pixelX * ctImage.XRes)
-                             + ctImage.YDirection * (pixelY * ctImage.YRes) + ctImage.ZDirection * (currentSlice * ctImage.ZRes);
-            VVector diff = worldPos - dose.Origin;
-            int dx = (int)Math.Round(diff.Dot(dose.XDirection) / dose.XRes);
-            int dy = (int)Math.Round(diff.Dot(dose.YDirection) / dose.YRes);
-            int dz = (int)Math.Round(diff.Dot(dose.ZDirection) / dose.ZRes);
-
-            if (dx < 0 || dx >= dose.XSize || dy < 0 || dy >= dose.YSize || dz < 0 || dz >= dose.ZSize)
-                return double.NaN;
-
-            double dGy = (_doseCache[dz][dx, dy] * _doseRawScale + _doseRawOffset) * _doseUnitToGyFactor;
-            if (eqd2Settings != null && eqd2Settings.IsEnabled && eqd2Settings.NumberOfFractions > 0 && eqd2Settings.AlphaBeta > 0)
-                dGy = EQD2Calculator.ToEQD2(dGy, eqd2Settings.NumberOfFractions, eqd2Settings.AlphaBeta);
-            return dGy;
-        }
-
-        #endregion
 
         public void Dispose()
         {

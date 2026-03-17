@@ -1,4 +1,4 @@
-﻿using VMS.TPS.Common.Model.Types;
+using VMS.TPS.Common.Model.Types;
 
 namespace ESAPI_EQD2Viewer.Core.Extensions
 {

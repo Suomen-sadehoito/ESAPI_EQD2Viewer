@@ -3,45 +3,15 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Select Structures for DVH Analysis" 
         Height="500" Width="420"
-        WindowStartupLocation="CenterOwner" 
-        ResizeMode="CanResizeWithGrip"
-        Background="#0C0E12" Foreground="#F0F2F5"
-        FontFamily="Segoe UI">
+        WindowStartupLocation="CenterOwner" ResizeMode="CanResizeWithGrip"
+        Background="#0C0E12" Foreground="#F0F2F5" FontFamily="Segoe UI">
 
     <Window.Resources>
-        <Style x:Key="Btn" TargetType="Button">
-            <Setter Property="Padding" Value="12,6"/>
-            <Setter Property="Background" Value="#222830"/>
-            <Setter Property="Foreground" Value="#F0F2F5"/>
-            <Setter Property="BorderBrush" Value="#2A3040"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="FontSize" Value="11"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border x:Name="bg" Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="4" Padding="{TemplateBinding Padding}">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="bg" Property="Background" Value="#2A3040"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <Style x:Key="BtnPrimary" TargetType="Button" BasedOn="{StaticResource Btn}">
-            <Setter Property="Background" Value="#1A3A2A"/>
-            <Setter Property="BorderBrush" Value="#2A5A3A"/>
-            <Setter Property="Foreground" Value="#4CAF6E"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
-        </Style>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/ESAPI_EQD2Viewer;component/UI/Styles/SharedStyles.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
     </Window.Resources>
 
     <Grid Margin="16">
@@ -52,21 +22,15 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <TextBlock Grid.Row="0" Text="Select Structures" FontSize="15" FontWeight="SemiBold"
-                   Foreground="#F0F2F5" Margin="0,0,0,4"/>
-        <TextBlock Grid.Row="1" Text="Choose structures for DVH analysis and EQD2 calculation."
-                   Foreground="#5C6475" FontSize="11" Margin="0,0,0,12"/>
+        <TextBlock Grid.Row="0" Text="Select Structures" FontSize="15" FontWeight="SemiBold" Foreground="#F0F2F5" Margin="0,0,0,4"/>
+        <TextBlock Grid.Row="1" Text="Choose structures for DVH analysis and EQD2 calculation." Foreground="#5C6475" FontSize="11" Margin="0,0,0,12"/>
 
-        <ListBox Grid.Row="2" x:Name="StructureListBox" SelectionMode="Multiple"
-                 Background="#12151B" BorderBrush="#2A3040" BorderThickness="1"
-                 Padding="4">
+        <ListBox Grid.Row="2" x:Name="StructureListBox" SelectionMode="Multiple" Background="#12151B" BorderBrush="#2A3040" BorderThickness="1" Padding="4">
             <ListBox.ItemTemplate>
                 <DataTemplate>
                     <CheckBox Foreground="#F0F2F5" Margin="4,3" FontSize="11"
                               IsChecked="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=IsSelected}">
-                        <CheckBox.Content>
-                            <TextBlock Text="{Binding Id}"/>
-                        </CheckBox.Content>
+                        <CheckBox.Content><TextBlock Text="{Binding Id}"/></CheckBox.Content>
                     </CheckBox>
                 </DataTemplate>
             </ListBox.ItemTemplate>
@@ -80,8 +44,7 @@
         </ListBox>
 
         <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
-            <Button Content="Add selected" Style="{StaticResource BtnPrimary}" Width="110"
-                    Click="OK_Click" IsDefault="True" Margin="0,0,8,0"/>
+            <Button Content="Add selected" Style="{StaticResource BtnPrimary}" Width="110" Click="OK_Click" IsDefault="True" Margin="0,0,8,0"/>
             <Button Content="Cancel" Style="{StaticResource Btn}" Width="80" IsCancel="True"/>
         </StackPanel>
     </Grid>

@@ -12,7 +12,6 @@ namespace ESAPI_EQD2Viewer.UI.Views
         public StructureSelectionDialog(PlanSetup plan)
         {
             InitializeComponent();
-
             if (plan?.StructureSet != null)
             {
                 StructureListBox.ItemsSource = plan.StructureSet.Structures

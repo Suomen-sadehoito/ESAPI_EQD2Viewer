@@ -1,10 +1,12 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ESAPI_EQD2Viewer.Core.Calculations;
 using ESAPI_EQD2Viewer.Core.Interfaces;
 using ESAPI_EQD2Viewer.Core.Models;
+using ESAPI_EQD2Viewer.Core.Logging;
 using ESAPI_EQD2Viewer.Services;
 using ESAPI_EQD2Viewer.UI.Views;
+using OxyPlot;
+using OxyPlot.Series;
 using System;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -20,71 +22,37 @@ namespace ESAPI_EQD2Viewer.UI.ViewModels
         private ISummationService _summationService;
         private SummationConfig _activeSummationConfig;
         private CancellationTokenSource _summationCts;
-
-        // Debounce timer for α/β slider
         private DispatcherTimer _alphaBetaDebounce;
-
-        #region Summation Properties
 
         private bool _isSummationActive;
         public bool IsSummationActive
         {
             get => _isSummationActive;
-            set
-            {
-                if (SetProperty(ref _isSummationActive, value))
-                {
-                    OnPropertyChanged(nameof(SummationStatusLabel));
-                    RequestRender();
-                }
-            }
+            set { if (SetProperty(ref _isSummationActive, value)) { OnPropertyChanged(nameof(SummationStatusLabel)); RequestRender(); } }
         }
 
         private bool _isSummationComputing;
-        public bool IsSummationComputing
-        {
-            get => _isSummationComputing;
-            set => SetProperty(ref _isSummationComputing, value);
-        }
+        public bool IsSummationComputing { get => _isSummationComputing; set => SetProperty(ref _isSummationComputing, value); }
 
         private int _summationProgress;
-        public int SummationProgress
-        {
-            get => _summationProgress;
-            set => SetProperty(ref _summationProgress, value);
-        }
+        public int SummationProgress { get => _summationProgress; set => SetProperty(ref _summationProgress, value); }
 
         private string _summationInfo = "No summation active";
-        public string SummationInfo
-        {
-            get => _summationInfo;
-            set => SetProperty(ref _summationInfo, value);
-        }
+        public string SummationInfo { get => _summationInfo; set => SetProperty(ref _summationInfo, value); }
 
-        public string SummationStatusLabel => _isSummationActive
-            ? "Summation active" : "";
-
-        #endregion
-
-        #region Summation Commands
+        public string SummationStatusLabel => _isSummationActive ? "Summation active" : "";
 
         [RelayCommand]
         private async Task OpenSummationDialog()
         {
             var dialog = new PlanSummationDialog(_context.Patient, _plan);
             dialog.Owner = Application.Current.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive);
-
             if (dialog.ShowDialog() == true && dialog.ResultConfig != null)
-            {
                 await ExecuteSummationAsync(dialog.ResultConfig);
-            }
         }
 
         [RelayCommand]
-        private void CancelSummation()
-        {
-            _summationCts?.Cancel();
-        }
+        private void CancelSummation() => _summationCts?.Cancel();
 
         [RelayCommand]
         private void ClearSummation()
@@ -99,211 +67,188 @@ namespace ESAPI_EQD2Viewer.UI.ViewModels
             SummationInfo = "No summation active";
             CurrentOverlayMode = OverlayMode.Off;
             OverlayPlanOptions.Clear();
-
-            // Switch back to relative isodose mode
-            if (_isodoseMode == IsodoseMode.Absolute)
-            {
-                LoadIsodosePreset("Eclipse");
-            }
-
+            ClearSummationDVH();
+            if (_isodoseMode == IsodoseMode.Absolute) LoadIsodosePreset("Eclipse");
             RequestRender();
         }
 
-        /// <summary>
-        /// Two-phase async summation:
-        ///   Phase 1 (UI thread): Load ESAPI data → plain arrays
-        ///   Phase 2 (background): Voxel computation with progress
-        /// </summary>
         private async Task ExecuteSummationAsync(SummationConfig config)
         {
             _summationCts?.Cancel();
             _summationCts = new CancellationTokenSource();
             var ct = _summationCts.Token;
-
             IsSummationComputing = true;
             SummationProgress = 0;
             SummationInfo = "Loading plan data...";
 
             try
             {
-                // Phase 1: ESAPI data loading (UI thread)
                 _summationService?.Dispose();
                 _summationService = new SummationService(_context.Patient, _context.Image);
-
                 var prepResult = _summationService.PrepareData(config);
                 if (!prepResult.Success)
                 {
-                    MessageBox.Show($"Failed to load plan data:\n{prepResult.StatusMessage}",
-                        "Summation Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                    IsSummationComputing = false;
-                    return;
+                    MessageBox.Show($"Failed:\n{prepResult.StatusMessage}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    IsSummationComputing = false; return;
                 }
 
                 StatusText = prepResult.StatusMessage;
-                SummationInfo = "Computing voxel summation...";
-
-                // Phase 2: Heavy computation (background thread)
-                var progress = new Progress<int>(pct =>
-                {
-                    SummationProgress = pct;
-                    SummationInfo = $"Computing... {pct}%";
-                });
-
+                SummationInfo = "Computing...";
+                var progress = new Progress<int>(pct => { SummationProgress = pct; SummationInfo = $"Computing... {pct}%"; });
                 ct.ThrowIfCancellationRequested();
-
                 var result = await _summationService.ComputeAsync(progress, ct);
 
                 if (result.Success)
                 {
                     _activeSummationConfig = config;
                     IsSummationActive = true;
-                    OnPropertyChanged(nameof(SummationStatusLabel));
-
-                    string methodLabel = config.Method == SummationMethod.EQD2 ? "EQD2" : "Physical";
-                    SummationInfo = $"{methodLabel} sum: {config.Plans.Count} plans | " +
-                                    $"Max: {result.MaxDoseGy:F2} Gy | Ref: {result.TotalReferenceDoseGy:F2} Gy";
+                    string ml = config.Method == SummationMethod.EQD2 ? "EQD2" : "Physical";
+                    SummationInfo = $"{ml} sum: {config.Plans.Count} plans | Max: {result.MaxDoseGy:F2} Gy | Ref: {result.TotalReferenceDoseGy:F2} Gy";
                     StatusText = result.StatusMessage;
-
                     _globalAlphaBeta = config.GlobalAlphaBeta;
                     OnPropertyChanged(nameof(GlobalAlphaBeta));
+                    if (_isodoseMode != IsodoseMode.Absolute) LoadIsodosePreset("ReIrradiation");
 
-                    // Auto-switch to absolute Gy isodose mode for summation
-                    if (_isodoseMode != IsodoseMode.Absolute)
-                    {
-                        LoadIsodosePreset("ReIrradiation");
-                    }
-
-                    // Populate overlay plan options (non-reference plans only)
                     OverlayPlanOptions.Clear();
-                    foreach (var plan in config.Plans.Where(p => !p.IsReference))
-                    {
-                        OverlayPlanOptions.Add(plan.DisplayLabel);
-                    }
-                    if (OverlayPlanOptions.Count > 0)
-                        SelectedOverlayPlanLabel = OverlayPlanOptions[0];
+                    foreach (var plan in config.Plans.Where(p => !p.IsReference)) OverlayPlanOptions.Add(plan.DisplayLabel);
+                    if (OverlayPlanOptions.Count > 0) SelectedOverlayPlanLabel = OverlayPlanOptions[0];
 
+                    CalculateSummationDVH(result.MaxDoseGy);
                     RequestRender();
                 }
                 else
                 {
                     SummationInfo = result.StatusMessage;
                     if (!ct.IsCancellationRequested)
-                    {
-                        MessageBox.Show($"Summation failed:\n{result.StatusMessage}",
-                            "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                    }
+                        MessageBox.Show($"Failed:\n{result.StatusMessage}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
-            catch (OperationCanceledException)
-            {
-                SummationInfo = "Summation cancelled.";
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Summation error:\n{ex.Message}",
-                    "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-            finally
-            {
-                IsSummationComputing = false;
-            }
+            catch (OperationCanceledException) { SummationInfo = "Cancelled."; }
+            catch (Exception ex) { SimpleLogger.Error("Summation failed", ex); MessageBox.Show($"Error:\n{ex.Message}"); }
+            finally { IsSummationComputing = false; }
         }
 
-        /// <summary>
-        /// Debounced re-summation when α/β slider changes.
-        /// </summary>
-        private void ResummatIfActive()
+        internal void ResummatIfActive()
         {
             if (!_isSummationActive || _activeSummationConfig == null) return;
-
             if (_alphaBetaDebounce == null)
             {
-                _alphaBetaDebounce = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
+                _alphaBetaDebounce = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(RenderConstants.AlphaBetaDebounceMs) };
                 _alphaBetaDebounce.Tick += async (s, e) =>
                 {
                     _alphaBetaDebounce.Stop();
                     if (_activeSummationConfig != null && _isSummationActive)
-                    {
-                        _activeSummationConfig.GlobalAlphaBeta = _globalAlphaBeta;
-                        await ExecuteSummationAsync(_activeSummationConfig);
-                    }
+                    { _activeSummationConfig.GlobalAlphaBeta = _globalAlphaBeta; await ExecuteSummationAsync(_activeSummationConfig); }
                 };
             }
-
             _alphaBetaDebounce.Stop();
             _alphaBetaDebounce.Start();
         }
 
-        #endregion
+        // ═══ SUMMATION DVH ═══
 
-        #region Summation-Aware Rendering
+        private void CalculateSummationDVH(double maxDoseGy)
+        {
+            if (_summationService == null || !_summationService.HasSummedDose) return;
+            var structureIds = _summationService.GetCachedStructureIds();
+            if (structureIds == null || structureIds.Count == 0) return;
+
+            var selectedIds = _dvhCache.Select(c => c.Structure.Id).ToHashSet();
+            int sliceCount = _summationService.SliceCount;
+            double[][] summedSlices = new double[sliceCount][];
+            for (int z = 0; z < sliceCount; z++) summedSlices[z] = _summationService.GetSummedSlice(z);
+            double voxelVolCc = _summationService.GetVoxelVolumeCc();
+            string methodLabel = _activeSummationConfig?.Method == SummationMethod.EQD2 ? "EQD2 Sum" : "Physical Sum";
+
+            ClearSummationDVH();
+
+            foreach (var structureId in structureIds)
+            {
+                if (!selectedIds.Contains(structureId)) continue;
+
+                bool[][] masks = new bool[sliceCount][];
+                for (int z = 0; z < sliceCount; z++) masks[z] = _summationService.GetStructureMask(structureId, z);
+
+                DoseVolumePoint[] dvhPoints = _dvhService.CalculateDVHFromSummedDose(summedSlices, masks, voxelVolCc, maxDoseGy);
+                if (dvhPoints == null || dvhPoints.Length == 0) continue;
+
+                long totalVoxels = 0;
+                for (int z = 0; z < sliceCount; z++)
+                    if (masks[z] != null) for (int i = 0; i < masks[z].Length; i++) if (masks[z][i]) totalVoxels++;
+
+                SummaryData.Add(_dvhService.BuildSummaryFromCurve(structureId, "Summation", methodLabel, dvhPoints, totalVoxels * voxelVolCc));
+
+                var cached = _dvhCache.FirstOrDefault(c => c.Structure.Id == structureId);
+                OxyColor color = cached != null
+                    ? OxyColor.FromArgb(cached.Structure.Color.A, cached.Structure.Color.R, cached.Structure.Color.G, cached.Structure.Color.B)
+                    : OxyColors.White;
+
+                var series = new LineSeries
+                {
+                    Title = $"{structureId} {methodLabel}", Tag = $"Summation_{structureId}",
+                    Color = color, StrokeThickness = 2.5, LineStyle = LineStyle.DashDot
+                };
+                series.Points.AddRange(dvhPoints.Select(p => new DataPoint(p.DoseGy, p.VolumePercent)));
+                PlotModel.Series.Add(series);
+            }
+            RefreshPlot();
+        }
+
+        private void ClearSummationDVH()
+        {
+            foreach (var s in PlotModel.Series.Where(s => (s.Tag as string)?.StartsWith("Summation_") ?? false).ToList())
+                PlotModel.Series.Remove(s);
+            foreach (var s in SummaryData.Where(s => s.PlanId == "Summation").ToList())
+                SummaryData.Remove(s);
+        }
+
+        // ═══ SUMMATION RENDERING ═══
 
         private void RenderSummationScene()
         {
-            if (_summationService == null || !_summationService.HasSummedDose) return;
-
             double[] summedSlice = _summationService.GetSummedSlice(CurrentSlice);
             if (summedSlice == null) return;
 
-            double referenceDose = _summationService.SummedReferenceDoseGy;
-            if (referenceDose < 0.01) referenceDose = 1.0;
+            double refDose = _summationService.SummedReferenceDoseGy;
+            if (refDose < RenderConstants.MinReferenceDoseGy) refDose = 1.0;
 
             if (_doseDisplayMode == DoseDisplayMode.Line)
             {
                 ClearDoseBitmap();
-
                 int w = _context.Image.XSize, h = _context.Image.YSize;
                 var contours = new ObservableCollection<IsodoseContourData>();
 
                 foreach (var level in _isodoseLevelArray)
                 {
                     if (!level.IsVisible) continue;
-
-                    // Use mode-aware threshold: absolute Gy or relative fraction
-                    double thresholdGy = GetThresholdGy(level, referenceDose);
-                    if (thresholdGy <= 0) continue;
-
-                    var polylines = MarchingSquares.GenerateContours(summedSlice, w, h, thresholdGy);
+                    double thr = GetThresholdGy(level, refDose);
+                    if (thr <= 0) continue;
+                    var polylines = MarchingSquares.GenerateContours(summedSlice, w, h, thr);
                     if (polylines.Count == 0) continue;
 
-                    var geometry = new System.Windows.Media.StreamGeometry();
-                    using (var ctx = geometry.Open())
-                    {
+                    var geo = new System.Windows.Media.StreamGeometry();
+                    using (var ctx = geo.Open())
                         foreach (var chain in polylines)
                         {
                             if (chain.Count < 2) continue;
                             ctx.BeginFigure(chain[0], false, false);
-                            for (int j = 1; j < chain.Count; j++)
-                                ctx.LineTo(chain[j], true, false);
+                            for (int j = 1; j < chain.Count; j++) ctx.LineTo(chain[j], true, false);
                         }
-                    }
-                    geometry.Freeze();
+                    geo.Freeze();
 
                     uint c = level.Color;
-                    var brush = new System.Windows.Media.SolidColorBrush(
-                        System.Windows.Media.Color.FromRgb(
-                            (byte)((c >> 16) & 0xFF),
-                            (byte)((c >> 8) & 0xFF),
-                            (byte)(c & 0xFF)));
+                    var brush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(
+                        (byte)((c >> 16) & 0xFF), (byte)((c >> 8) & 0xFF), (byte)(c & 0xFF)));
                     brush.Freeze();
-
-                    contours.Add(new IsodoseContourData
-                    {
-                        Geometry = geometry,
-                        Stroke = brush,
-                        StrokeThickness = 1.0
-                    });
+                    contours.Add(new IsodoseContourData { Geometry = geo, Stroke = brush, StrokeThickness = 1.0 });
                 }
-
                 ContourLines = contours;
-                StatusText = $"[Summation · Line] Slice {CurrentSlice} | Ref: {referenceDose:F2} Gy";
+                StatusText = $"[Summation · Line] Slice {CurrentSlice} | Ref: {refDose:F2} Gy";
             }
             else
             {
-                if (_contourLines != null && _contourLines.Count > 0)
-                    ContourLines = new ObservableCollection<IsodoseContourData>();
-
-                RenderSummedDoseBitmap(summedSlice, referenceDose);
+                if (_contourLines?.Count > 0) ContourLines = new ObservableCollection<IsodoseContourData>();
+                RenderSummedDoseBitmap(summedSlice, refDose);
             }
         }
 
@@ -314,14 +259,13 @@ namespace ESAPI_EQD2Viewer.UI.ViewModels
             try
             {
                 byte* p = (byte*)DoseImageSource.BackBuffer;
-                int stride = DoseImageSource.BackBufferStride;
-                for (int i = 0; i < h * stride; i++) p[i] = 0;
+                for (int i = 0; i < h * DoseImageSource.BackBufferStride; i++) p[i] = 0;
                 DoseImageSource.AddDirtyRect(new System.Windows.Int32Rect(0, 0, w, h));
             }
             finally { DoseImageSource.Unlock(); }
         }
 
-        private unsafe void RenderSummedDoseBitmap(double[] summedSlice, double referenceDose)
+        private unsafe void RenderSummedDoseBitmap(double[] slice, double refDose)
         {
             int w = _context.Image.XSize, h = _context.Image.YSize;
             DoseImageSource.Lock();
@@ -334,15 +278,14 @@ namespace ESAPI_EQD2Viewer.UI.ViewModels
                 if (_doseDisplayMode == DoseDisplayMode.Fill)
                 {
                     int vc = 0;
-                    for (int i = 0; i < _isodoseLevelArray.Length; i++)
-                        if (_isodoseLevelArray[i].IsVisible) vc++;
+                    for (int i = 0; i < _isodoseLevelArray.Length; i++) if (_isodoseLevelArray[i].IsVisible) vc++;
                     if (vc > 0)
                     {
                         double[] thr = new double[vc]; uint[] col = new uint[vc]; int vi = 0;
                         for (int i = 0; i < _isodoseLevelArray.Length; i++)
                         {
                             if (!_isodoseLevelArray[i].IsVisible) continue;
-                            thr[vi] = GetThresholdGy(_isodoseLevelArray[i], referenceDose);
+                            thr[vi] = GetThresholdGy(_isodoseLevelArray[i], refDose);
                             col[vi] = (_isodoseLevelArray[i].Color & 0x00FFFFFF) | ((uint)_isodoseLevelArray[i].Alpha << 24);
                             vi++;
                         }
@@ -351,53 +294,34 @@ namespace ESAPI_EQD2Viewer.UI.ViewModels
                             uint* row = (uint*)(pBuf + py * stride); int ro = py * w;
                             for (int px = 0; px < w; px++)
                             {
-                                double d = summedSlice[ro + px]; if (d <= 0) continue;
-                                for (int li = 0; li < vc; li++)
-                                    if (d >= thr[li]) { row[px] = col[li]; break; }
+                                double d = slice[ro + px]; if (d <= 0) continue;
+                                for (int li = 0; li < vc; li++) if (d >= thr[li]) { row[px] = col[li]; break; }
                             }
                         }
                     }
                 }
                 else if (_doseDisplayMode == DoseDisplayMode.Colorwash)
                 {
-                    byte cwA = (byte)(Math.Max(0, Math.Min(1, _colorwashOpacity)) * 255);
-                    double minGy = referenceDose * _colorwashMinPercent, maxGy = referenceDose * 1.15;
+                    byte cwA = (byte)(System.Math.Max(0, System.Math.Min(1, _colorwashOpacity)) * 255);
+                    double minGy = refDose * _colorwashMinPercent, maxGy = refDose * RenderConstants.ColorwashMaxFraction;
                     double range = maxGy - minGy;
                     if (range > 0)
-                    {
                         for (int py = 0; py < h; py++)
                         {
                             uint* row = (uint*)(pBuf + py * stride); int ro = py * w;
                             for (int px = 0; px < w; px++)
                             {
-                                double d = summedSlice[ro + px]; if (d < minGy) continue;
-                                double f = Math.Min(1.0, (d - minGy) / range);
-                                row[px] = SumJet(f, cwA);
+                                double d = slice[ro + px]; if (d < minGy) continue;
+                                row[px] = ColorMaps.Jet(System.Math.Min(1.0, (d - minGy) / range), cwA);
                             }
                         }
-                    }
                 }
 
                 string ml = _doseDisplayMode == DoseDisplayMode.Fill ? "Fill" : "Colorwash";
-                StatusText = $"[Summation · {ml}] Slice {CurrentSlice} | Ref: {referenceDose:F2} Gy";
+                StatusText = $"[Summation · {ml}] Slice {CurrentSlice} | Ref: {refDose:F2} Gy";
                 DoseImageSource.AddDirtyRect(new System.Windows.Int32Rect(0, 0, w, h));
             }
             finally { DoseImageSource.Unlock(); }
         }
-
-        private static uint SumJet(double t, byte a)
-        {
-            double r, g, b;
-            if (t < 0.125) { r = 0; g = 0; b = 0.5 + t * 4.0; }
-            else if (t < 0.375) { r = 0; g = (t - 0.125) * 4.0; b = 1.0; }
-            else if (t < 0.625) { r = (t - 0.375) * 4.0; g = 1.0; b = 1.0 - (t - 0.375) * 4.0; }
-            else if (t < 0.875) { r = 1.0; g = 1.0 - (t - 0.625) * 4.0; b = 0; }
-            else { r = 1.0 - (t - 0.875) * 4.0; g = 0; b = 0; }
-            byte R = (byte)(Cl(r) * 255), G = (byte)(Cl(g) * 255), B = (byte)(Cl(b) * 255);
-            return ((uint)a << 24) | ((uint)R << 16) | ((uint)G << 8) | B;
-        }
-        private static double Cl(double v) => v < 0 ? 0 : (v > 1 ? 1 : v);
-
-        #endregion
     }
 }

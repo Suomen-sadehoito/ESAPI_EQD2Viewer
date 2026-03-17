@@ -5,15 +5,10 @@ namespace ESAPI_EQD2Viewer.Core.Models
     /// </summary>
     public enum EQD2MeanMethod
     {
-        /// <summary>
-        /// Fast: directly converts physical Dmean to EQD2.
-        /// </summary>
+        /// <summary>Fast: directly converts physical Dmean to EQD2.</summary>
         Simple,
 
-        /// <summary>
-        /// Accurate: calculates weighted average from differential DVH bins.
-        /// Better for heterogeneous dose distributions.
-        /// </summary>
+        /// <summary>Accurate: calculates weighted average from differential DVH bins.</summary>
         Differential
     }
 }

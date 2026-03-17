@@ -22,7 +22,7 @@
             <Image Source="{Binding CtImageSource, ElementName=RootControl}" Stretch="None"
                    RenderOptions.BitmapScalingMode="HighQuality"/>
 
-            <!-- Registration overlay (secondary CT for verification) -->
+            <!-- Registration overlay -->
             <Image Source="{Binding OverlayImageSource, ElementName=RootControl}" Stretch="None"
                    RenderOptions.BitmapScalingMode="HighQuality"/>
 
@@ -30,9 +30,26 @@
             <Image Source="{Binding DoseImageSource, ElementName=RootControl}" Stretch="None"
                    RenderOptions.BitmapScalingMode="HighQuality"/>
 
-            <!-- Vector isodose contours (Line mode).
-                 Canvas needs explicit size matching the CT bitmap dimensions
-                 so Path elements are positioned correctly. -->
+            <!-- Structure contours (NEW) -->
+            <ItemsControl ItemsSource="{Binding StructureContourLines, ElementName=RootControl}"
+                          IsHitTestVisible="False">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <Canvas Width="{Binding CtImageSource.PixelWidth, ElementName=RootControl}"
+                                Height="{Binding CtImageSource.PixelHeight, ElementName=RootControl}"/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Path Data="{Binding Geometry}"
+                              Stroke="{Binding Stroke}"
+                              StrokeThickness="{Binding StrokeThickness}"
+                              StrokeDashArray="{Binding StrokeDashArray}"/>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <!-- Vector isodose contours (Line mode) -->
             <ItemsControl ItemsSource="{Binding ContourLines, ElementName=RootControl}"
                           IsHitTestVisible="False">
                 <ItemsControl.ItemsPanel>
@@ -50,6 +67,14 @@
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
         </Grid>
+
+        <!-- Dose cursor readout (NEW) -->
+        <Border VerticalAlignment="Bottom" HorizontalAlignment="Right" Margin="0,0,12,12"
+                Background="#CC0C0E12" CornerRadius="4" Padding="8,4"
+                Visibility="{Binding DoseCursorVisibility, ElementName=RootControl}">
+            <TextBlock Text="{Binding DoseCursorText, ElementName=RootControl}"
+                       Foreground="#F0F2F5" FontSize="11" FontFamily="Consolas"/>
+        </Border>
 
     </Grid>
 </UserControl>

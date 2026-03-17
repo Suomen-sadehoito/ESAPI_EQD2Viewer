@@ -1,4 +1,5 @@
-﻿using System;
+using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using ESAPI_EQD2Viewer.Core.Models;
@@ -22,14 +23,30 @@ namespace ESAPI_EQD2Viewer.Core.Interfaces
         double SummedReferenceDoseGy { get; }
 
         /// <summary>
-        /// Returns the secondary plan's CT voxels (as HU values) mapped onto the
-        /// reference CT grid for registration verification overlay.
-        /// Returns a flat array [y * width + x] of HU values at CT resolution,
-        /// or null if the plan is not found or has no CT data.
+        /// Returns the secondary plan's CT voxels mapped onto the reference CT grid.
         /// </summary>
-        /// <param name="planDisplayLabel">Plan's DisplayLabel from SummationConfig</param>
-        /// <param name="sliceIndex">Reference CT slice index</param>
         int[] GetRegisteredCtSlice(string planDisplayLabel, int sliceIndex);
+
+        /// <summary>
+        /// Gets the pre-rasterized structure mask for a specific structure and slice.
+        /// Returns null if the structure was not cached.
+        /// </summary>
+        bool[] GetStructureMask(string structureId, int sliceIndex);
+
+        /// <summary>
+        /// Gets all structure IDs that have cached masks.
+        /// </summary>
+        IReadOnlyList<string> GetCachedStructureIds();
+
+        /// <summary>
+        /// Gets the voxel volume in cm³ for the reference CT grid.
+        /// </summary>
+        double GetVoxelVolumeCc();
+
+        /// <summary>
+        /// Gets the total number of slices.
+        /// </summary>
+        int SliceCount { get; }
     }
 
     public class SummationResult
