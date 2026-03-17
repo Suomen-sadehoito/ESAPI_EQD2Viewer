@@ -2,14 +2,14 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Name="RootControl">
-    
-    <Grid Background="Black" 
+
+    <Grid Background="Black"
           ClipToBounds="True"
           PreviewMouseWheel="OnPreviewMouseWheel"
           PreviewMouseDown="OnPreviewMouseDown"
           PreviewMouseMove="OnPreviewMouseMove"
           PreviewMouseUp="OnPreviewMouseUp">
-        
+
         <Grid x:Name="ImageContainer" HorizontalAlignment="Center" VerticalAlignment="Center">
             <Grid.RenderTransform>
                 <TransformGroup>
@@ -17,25 +17,22 @@
                     <TranslateTransform x:Name="ImageTranslate" X="0" Y="0" />
                 </TransformGroup>
             </Grid.RenderTransform>
-            
+
             <!-- CT image -->
             <Image Source="{Binding CtImageSource, ElementName=RootControl}" Stretch="None"
                    RenderOptions.BitmapScalingMode="HighQuality"/>
-            
+
+            <!-- Registration overlay (secondary CT for verification) -->
+            <Image Source="{Binding OverlayImageSource, ElementName=RootControl}" Stretch="None"
+                   RenderOptions.BitmapScalingMode="HighQuality"/>
+
             <!-- Dose bitmap overlay (Fill + Colorwash) -->
             <Image Source="{Binding DoseImageSource, ElementName=RootControl}" Stretch="None"
                    RenderOptions.BitmapScalingMode="HighQuality"/>
-            
-            <!-- ============================================================
-                 VECTOR ISODOSE CONTOURS (Line mode)
-                 
-                 KORJAUS: Canvas tarvitsee eksplisiittisen koon koska se ei
-                 osallistu WPF:n layout-mittaukseen. Ilman Width/Height
-                 Canvas on 0×0 pikseliä → Path-elementit eivät näy.
-                 
-                 Sidotaan PixelWidth/PixelHeight CT-bitmapista jotta Canvas
-                 on täsmälleen saman kokoinen kuin alla oleva kuva.
-                 ============================================================ -->
+
+            <!-- Vector isodose contours (Line mode).
+                 Canvas needs explicit size matching the CT bitmap dimensions
+                 so Path elements are positioned correctly. -->
             <ItemsControl ItemsSource="{Binding ContourLines, ElementName=RootControl}"
                           IsHitTestVisible="False">
                 <ItemsControl.ItemsPanel>
@@ -46,13 +43,13 @@
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <Path Data="{Binding Geometry}" 
-                              Stroke="{Binding Stroke}" 
+                        <Path Data="{Binding Geometry}"
+                              Stroke="{Binding Stroke}"
                               StrokeThickness="{Binding StrokeThickness}"/>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
         </Grid>
-        
+
     </Grid>
 </UserControl>

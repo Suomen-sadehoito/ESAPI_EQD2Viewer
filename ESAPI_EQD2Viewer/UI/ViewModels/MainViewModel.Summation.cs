@@ -21,7 +21,7 @@ namespace ESAPI_EQD2Viewer.UI.ViewModels
         private SummationConfig _activeSummationConfig;
         private CancellationTokenSource _summationCts;
 
-        // Debounce timer for α/β slider: waits until slider stops moving
+        // Debounce timer for α/β slider
         private DispatcherTimer _alphaBetaDebounce;
 
         #region Summation Properties
@@ -62,8 +62,7 @@ namespace ESAPI_EQD2Viewer.UI.ViewModels
         }
 
         public string SummationStatusLabel => _isSummationActive
-            ? "✓ Summation active"
-            : "";
+            ? "Summation active" : "";
 
         #endregion
 
@@ -98,18 +97,25 @@ namespace ESAPI_EQD2Viewer.UI.ViewModels
             IsSummationComputing = false;
             SummationProgress = 0;
             SummationInfo = "No summation active";
+            CurrentOverlayMode = OverlayMode.Off;
+            OverlayPlanOptions.Clear();
+
+            // Switch back to relative isodose mode
+            if (_isodoseMode == IsodoseMode.Absolute)
+            {
+                LoadIsodosePreset("Eclipse");
+            }
+
             RequestRender();
         }
 
         /// <summary>
         /// Two-phase async summation:
-        ///   Phase 1 (UI thread): Load ESAPI data → plain arrays (~3 s)
-        ///   Phase 2 (background): Voxel computation with progress (~5-10 s)
-        /// UI stays responsive throughout Phase 2.
+        ///   Phase 1 (UI thread): Load ESAPI data → plain arrays
+        ///   Phase 2 (background): Voxel computation with progress
         /// </summary>
         private async Task ExecuteSummationAsync(SummationConfig config)
         {
-            // Cancel any running computation
             _summationCts?.Cancel();
             _summationCts = new CancellationTokenSource();
             var ct = _summationCts.Token;
@@ -120,15 +126,15 @@ namespace ESAPI_EQD2Viewer.UI.ViewModels
 
             try
             {
-                // ---- PHASE 1: ESAPI data loading (UI thread, required by ESAPI) ----
+                // Phase 1: ESAPI data loading (UI thread)
                 _summationService?.Dispose();
                 _summationService = new SummationService(_context.Patient, _context.Image);
 
                 var prepResult = _summationService.PrepareData(config);
                 if (!prepResult.Success)
                 {
-                    MessageBox.Show($"Data loading failed:\n{prepResult.StatusMessage}",
-                        "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show($"Failed to load plan data:\n{prepResult.StatusMessage}",
+                        "Summation Error", MessageBoxButton.OK, MessageBoxImage.Error);
                     IsSummationComputing = false;
                     return;
                 }
@@ -136,7 +142,7 @@ namespace ESAPI_EQD2Viewer.UI.ViewModels
                 StatusText = prepResult.StatusMessage;
                 SummationInfo = "Computing voxel summation...";
 
-                // ---- PHASE 2: Heavy computation (background thread) ----
+                // Phase 2: Heavy computation (background thread)
                 var progress = new Progress<int>(pct =>
                 {
                     SummationProgress = pct;
@@ -151,8 +157,6 @@ namespace ESAPI_EQD2Viewer.UI.ViewModels
                 {
                     _activeSummationConfig = config;
                     IsSummationActive = true;
-                    // Force label update even if IsSummationActive was already true
-                    // (SetProperty won't fire OnPropertyChanged if value didn't change)
                     OnPropertyChanged(nameof(SummationStatusLabel));
 
                     string methodLabel = config.Method == SummationMethod.EQD2 ? "EQD2" : "Physical";
@@ -160,9 +164,23 @@ namespace ESAPI_EQD2Viewer.UI.ViewModels
                                     $"Max: {result.MaxDoseGy:F2} Gy | Ref: {result.TotalReferenceDoseGy:F2} Gy";
                     StatusText = result.StatusMessage;
 
-                    // Sync global α/β slider to the config value
                     _globalAlphaBeta = config.GlobalAlphaBeta;
                     OnPropertyChanged(nameof(GlobalAlphaBeta));
+
+                    // Auto-switch to absolute Gy isodose mode for summation
+                    if (_isodoseMode != IsodoseMode.Absolute)
+                    {
+                        LoadIsodosePreset("ReIrradiation");
+                    }
+
+                    // Populate overlay plan options (non-reference plans only)
+                    OverlayPlanOptions.Clear();
+                    foreach (var plan in config.Plans.Where(p => !p.IsReference))
+                    {
+                        OverlayPlanOptions.Add(plan.DisplayLabel);
+                    }
+                    if (OverlayPlanOptions.Count > 0)
+                        SelectedOverlayPlanLabel = OverlayPlanOptions[0];
 
                     RequestRender();
                 }
@@ -192,22 +210,18 @@ namespace ESAPI_EQD2Viewer.UI.ViewModels
         }
 
         /// <summary>
-        /// Called from GlobalAlphaBeta setter. Debounces: waits 500 ms after last
-        /// slider movement before re-computing. Prevents dozens of re-computations
-        /// while dragging the slider.
+        /// Debounced re-summation when α/β slider changes.
         /// </summary>
         private void ResummatIfActive()
         {
             if (!_isSummationActive || _activeSummationConfig == null) return;
 
-            // Initialize debounce timer on first use
             if (_alphaBetaDebounce == null)
             {
                 _alphaBetaDebounce = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
                 _alphaBetaDebounce.Tick += async (s, e) =>
                 {
                     _alphaBetaDebounce.Stop();
-
                     if (_activeSummationConfig != null && _isSummationActive)
                     {
                         _activeSummationConfig.GlobalAlphaBeta = _globalAlphaBeta;
@@ -216,7 +230,6 @@ namespace ESAPI_EQD2Viewer.UI.ViewModels
                 };
             }
 
-            // Restart timer — each slider tick resets the 500 ms countdown
             _alphaBetaDebounce.Stop();
             _alphaBetaDebounce.Start();
         }
@@ -225,9 +238,6 @@ namespace ESAPI_EQD2Viewer.UI.ViewModels
 
         #region Summation-Aware Rendering
 
-        /// <summary>
-        /// Called from RenderScene when summation is active.
-        /// </summary>
         private void RenderSummationScene()
         {
             if (_summationService == null || !_summationService.HasSummedDose) return;
@@ -249,7 +259,10 @@ namespace ESAPI_EQD2Viewer.UI.ViewModels
                 {
                     if (!level.IsVisible) continue;
 
-                    double thresholdGy = referenceDose * level.Fraction;
+                    // Use mode-aware threshold: absolute Gy or relative fraction
+                    double thresholdGy = GetThresholdGy(level, referenceDose);
+                    if (thresholdGy <= 0) continue;
+
                     var polylines = MarchingSquares.GenerateContours(summedSlice, w, h, thresholdGy);
                     if (polylines.Count == 0) continue;
 
@@ -283,7 +296,7 @@ namespace ESAPI_EQD2Viewer.UI.ViewModels
                 }
 
                 ContourLines = contours;
-                StatusText = $"[Summation Line] Slice {CurrentSlice} | Ref: {referenceDose:F2} Gy";
+                StatusText = $"[Summation · Line] Slice {CurrentSlice} | Ref: {referenceDose:F2} Gy";
             }
             else
             {
@@ -329,7 +342,7 @@ namespace ESAPI_EQD2Viewer.UI.ViewModels
                         for (int i = 0; i < _isodoseLevelArray.Length; i++)
                         {
                             if (!_isodoseLevelArray[i].IsVisible) continue;
-                            thr[vi] = referenceDose * _isodoseLevelArray[i].Fraction;
+                            thr[vi] = GetThresholdGy(_isodoseLevelArray[i], referenceDose);
                             col[vi] = (_isodoseLevelArray[i].Color & 0x00FFFFFF) | ((uint)_isodoseLevelArray[i].Alpha << 24);
                             vi++;
                         }
@@ -366,7 +379,7 @@ namespace ESAPI_EQD2Viewer.UI.ViewModels
                 }
 
                 string ml = _doseDisplayMode == DoseDisplayMode.Fill ? "Fill" : "Colorwash";
-                StatusText = $"[Summation {ml}] Slice {CurrentSlice} | Ref: {referenceDose:F2} Gy";
+                StatusText = $"[Summation · {ml}] Slice {CurrentSlice} | Ref: {referenceDose:F2} Gy";
                 DoseImageSource.AddDirtyRect(new System.Windows.Int32Rect(0, 0, w, h));
             }
             finally { DoseImageSource.Unlock(); }

@@ -16,6 +16,11 @@ namespace ESAPI_EQD2Viewer.UI.Views
         private readonly Patient _patient;
         private readonly PlanSetup _currentPlan;
 
+        /// <summary>
+        /// All patient registrations indexed once at startup.
+        /// </summary>
+        private List<RegistrationInfo> _allRegistrations;
+
         public ObservableCollection<PlanRowItem> PlanRows { get; } = new ObservableCollection<PlanRowItem>();
 
         public SummationConfig ResultConfig { get; private set; }
@@ -26,17 +31,17 @@ namespace ESAPI_EQD2Viewer.UI.Views
 
             _patient = patient ?? throw new ArgumentNullException(nameof(patient));
             _currentPlan = currentPlan;
+            _allRegistrations = IndexAllRegistrations();
 
             PopulatePlans();
 
             PlanGrid.ItemsSource = PlanRows;
-            // NOTE: No RegistrationColumn.ItemsSource — each row's ComboBox
-            // is bound to its own RelevantRegistrations list via XAML binding.
         }
 
-        /// <summary>
-        /// Indexes all patient registrations with their source/target FOR UIDs.
-        /// </summary>
+        // ====================================================================
+        // REGISTRATION INDEXING
+        // ====================================================================
+
         private List<RegistrationInfo> IndexAllRegistrations()
         {
             var list = new List<RegistrationInfo>();
@@ -54,41 +59,60 @@ namespace ESAPI_EQD2Viewer.UI.Views
                         DateStr = reg.CreationDateTime?.ToString("d") ?? ""
                     });
                 }
-                catch
-                {
-                    // Skip unreadable registrations
-                }
+                catch { }
             }
             return list;
         }
 
-        /// <summary>
-        /// Returns only registrations where planFOR participates as source or target.
-        /// Always includes "None (same CT)" as first option.
-        /// </summary>
-        private List<RegistrationOption> FilterRegistrationsForFOR(
-            string planFOR, List<RegistrationInfo> allRegs)
+        // ====================================================================
+        // REGISTRATION FILTERING — CORE LOGIC
+        //
+        // RULE: For a non-reference plan, only show registrations where:
+        //   BOTH the plan's FOR and the reference FOR participate.
+        //
+        // Valid combinations:
+        //   SourceFOR == planFOR  AND  RegisteredFOR == refFOR
+        //   SourceFOR == refFOR   AND  RegisteredFOR == planFOR
+        //
+        // Everything else is filtered OUT — it connects to a third CT
+        // that has nothing to do with this pair.
+        // ====================================================================
+
+        private List<RegistrationOption> FilterRegistrationsForPair(
+            string planFOR, string referenceFOR)
         {
             var options = new List<RegistrationOption>
             {
-                new RegistrationOption { Id = "", DisplayName = "None (same CT)" }
+                new RegistrationOption { Id = "", DisplayName = "None — same CT as reference" }
             };
 
-            if (string.IsNullOrEmpty(planFOR))
+            if (string.IsNullOrEmpty(planFOR) || string.IsNullOrEmpty(referenceFOR))
                 return options;
 
-            foreach (var reg in allRegs)
-            {
-                bool isSource = string.Equals(reg.SourceFOR, planFOR, StringComparison.OrdinalIgnoreCase);
-                bool isTarget = string.Equals(reg.RegisteredFOR, planFOR, StringComparison.OrdinalIgnoreCase);
+            if (string.Equals(planFOR, referenceFOR, StringComparison.OrdinalIgnoreCase))
+                return options;
 
-                if (isSource || isTarget)
+            foreach (var reg in _allRegistrations)
+            {
+                bool planIsSource = string.Equals(reg.SourceFOR, planFOR, StringComparison.OrdinalIgnoreCase);
+                bool planIsTarget = string.Equals(reg.RegisteredFOR, planFOR, StringComparison.OrdinalIgnoreCase);
+                bool refIsSource = string.Equals(reg.SourceFOR, referenceFOR, StringComparison.OrdinalIgnoreCase);
+                bool refIsTarget = string.Equals(reg.RegisteredFOR, referenceFOR, StringComparison.OrdinalIgnoreCase);
+
+                if (planIsSource && refIsTarget)
                 {
-                    string direction = isSource ? "→ target" : "← source";
                     options.Add(new RegistrationOption
                     {
                         Id = reg.Id,
-                        DisplayName = $"{reg.Id} ({direction}, {reg.DateStr})"
+                        DisplayName = $"{reg.Id}  [plan \u2192 ref]  ({reg.DateStr})"
+                    });
+                }
+                else if (refIsSource && planIsTarget)
+                {
+                    options.Add(new RegistrationOption
+                    {
+                        Id = reg.Id,
+                        DisplayName = $"{reg.Id}  [ref \u2192 plan]  ({reg.DateStr})"
                     });
                 }
             }
@@ -96,11 +120,184 @@ namespace ESAPI_EQD2Viewer.UI.Views
             return options;
         }
 
+        // ====================================================================
+        // REBUILD ALL REGISTRATION LISTS
+        // Called when reference plan changes.
+        // ====================================================================
+
+        private string _lastDebugReport = "";
+
+        private void RebuildAllRegistrationLists()
+        {
+            var refRow = PlanRows.FirstOrDefault(r => r.IsReference);
+            string referenceFOR = refRow?.ImageFOR ?? "";
+
+            var dbg = new System.Text.StringBuilder();
+            dbg.AppendLine("══════════════════════════════════════════════════");
+            dbg.AppendLine("  EQD2 VIEWER — REGISTRATION DEBUG REPORT");
+            dbg.AppendLine($"  Generated: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+            dbg.AppendLine("══════════════════════════════════════════════════");
+
+            // Section 1: Reference plan
+            dbg.AppendLine();
+            dbg.AppendLine("── REFERENCE PLAN ──");
+            if (refRow != null)
+            {
+                dbg.AppendLine($"  Course:    {refRow.CourseId}");
+                dbg.AppendLine($"  Plan:      {refRow.PlanId}");
+                dbg.AppendLine($"  Image:     {refRow.ImageId}");
+                dbg.AppendLine($"  FOR (full): {refRow.ImageFOR}");
+            }
+            else
+            {
+                dbg.AppendLine("  (no reference selected)");
+            }
+
+            // Section 2: All plans with full FOR
+            dbg.AppendLine();
+            dbg.AppendLine("── ALL PLANS ──");
+            foreach (var row in PlanRows)
+            {
+                string marker = row.IsReference ? " [REF]" : "";
+                string included = row.IsIncluded ? "YES" : "no";
+                dbg.AppendLine($"  {row.CourseId}/{row.PlanId}{marker}");
+                dbg.AppendLine($"    Image:    {row.ImageId}");
+                dbg.AppendLine($"    FOR:      {row.ImageFOR}");
+                dbg.AppendLine($"    Included: {included}  Dose: {row.TotalDoseGy:F1} Gy  Fx: {row.NumberOfFractions}");
+
+                bool sameFOR = !string.IsNullOrEmpty(row.ImageFOR)
+                    && !string.IsNullOrEmpty(referenceFOR)
+                    && string.Equals(row.ImageFOR, referenceFOR, StringComparison.OrdinalIgnoreCase);
+                dbg.AppendLine($"    Same CT as ref: {sameFOR}");
+                dbg.AppendLine();
+            }
+
+            // Section 3: All registrations with full FOR UIDs
+            dbg.AppendLine("── ALL PATIENT REGISTRATIONS ──");
+            dbg.AppendLine($"  Count: {_allRegistrations.Count}");
+            if (_allRegistrations.Count == 0)
+            {
+                dbg.AppendLine("  (none found)");
+            }
+            foreach (var reg in _allRegistrations)
+            {
+                dbg.AppendLine($"  Registration: {reg.Id}  ({reg.DateStr})");
+                dbg.AppendLine($"    SourceFOR:     {reg.SourceFOR}");
+                dbg.AppendLine($"    RegisteredFOR: {reg.RegisteredFOR}");
+            }
+
+            // Section 4: Filtering logic per plan
+            dbg.AppendLine();
+            dbg.AppendLine("── FILTERING RESULTS ──");
+            dbg.AppendLine($"  Reference FOR: {referenceFOR}");
+            dbg.AppendLine();
+
+            foreach (var row in PlanRows)
+            {
+                if (row.IsReference)
+                {
+                    row.RelevantRegistrations = new List<RegistrationOption>();
+                    row.SelectedRegistrationId = "";
+                    dbg.AppendLine($"  {row.CourseId}/{row.PlanId}: REFERENCE — skipped");
+                    continue;
+                }
+
+                dbg.AppendLine($"  {row.CourseId}/{row.PlanId}:");
+                dbg.AppendLine($"    Plan FOR: {row.ImageFOR}");
+                dbg.AppendLine($"    Ref  FOR: {referenceFOR}");
+
+                bool sameFOR = !string.IsNullOrEmpty(row.ImageFOR)
+                    && string.Equals(row.ImageFOR, referenceFOR, StringComparison.OrdinalIgnoreCase);
+
+                if (sameFOR)
+                {
+                    dbg.AppendLine($"    Result: SAME FOR — no registration needed");
+                }
+                else if (string.IsNullOrEmpty(row.ImageFOR))
+                {
+                    dbg.AppendLine($"    Result: Plan FOR is EMPTY — cannot filter");
+                }
+                else if (string.IsNullOrEmpty(referenceFOR))
+                {
+                    dbg.AppendLine($"    Result: Reference FOR is EMPTY — cannot filter");
+                }
+                else
+                {
+                    dbg.AppendLine($"    Checking each registration:");
+                    foreach (var reg in _allRegistrations)
+                    {
+                        bool planIsSource = string.Equals(reg.SourceFOR, row.ImageFOR, StringComparison.OrdinalIgnoreCase);
+                        bool planIsTarget = string.Equals(reg.RegisteredFOR, row.ImageFOR, StringComparison.OrdinalIgnoreCase);
+                        bool refIsSource = string.Equals(reg.SourceFOR, referenceFOR, StringComparison.OrdinalIgnoreCase);
+                        bool refIsTarget = string.Equals(reg.RegisteredFOR, referenceFOR, StringComparison.OrdinalIgnoreCase);
+
+                        string verdict;
+                        if (planIsSource && refIsTarget)
+                            verdict = "MATCH (plan=Source, ref=Registered)";
+                        else if (refIsSource && planIsTarget)
+                            verdict = "MATCH (ref=Source, plan=Registered)";
+                        else
+                        {
+                            var reasons = new List<string>();
+                            if (!planIsSource && !planIsTarget) reasons.Add("plan FOR not in this reg");
+                            else if (planIsSource && !refIsTarget) reasons.Add("plan=Source but ref\u2260Registered");
+                            else if (planIsTarget && !refIsSource) reasons.Add("plan=Registered but ref\u2260Source");
+                            if (!refIsSource && !refIsTarget) reasons.Add("ref FOR not in this reg");
+                            verdict = "SKIP (" + string.Join("; ", reasons) + ")";
+                        }
+
+                        dbg.AppendLine($"      {reg.Id}: {verdict}");
+                    }
+                }
+
+                var newList = FilterRegistrationsForPair(row.ImageFOR, referenceFOR);
+                string currentSelection = row.SelectedRegistrationId;
+                bool selectionStillValid = newList.Any(o => o.Id == currentSelection);
+
+                row.RelevantRegistrations = newList;
+                if (!selectionStillValid)
+                    row.SelectedRegistrationId = "";
+
+                int matchCount = newList.Count - 1; // minus "None" entry
+                dbg.AppendLine($"    Available registrations: {matchCount}");
+                foreach (var opt in newList.Where(o => !string.IsNullOrEmpty(o.Id)))
+                    dbg.AppendLine($"      \u2714 {opt.DisplayName}");
+                dbg.AppendLine();
+            }
+
+            dbg.AppendLine("══════════════════════════════════════════════════");       
+
+            _lastDebugReport = dbg.ToString();
+
+            if (TbDebugInfo != null)
+                TbDebugInfo.Text = _lastDebugReport;
+        }
+
+        private void CopyDebug_Click(object sender, RoutedEventArgs e)
+        {
+            if (!string.IsNullOrEmpty(_lastDebugReport))
+            {
+                try
+                {
+                    Clipboard.SetText(_lastDebugReport);
+                    MessageBox.Show("Debug report copied to clipboard.\nPaste it to Claude for diagnosis.",
+                        "Copied", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Could not copy to clipboard: {ex.Message}",
+                        "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
+
+        // ====================================================================
+        // PLAN POPULATION
+        // ====================================================================
+
         private void PopulatePlans()
         {
             if (_patient.Courses == null) return;
-
-            var allRegs = IndexAllRegistrations();
 
             foreach (var course in _patient.Courses)
             {
@@ -120,7 +317,6 @@ namespace ESAPI_EQD2Viewer.UI.Views
                         && plan.Id == _currentPlan.Id
                         && course.Id == _currentPlan.Course?.Id;
 
-                    // Get image info for FOR filtering and display
                     string imageId = "";
                     string imageFOR = "";
                     try
@@ -132,10 +328,7 @@ namespace ESAPI_EQD2Viewer.UI.Views
                             imageFOR = img.FOR ?? "";
                         }
                     }
-                    catch { /* Image access can fail in some edge cases */ }
-
-                    // Per-row filtered registration list
-                    var relevantRegs = FilterRegistrationsForFOR(imageFOR, allRegs);
+                    catch { }
 
                     var row = new PlanRowItem
                     {
@@ -150,13 +343,28 @@ namespace ESAPI_EQD2Viewer.UI.Views
                         IsReference = isCurrentPlan,
                         SelectedRegistrationId = "",
                         Weight = 1.0,
-                        RelevantRegistrations = relevantRegs
+                        RelevantRegistrations = new List<RegistrationOption>()
                     };
 
+                    row.PropertyChanged += OnRowPropertyChanged;
                     PlanRows.Add(row);
                 }
             }
+
+            RebuildAllRegistrationLists();
         }
+
+        private void OnRowPropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(PlanRowItem.IsReference))
+            {
+                RebuildAllRegistrationLists();
+            }
+        }
+
+        // ====================================================================
+        // COMPUTE
+        // ====================================================================
 
         private void Compute_Click(object sender, RoutedEventArgs e)
         {
@@ -164,15 +372,24 @@ namespace ESAPI_EQD2Viewer.UI.Views
 
             if (includedPlans.Count < 2)
             {
-                MessageBox.Show("Select at least 2 plans for summation.",
-                    "Summation", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show("Select at least two plans for summation.",
+                    "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
             if (!includedPlans.Any(p => p.IsReference))
             {
-                MessageBox.Show("Set one plan as the Reference (Ref column).",
-                    "Summation", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show("Mark one plan as the reference (Ref column).\n" +
+                    "The reference plan's CT is used as the spatial grid for summation.",
+                    "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            int refCount = includedPlans.Count(p => p.IsReference);
+            if (refCount > 1)
+            {
+                MessageBox.Show("Only one plan can be the reference. Please select exactly one.",
+                    "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
@@ -180,13 +397,12 @@ namespace ESAPI_EQD2Viewer.UI.Views
             {
                 if (p.NumberOfFractions <= 0)
                 {
-                    MessageBox.Show($"Plan {p.CourseId}/{p.PlanId} has invalid fraction count.",
-                        "Summation", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    MessageBox.Show($"Plan {p.CourseId}/{p.PlanId}: fraction count must be \u2265 1.",
+                        "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
             }
 
-            // Smart warning: only warn if FORs actually differ and no registration selected
             var refPlan = includedPlans.First(p => p.IsReference);
             foreach (var p in includedPlans.Where(p => !p.IsReference))
             {
@@ -197,10 +413,11 @@ namespace ESAPI_EQD2Viewer.UI.Views
                 if (!sameFOR && string.IsNullOrEmpty(p.SelectedRegistrationId))
                 {
                     var result = MessageBox.Show(
-                        $"Plan {p.CourseId}/{p.PlanId} (Image: {p.ImageId}) is on a different CT " +
-                        $"than the reference but has no registration selected.\n\n" +
-                        "Dose mapping will be incorrect. Continue anyway?",
-                        "Registration Warning", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+                        $"Plan \"{p.CourseId} / {p.PlanId}\" uses a different CT ({p.ImageId}) " +
+                        "than the reference, but no registration is selected.\n\n" +
+                        "Without registration, dose mapping will be spatially incorrect.\n\n" +
+                        "Continue anyway?",
+                        "Missing Registration", MessageBoxButton.YesNo, MessageBoxImage.Warning);
                     if (result == MessageBoxResult.No) return;
                 }
             }
@@ -224,7 +441,7 @@ namespace ESAPI_EQD2Viewer.UI.Views
                     PlanNormalization = double.IsNaN(p.PlanNormalization) || p.PlanNormalization <= 0
                         ? 100.0 : p.PlanNormalization,
                     IsReference = p.IsReference,
-                    RegistrationId = p.SelectedRegistrationId,
+                    RegistrationId = p.IsReference ? null : p.SelectedRegistrationId,
                     Weight = p.Weight
                 }).ToList()
             };
@@ -244,30 +461,36 @@ namespace ESAPI_EQD2Viewer.UI.Views
         private int _numberOfFractions;
         private double _weight = 1.0;
         private string _selectedRegistrationId = "";
+        private List<RegistrationOption> _relevantRegistrations = new List<RegistrationOption>();
 
         public string CourseId { get; set; }
         public string PlanId { get; set; }
-
-        /// <summary>
-        /// Image ID for display in the grid. Helps user identify which CT each plan uses.
-        /// </summary>
         public string ImageId { get; set; }
-
-        /// <summary>
-        /// Frame of Reference UID. Used to filter registrations.
-        /// Not displayed in grid, only used internally.
-        /// </summary>
         public string ImageFOR { get; set; }
-
         public double TotalDoseGy { get; set; }
         public double PlanNormalization { get; set; }
 
         /// <summary>
-        /// Per-row filtered registration list. ComboBox binds to this.
-        /// Only contains registrations where this plan's FOR participates.
+        /// Shortened FOR UID for display in the grid.
+        /// Shows last 8 characters which are typically unique.
+        /// Full FOR is available as tooltip.
         /// </summary>
-        public List<RegistrationOption> RelevantRegistrations { get; set; }
-            = new List<RegistrationOption>();
+        public string ShortFOR
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(ImageFOR)) return "—";
+                return ImageFOR.Length > 8
+                    ? ".." + ImageFOR.Substring(ImageFOR.Length - 8)
+                    : ImageFOR;
+            }
+        }
+
+        public List<RegistrationOption> RelevantRegistrations
+        {
+            get => _relevantRegistrations;
+            set { _relevantRegistrations = value; OnPropertyChanged(); }
+        }
 
         public bool IsIncluded
         {
@@ -278,7 +501,15 @@ namespace ESAPI_EQD2Viewer.UI.Views
         public bool IsReference
         {
             get => _isReference;
-            set { _isReference = value; OnPropertyChanged(); }
+            set
+            {
+                if (_isReference != value)
+                {
+                    _isReference = value;
+                    OnPropertyChanged();
+                    if (value) SelectedRegistrationId = "";
+                }
+            }
         }
 
         public int NumberOfFractions

@@ -1,9 +1,12 @@
-using ESAPI_EQD2Viewer.UI.ViewModels;
+﻿using ESAPI_EQD2Viewer.UI.ViewModels;
+using ESAPI_EQD2Viewer.Core.Models;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
+using System.Windows.Input;
+using System.Windows.Shapes;
 using VMS.TPS.Common.Model.API;
 
 namespace ESAPI_EQD2Viewer.UI.Views
@@ -15,9 +18,6 @@ namespace ESAPI_EQD2Viewer.UI.Views
 
         public MainWindow(MainViewModel viewModel, ScriptContext context)
         {
-            // Register BooleanToVisibility converter before InitializeComponent
-            Resources.Add("BoolToVis", new BooleanToVisibilityConverter());
-
             InitializeComponent();
             _viewModel = viewModel;
             _context = context;
@@ -31,8 +31,8 @@ namespace ESAPI_EQD2Viewer.UI.Views
             var plan = _context.ExternalPlanSetup;
             if (plan?.StructureSet == null)
             {
-                MessageBox.Show("No plan or structure set available.", "Info",
-                    MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show("No plan or structure set available.",
+                    "EQD2 Viewer", MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
 
@@ -42,6 +42,28 @@ namespace ESAPI_EQD2Viewer.UI.Views
             if (dialog.ShowDialog() == true && dialog.SelectedStructures.Any())
             {
                 _viewModel.AddStructuresForDVH(dialog.SelectedStructures);
+            }
+        }
+
+        /// <summary>
+        /// Cycles the isodose level color through the predefined palette.
+        /// Click the color swatch rectangle → next color in palette.
+        /// </summary>
+        private void ColorSwatch_Click(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is Rectangle rect && rect.DataContext is IsodoseLevel level)
+            {
+                uint[] palette = IsodoseLevel.ColorPalette;
+                uint current = level.Color;
+
+                // Find current color in palette, advance to next
+                int idx = -1;
+                for (int i = 0; i < palette.Length; i++)
+                {
+                    if (palette[i] == current) { idx = i; break; }
+                }
+                int next = (idx + 1) % palette.Length;
+                level.Color = palette[next];
             }
         }
     }

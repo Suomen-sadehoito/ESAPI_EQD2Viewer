@@ -38,6 +38,19 @@ namespace ESAPI_EQD2Viewer.UI.Controls
             set => SetValue(DoseImageSourceProperty, value);
         }
 
+        /// <summary>
+        /// Registration verification overlay: secondary CT blended/checkerboarded
+        /// onto the reference CT for visual alignment checking.
+        /// </summary>
+        public static readonly DependencyProperty OverlayImageSourceProperty =
+            DependencyProperty.Register(nameof(OverlayImageSource), typeof(ImageSource), typeof(InteractiveImageViewer));
+
+        public ImageSource OverlayImageSource
+        {
+            get => (ImageSource)GetValue(OverlayImageSourceProperty);
+            set => SetValue(OverlayImageSourceProperty, value);
+        }
+
         public static readonly DependencyProperty CurrentSliceProperty =
             DependencyProperty.Register(nameof(CurrentSlice), typeof(int), typeof(InteractiveImageViewer),
                 new FrameworkPropertyMetadata(0, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));
@@ -78,8 +91,7 @@ namespace ESAPI_EQD2Viewer.UI.Controls
         }
 
         /// <summary>
-        /// Vector isodose contour lines (Line mode). Bound to ItemsControl in XAML.
-        /// Each item contains a frozen StreamGeometry that renders as a WPF Path element.
+        /// Vector isodose contour lines for Line mode.
         /// </summary>
         public static readonly DependencyProperty ContourLinesProperty =
             DependencyProperty.Register(nameof(ContourLines),
