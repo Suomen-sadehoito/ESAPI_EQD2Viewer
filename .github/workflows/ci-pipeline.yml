@@ -1,0 +1,30 @@
+name: Continuous Integration
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  build-and-test:   
+    runs-on: self-hosted
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v2
+
+    - name: Setup NuGet
+      uses: NuGet/setup-nuget@v2
+
+    - name: Restore NuGet packages
+      run: nuget restore ESAPI_EQD2Viewer.sln
+
+    - name: Build the entire solution
+      run: msbuild ESAPI_EQD2Viewer.sln -p:Configuration=Release -p:Platform="x64"
+
+    - name: Run xUnit tests
+      run: dotnet test ESAPI_EQD2Viewer.Tests\ESAPI_EQD2Viewer.Tests.csproj --configuration Release --no-build --verbosity normal
