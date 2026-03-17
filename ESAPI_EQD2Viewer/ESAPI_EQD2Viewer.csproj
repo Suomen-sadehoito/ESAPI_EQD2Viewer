@@ -90,6 +90,7 @@
     <Compile Include="Core\Interfaces\IDVHService.cs" />
     <Compile Include="Core\Interfaces\IDebugExportService.cs" />
     <Compile Include="Core\Interfaces\IImageRenderingService.cs" />
+    <Compile Include="Core\Interfaces\ISummationService.cs" />
     <Compile Include="Core\Models\CalculationSettings.cs" />
     <Compile Include="Core\Models\DoseDisplayMode.cs" />
     <Compile Include="Core\Models\DVHSummary.cs" />
@@ -98,14 +99,17 @@
     <Compile Include="Core\Models\IsodoseLevel.cs" />
     <Compile Include="Core\Models\RenderResult.cs" />
     <Compile Include="Core\Extensions\VVectorExtensions.cs" />
+    <Compile Include="Core\Models\SummationConfig.cs" />
     <Compile Include="Services\DVHService.cs" />
     <Compile Include="Services\DebugExportService.cs" />
     <Compile Include="Services\ExportService.cs" />
     <Compile Include="Services\ImageRenderingService.cs" />
+    <Compile Include="Services\SummationService.cs" />
     <Compile Include="UI\Controls\InteractiveImageViewer.xaml.cs">
       <DependentUpon>InteractiveImageViewer.xaml</DependentUpon>
     </Compile>
     <Compile Include="UI\ViewModels\MainViewModel.cs" />
+    <Compile Include="UI\ViewModels\MainViewModel.Summation.cs" />
     <Compile Include="UI\Views\MainWindow.xaml.cs">
       <DependentUpon>MainWindow.xaml</DependentUpon>
     </Compile>
@@ -114,6 +118,9 @@
     </Compile>
     <Compile Include="Script.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="UI\Views\PlanSummationDialog.xaml.cs">
+      <DependentUpon>PlanSummationDialog.xaml</DependentUpon>
+    </Compile>
   </ItemGroup>
   <!-- XAML pages -->
   <ItemGroup>
@@ -126,6 +133,10 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="UI\Views\StructureSelectionDialog.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="UI\Views\PlanSummationDialog.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

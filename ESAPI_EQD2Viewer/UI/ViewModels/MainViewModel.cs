@@ -1,5 +1,9 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using ESAPI_EQD2Viewer.Core.Calculations;
+using ESAPI_EQD2Viewer.Core.Interfaces;
+using ESAPI_EQD2Viewer.Core.Models;
+using ESAPI_EQD2Viewer.Services;
 using OxyPlot;
 using OxyPlot.Axes;
 using OxyPlot.Series;
@@ -8,6 +12,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Windows;
@@ -16,10 +21,6 @@ using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
-using ESAPI_EQD2Viewer.Core.Calculations;
-using ESAPI_EQD2Viewer.Core.Interfaces;
-using ESAPI_EQD2Viewer.Core.Models;
-using ESAPI_EQD2Viewer.Services;
 
 namespace ESAPI_EQD2Viewer.UI.ViewModels
 {
@@ -234,7 +235,10 @@ namespace ESAPI_EQD2Viewer.UI.ViewModels
             set
             {
                 if (SetProperty(ref _globalAlphaBeta, value))
+                {
                     RequestRender();
+                    ResummatIfActive();
+                }
             }
         }
 
@@ -464,6 +468,13 @@ namespace ESAPI_EQD2Viewer.UI.ViewModels
 
             // Always render CT
             _renderingService.RenderCtImage(_context.Image, CtImageSource, CurrentSlice, WindowLevel, WindowWidth);
+
+            // If summation is active, render summed dose instead of single-plan dose
+            if (_isSummationActive && _summationService != null && _summationService.HasSummedDose)
+            {
+                RenderSummationScene();
+                return;
+            }
 
             double planTotalDoseGy = GetPrescriptionGy();
             double planNormalization = _plan?.PlanNormalizationValue ?? 100.0;
@@ -754,7 +765,10 @@ namespace ESAPI_EQD2Viewer.UI.ViewModels
         {
             if (_disposed) return;
             _disposed = true;
+            _summationCts?.Cancel();
+            _alphaBetaDebounce?.Stop();
             _renderingService?.Dispose();
+            _summationService?.Dispose();
             _ctImageSource = null;
             _doseImageSource = null;
         }

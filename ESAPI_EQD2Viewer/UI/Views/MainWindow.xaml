@@ -319,6 +319,42 @@
                     </StackPanel>
                 </Border>
 
+				<Border Style="{StaticResource PanelBorder}">
+					<StackPanel>
+						<TextBlock Text="PLAN SUMMATION" Style="{StaticResource SectionHeader}"/>
+
+						<TextBlock Text="{Binding SummationInfo}" Foreground="#bbb" FontSize="11"
+                                   TextWrapping="Wrap" Margin="0,0,0,8"/>
+
+						<TextBlock Text="{Binding SummationStatusLabel}" FontSize="11" Margin="0,0,0,6"
+                                   Foreground="#8fbc8f"/>
+
+						<!-- Progress bar: visible only during computation -->
+						<ProgressBar Height="18" Minimum="0" Maximum="100"
+                                     Value="{Binding SummationProgress, Mode=OneWay}"
+                                     Visibility="{Binding IsSummationComputing, Converter={StaticResource BoolToVis}}"
+                                     Foreground="#3a8a3a" Background="#333" BorderBrush="#555"
+                                     Margin="0,0,0,6"/>
+
+						<StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+							<Button Content="Setup Summation..."
+                                    Style="{StaticResource AccentButton}"
+                                    Command="{Binding OpenSummationDialogCommand}"
+                                    ToolTip="Configure multi-plan dose summation for re-irradiation assessment"/>
+							<Button Content="Cancel"
+                                    Style="{StaticResource SmallButton}"
+                                    Command="{Binding CancelSummationCommand}"
+                                    Visibility="{Binding IsSummationComputing, Converter={StaticResource BoolToVis}}"
+                                    Background="#6d2d2d" BorderBrush="#9d3a3a"
+                                    ToolTip="Cancel running computation"/>
+							<Button Content="Clear"
+                                    Style="{StaticResource SmallButton}"
+                                    Command="{Binding ClearSummationCommand}"
+                                    ToolTip="Disable summation and return to single-plan view"/>
+						</StackPanel>
+					</StackPanel>
+				</Border>
+
                 <Border Style="{StaticResource PanelBorder}">
                     <StackPanel>
                         <TextBlock Text="WINDOWING" Style="{StaticResource SectionHeader}"/>
