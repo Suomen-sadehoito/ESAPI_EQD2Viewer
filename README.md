@@ -13,7 +13,7 @@ ESAPI-skripti Varian Eclipseen EQD2 jakaumien tarkasteluun ja uudelleensäteilyt
 
 ## Kääntäminen
 
-Avaa `ESAPI_EQD2Viewer.sln` Visual Studio 2022:ssa. Käännä **Release|x64**. Costura.Fody pakkaa kaikki riippuvuudet yhteen DLL:ään.
+Avaa `ESAPI_EQD2Viewer.sln` Visual Studiossa. Käännä **Release|x64**. Costura.Fody pakkaa kaikki riippuvuudet yhteen DLL:ään.
 
 ## Käyttö
 
