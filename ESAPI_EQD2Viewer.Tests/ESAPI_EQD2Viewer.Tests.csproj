@@ -2,12 +2,9 @@
 
 	<PropertyGroup>
 		<TargetFramework>net48</TargetFramework>
-
 		<LangVersion>latest</LangVersion>
-
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>disable</Nullable>
-
 		<IsPackable>false</IsPackable>
 		<IsTestProject>true</IsTestProject>
 		<PlatformTarget>x64</PlatformTarget>
@@ -18,9 +15,15 @@
 		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
 		<PackageReference Include="xunit" Version="2.5.3" />
 		<PackageReference Include="xunit.runner.visualstudio" Version="2.5.3" />
-
 		<PackageReference Include="FluentAssertions" Version="6.12.0" />
 		<PackageReference Include="Moq" Version="4.20.70" />
+	</ItemGroup>
+
+	<!-- WPF framework assemblies needed for Point, Color etc. -->
+	<ItemGroup>
+		<Reference Include="WindowsBase" />
+		<Reference Include="PresentationCore" />
+		<Reference Include="PresentationFramework" />
 	</ItemGroup>
 
 	<ItemGroup>

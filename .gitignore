@@ -426,3 +426,10 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# ESAPI DLLs — proprietary Varian files, never commit
+lib/*.dll
+ 
+# Test results
+TestResults/
+*.trx

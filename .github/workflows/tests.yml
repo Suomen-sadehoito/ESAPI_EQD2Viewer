@@ -1,0 +1,44 @@
+name: Unit Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v2
+
+    - name: Setup NuGet
+      uses: NuGet/setup-nuget@v2
+
+    - name: Restore NuGet packages
+      run: nuget restore ESAPI_EQD2Viewer.sln
+
+    - name: Build solution
+      run: msbuild ESAPI_EQD2Viewer.sln /p:Configuration=Debug /p:Platform="Any CPU" /t:Build /verbosity:minimal
+
+    - name: Setup .NET SDK
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Run unit tests
+      run: |
+        dotnet test ESAPI_EQD2Viewer.Tests\ESAPI_EQD2Viewer.Tests.csproj --no-build --configuration Debug --logger "trx;LogFileName=test-results.trx" --results-directory TestResults
+
+    - name: Publish test results
+      uses: dorny/test-reporter@v1
+      if: always()
+      with:
+        name: Unit Test Results
+        path: TestResults/*.trx
+        reporter: dotnet-trx
