@@ -2,10 +2,6 @@
 
 ESAPI-skripti Varian Eclipseen EQD2 jakaumien tarkasteluun ja uudelleensäteilytyksen kumulatiivisen annosjakauman arviointiin.
 
-## Käyttötarkoitus
-
-Työkalu jolla fyysikko ja lääkäri voivat arvioida uudelleensäteilytyksen kumulatiivista annosjakaumaa. Näyttää isodoosit EQD2-muunnoksella, summaa usean hoitosuunnitelman annokset vokseleittain ja laskee rakennekohtaiset DVH:t.
-
 ## Projektin tila
 
 **Alpha-vaihe.** Perustoiminnallisuus on kasassa mutta testausta kliinisillä potilailla ei ole vielä tehty riittävästi. Käytä omalla vastuulla ja tarkista aina laskelmat käsin.
