@@ -30,7 +30,7 @@ Avaa `ESAPI_EQD2Viewer.sln` Visual Studiossa. Käännä **Release|x64**. Costura
 
 ## Tekijät
 
-Risto Hirvilammi & Juho Ala-Myllymäki, OVPH
+Risto Hirvilammi & Juho Ala-Myllymäki, ÖVPH
 
 ## Lisenssi
 
