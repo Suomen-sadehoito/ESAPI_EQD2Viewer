@@ -16,11 +16,20 @@ namespace ESAPI_EQD2Viewer.UI.ViewModels
         {
             get
             {
-                if (_context.Patient == null) return "No patient";
-                var p = _context.Patient;
-                string name = $"{p.LastName}, {p.FirstName}";
-                if (!string.IsNullOrEmpty(p.Id)) name += $"  ({p.Id})";
-                return name;
+                if (_isSnapshotMode)
+                {
+                    var p = _snapshot.Patient;
+                    if (p == null) return "No patient";
+                    string name = $"{p.LastName}, {p.FirstName}";
+                    if (!string.IsNullOrEmpty(p.Id)) name += $"  ({p.Id})";
+                    return name;
+                }
+
+                if (_context?.Patient == null) return "No patient";
+                var patient = _context.Patient;
+                string n = $"{patient.LastName}, {patient.FirstName}";
+                if (!string.IsNullOrEmpty(patient.Id)) n += $"  ({patient.Id})";
+                return n;
             }
         }
 
@@ -28,6 +37,13 @@ namespace ESAPI_EQD2Viewer.UI.ViewModels
         {
             get
             {
+                if (_isSnapshotMode)
+                {
+                    var plan = _snapshot.ActivePlan;
+                    if (plan == null) return "No plan";
+                    return string.IsNullOrEmpty(plan.CourseId) ? plan.Id : $"{plan.CourseId} / {plan.Id}";
+                }
+
                 if (_plan == null) return "No plan";
                 string course = _plan.Course?.Id ?? "";
                 return string.IsNullOrEmpty(course) ? _plan.Id : $"{course} / {_plan.Id}";
@@ -47,7 +63,16 @@ namespace ESAPI_EQD2Viewer.UI.ViewModels
         {
             get
             {
-                int fx = _plan?.NumberOfFractions ?? 0;
+                int fx = 0;
+                if (_isSnapshotMode)
+                {
+                    fx = _snapshot?.ActivePlan?.NumberOfFractions ?? 0;
+                }
+                else
+                {
+                    fx = _plan?.NumberOfFractions ?? 0;
+                }
+
                 if (fx <= 0) return "";
                 double gy = GetPrescriptionGy();
                 return $"{fx} fx × {(fx > 0 ? gy / fx : 0):F2} Gy";
@@ -187,9 +212,13 @@ namespace ESAPI_EQD2Viewer.UI.ViewModels
             get
             {
                 double prescGy = GetPrescriptionGy();
-                double norm = _plan?.PlanNormalizationValue ?? 100.0;
+                double norm = _isSnapshotMode
+                    ? (_snapshot?.ActivePlan?.PlanNormalization ?? 100.0)
+                    : (_plan?.PlanNormalizationValue ?? 100.0);
+
                 if (double.IsNaN(norm) || norm <= 0) norm = 100.0;
                 else if (norm < RenderConstants.NormalizationFractionThreshold) norm *= 100.0;
+
                 double refGy = prescGy * (norm / 100.0);
                 return refGy < RenderConstants.MinReferenceDoseGy ? prescGy : refGy;
             }

@@ -8,7 +8,6 @@ using ESAPI_EQD2Viewer.UI.ViewModels;
 using ESAPI_EQD2Viewer.UI.Views;
 
 [assembly: ESAPIScript(IsWriteable = false)]
-
 namespace VMS.TPS
 {
     public class Script
@@ -27,12 +26,26 @@ namespace VMS.TPS
             {
                 SimpleLogger.EnableFileLogging();
 
+                // ── Load data through Clean Architecture adapter ──
+                var dataSource = new ESAPI_EQD2Viewer.Adapters.EsapiDataSource(context);
+                var snapshot = dataSource.LoadSnapshot();
+
                 IImageRenderingService renderingService = new ImageRenderingService();
                 IDebugExportService debugService = new DebugExportService();
                 IDVHService dvhService = new DVHService();
 
-                var viewModel = new MainViewModel(context, renderingService, debugService, dvhService);
-                var window = new MainWindow(viewModel, context);
+                int width = snapshot.CtImage.XSize;
+                int height = snapshot.CtImage.YSize;
+
+                renderingService.Initialize(width, height);
+                renderingService.PreloadData(snapshot.CtImage, snapshot.Dose);
+
+                // Use the new snapshot-based constructor
+                var viewModel = new MainViewModel(snapshot, renderingService, debugService, dvhService);
+
+                // Use the snapshot-based constructor for MainWindow
+                var window = new MainWindow(viewModel);
+
                 window.ShowDialog();
             }
             catch (Exception ex)

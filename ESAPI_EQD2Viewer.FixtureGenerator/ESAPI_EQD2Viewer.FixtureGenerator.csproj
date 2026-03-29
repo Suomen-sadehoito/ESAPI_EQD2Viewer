@@ -31,7 +31,6 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
-
   <!-- Sama HasRealEsapi-logiikka kuin pääprojektissa -->
   <PropertyGroup>
     <RealEsapiLibPath>$(MSBuildThisFileDirectory)..\lib\</RealEsapiLibPath>
@@ -39,8 +38,25 @@
     <HasRealEsapi Condition="Exists('$(RealEsapiLibPath)VMS.TPS.Common.Model.API.dll')">true</HasRealEsapi>
     <HasRealEsapi Condition="'$(CI)' == 'true'">false</HasRealEsapi>
   </PropertyGroup>
-
   <!-- Lokaali: käytä oikeita ESAPI DLL:iä -->
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>bin\x64\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DebugType>full</DebugType>
+    <PlatformTarget>x64</PlatformTarget>
+    <LangVersion>latest</LangVersion>
+    <ErrorReport>prompt</ErrorReport>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
+    <OutputPath>bin\x64\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <Optimize>true</Optimize>
+    <DebugType>pdbonly</DebugType>
+    <PlatformTarget>x64</PlatformTarget>
+    <LangVersion>latest</LangVersion>
+    <ErrorReport>prompt</ErrorReport>
+  </PropertyGroup>
   <ItemGroup Condition="'$(HasRealEsapi)' == 'true'">
     <Reference Include="VMS.TPS.Common.Model.API">
       <HintPath>$(RealEsapiLibPath)VMS.TPS.Common.Model.API.dll</HintPath>
@@ -51,12 +67,10 @@
       <Private>False</Private>
     </Reference>
   </ItemGroup>
-
   <!-- CI: käytä Stubs-kirjastoa -->
   <ItemGroup Condition="'$(HasRealEsapi)' == 'false'">
     <ProjectReference Include="..\ESAPI_EQD2Viewer.Stubs\ESAPI_EQD2Viewer.Stubs.csproj" />
   </ItemGroup>
-
   <ItemGroup>
     <Reference Include="PresentationCore" />
     <Reference Include="PresentationFramework" />
@@ -65,18 +79,14 @@
     <Reference Include="System.Xaml" />
     <Reference Include="WindowsBase" />
   </ItemGroup>
-
   <ItemGroup>
     <Compile Include="Script.cs" />
     <Compile Include="FixtureExporter.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-
   <!-- Turvamekanismi: Poistaa Stubs-assemblyn jos se vuotaa buildiin -->
-  <Target Name="RemoveStaleStubs"
-          AfterTargets="ResolveAssemblyReferences"
-          Condition="'$(HasRealEsapi)' == 'true'">
+  <Target Name="RemoveStaleStubs" AfterTargets="ResolveAssemblyReferences" Condition="'$(HasRealEsapi)' == 'true'">
     <ItemGroup>
       <ReferencePath Remove="@(ReferencePath)" Condition="'%(FileName)' == 'ESAPI_EQD2Viewer.Stubs'" />
       <ReferenceDependencyPaths Remove="@(ReferenceDependencyPaths)" Condition="'%(FileName)' == 'ESAPI_EQD2Viewer.Stubs'" />

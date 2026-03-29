@@ -1,4 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
+using ESAPI_EQD2Viewer.Core.Data;
 using ESAPI_EQD2Viewer.Core.Interfaces;
 using ESAPI_EQD2Viewer.Core.Models;
 using OxyPlot;
@@ -41,6 +42,10 @@ namespace ESAPI_EQD2Viewer.UI.ViewModels
         internal readonly IImageRenderingService _renderingService;
         internal readonly IDebugExportService _debugExportService;
         internal readonly IDVHService _dvhService;
+
+        // ── Clean Architecture data source ──
+        internal readonly ClinicalSnapshot _snapshot;
+        internal readonly bool _isSnapshotMode;
 
         private int _renderPendingFlag = 0;
         private bool _disposed;
@@ -88,6 +93,56 @@ namespace ESAPI_EQD2Viewer.UI.ViewModels
             AutoPreset();
         }
 
+        /// <summary>
+        /// Clean Architecture constructor — no ESAPI, no ScriptContext.
+        /// Used by DevRunner and future test infrastructure.
+        /// All data comes from the pre-loaded ClinicalSnapshot.
+        /// </summary>
+        public MainViewModel(ClinicalSnapshot snapshot,
+            IImageRenderingService renderingService,
+            IDebugExportService debugExportService,
+            IDVHService dvhService)
+        {
+            _snapshot = snapshot ?? throw new ArgumentNullException(nameof(snapshot));
+            _isSnapshotMode = true;
+
+            // These remain null in snapshot mode — code checks _isSnapshotMode
+            _context = null;
+            _plan = null;
+
+            _renderingService = renderingService ?? throw new ArgumentNullException(nameof(renderingService));
+            _debugExportService = debugExportService ?? throw new ArgumentNullException(nameof(debugExportService));
+            _dvhService = dvhService ?? throw new ArgumentNullException(nameof(dvhService));
+
+            _contourLines = new ObservableCollection<IsodoseContourData>();
+            _structureContourLines = new ObservableCollection<StructureContourData>();
+
+            var defaults = IsodoseLevel.GetEclipseDefaults();
+            IsodoseLevels = new ObservableCollection<IsodoseLevel>(defaults);
+            _isodoseLevelArray = defaults;
+            WireIsodoseLevelEvents();
+
+            int width = snapshot.CtImage.XSize;
+            int height = snapshot.CtImage.YSize;
+            _maxSlice = snapshot.CtImage.ZSize - 1;
+            _currentSlice = _maxSlice / 2;
+
+            _numberOfFractions = snapshot.ActivePlan?.NumberOfFractions ?? 1;
+
+            // Note: Initialize + PreloadData already called by DevRunner App.xaml.cs
+            // before passing the service to this constructor
+
+            CtImageSource = new WriteableBitmap(width, height, 96, 96,
+                PixelFormats.Bgra32, null);
+            DoseImageSource = new WriteableBitmap(width, height, 96, 96,
+                PixelFormats.Bgra32, null);
+            OverlayImageSource = new WriteableBitmap(width, height, 96, 96,
+                PixelFormats.Bgra32, null);
+
+            InitializePlotModel();
+            AutoPreset();
+        }
+
         private void WireIsodoseLevelEvents()
         {
             IsodoseLevels.CollectionChanged += (s, e) =>
@@ -125,6 +180,9 @@ namespace ESAPI_EQD2Viewer.UI.ViewModels
 
         internal double GetPrescriptionGy()
         {
+            if (_isSnapshotMode)
+                return _snapshot?.ActivePlan?.TotalDoseGy ?? 0;
+
             if (_plan == null) return 0;
             return _plan.TotalDose.Unit == DoseValue.DoseUnit.cGy
                 ? _plan.TotalDose.Dose / 100.0

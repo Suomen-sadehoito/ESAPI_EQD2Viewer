@@ -1,205 +1,191 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-	<Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props"
-		Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
-	
-	<PropertyGroup>
-		<ResolveAssemblyWarnOrErrorOnTargetArchitectureMismatch>None</ResolveAssemblyWarnOrErrorOnTargetArchitectureMismatch>
-		<Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-		<Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-		<ProjectGuid>{CB47C100-C47F-436D-8596-8005AB5B13A8}</ProjectGuid>
-		<OutputType>Library</OutputType>
-		<AppDesignerFolder>Properties</AppDesignerFolder>
-		<RootNamespace>ESAPI_EQD2Viewer</RootNamespace>
-		<AssemblyName>ESAPI_EQD2Viewer.esapi</AssemblyName>
-		<TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
-		<FileAlignment>512</FileAlignment>
-		<Deterministic>true</Deterministic>
-		<LangVersion>latest</LangVersion>
-		<AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
-	</PropertyGroup>
-
-	<PropertyGroup>
-		<RealEsapiLibPath>$(MSBuildThisFileDirectory)..\lib\</RealEsapiLibPath>
-		<HasRealEsapi>false</HasRealEsapi>
-		<HasRealEsapi Condition="Exists('$(RealEsapiLibPath)VMS.TPS.Common.Model.API.dll')">true</HasRealEsapi>
-		<HasRealEsapi Condition="'$(CI)' == 'true'">false</HasRealEsapi>
-	</PropertyGroup>
-
-	<PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-		<DebugSymbols>true</DebugSymbols>
-		<DebugType>full</DebugType>
-		<Optimize>false</Optimize>
-		<OutputPath>bin\Debug\</OutputPath>
-		<DefineConstants>DEBUG;TRACE</DefineConstants>
-		<ErrorReport>prompt</ErrorReport>
-		<WarningLevel>4</WarningLevel>
-		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-	</PropertyGroup>
-
-	<PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-		<DebugType>pdbonly</DebugType>
-		<Optimize>true</Optimize>
-		<OutputPath>bin\Release\</OutputPath>
-		<DefineConstants>TRACE</DefineConstants>
-		<ErrorReport>prompt</ErrorReport>
-		<WarningLevel>4</WarningLevel>
-		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-	</PropertyGroup>
-
-	<PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
-		<DebugSymbols>true</DebugSymbols>
-		<OutputPath>bin\x64\Debug\</OutputPath>
-		<DefineConstants>DEBUG;TRACE</DefineConstants>
-		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-		<DebugType>full</DebugType>
-		<PlatformTarget>x64</PlatformTarget>
-		<ErrorReport>prompt</ErrorReport>
-	</PropertyGroup>
-
-	<PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
-		<OutputPath>bin\x64\Release\</OutputPath>
-		<DefineConstants>TRACE</DefineConstants>
-		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-		<Optimize>true</Optimize>
-		<DebugType>pdbonly</DebugType>
-		<PlatformTarget>x64</PlatformTarget>
-		<ErrorReport>prompt</ErrorReport>
-	</PropertyGroup>
-
-	<ItemGroup>
-		<Reference Include="PresentationCore" />
-		<Reference Include="PresentationFramework" />
-		<Reference Include="ReachFramework" />
-		<Reference Include="System" />
-		<Reference Include="System.Core" />
-		<Reference Include="System.Xaml" />
-		<Reference Include="WindowsBase" />
-	</ItemGroup>
-
-	<!-- Lokaali: käytä oikeita ESAPI DLL:iä -->
-	<ItemGroup Condition="'$(HasRealEsapi)' == 'true'">
-		<Reference Include="VMS.TPS.Common.Model.API">
-			<HintPath>$(RealEsapiLibPath)VMS.TPS.Common.Model.API.dll</HintPath>
-			<Private>False</Private>
-		</Reference>
-		<Reference Include="VMS.TPS.Common.Model.Types">
-			<HintPath>$(RealEsapiLibPath)VMS.TPS.Common.Model.Types.dll</HintPath>
-			<Private>False</Private>
-		</Reference>
-	</ItemGroup>
-
-	<!-- CI: käytä Stubs-kirjastoa -->
-	<ItemGroup Condition="'$(HasRealEsapi)' == 'false'">
-		<ProjectReference Include="..\ESAPI_EQD2Viewer.Stubs\ESAPI_EQD2Viewer.Stubs.csproj" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<Compile Include="Core\Calculations\ColorMaps.cs" />
-		<Compile Include="Core\Calculations\EQD2Calculator.cs" />
-		<Compile Include="Core\Calculations\ImageUtils.cs" />
-		<Compile Include="Core\Calculations\MarchingSquares.cs" />
-		<Compile Include="Core\Calculations\MatrixMath.cs" />
-		<Compile Include="Core\Calculations\StructureRasterizer.cs" />
-		<Compile Include="Core\Extensions\VVectorExtensions.cs" />
-		<Compile Include="Core\Interfaces\IDVHService.cs" />
-		<Compile Include="Core\Interfaces\IDebugExportService.cs" />
-		<Compile Include="Core\Interfaces\IImageRenderingService.cs" />
-		<Compile Include="Core\Interfaces\ISummationService.cs" />
-		<Compile Include="Core\Logging\SimpleLogger.cs" />
-		<Compile Include="Core\Models\CalculationSettings.cs" />
-		<Compile Include="Core\Models\DoseDisplayMode.cs" />
-		<Compile Include="Core\Models\DVHSummary.cs" />
-		<Compile Include="Core\Models\EQD2Settings.cs" />
-		<Compile Include="Core\Models\IsodoseContourData.cs" />
-		<Compile Include="Core\Models\IsodoseLevel.cs" />
-		<Compile Include="Core\Models\RenderConstants.cs" />
-		<Compile Include="Core\Models\RenderResult.cs" />
-		<Compile Include="Core\Models\StructureContourData.cs" />
-		<Compile Include="Core\Models\DoseVolumePoint.cs" />
-		<Compile Include="Core\Models\SummationConfig.cs" />
-		<Compile Include="Services\DVHService.cs" />
-		<Compile Include="Services\DebugExportService.cs" />
-		<Compile Include="Services\ExportService.cs" />
-		<Compile Include="Services\ImageRenderingService.cs" />
-		<Compile Include="Services\SummationService.cs" />
-		<Compile Include="UI\Controls\InteractiveImageViewer.xaml.cs">
-			<DependentUpon>InteractiveImageViewer.xaml</DependentUpon>
-		</Compile>
-		<Compile Include="UI\ViewModels\MainViewModel.cs" />
-		<Compile Include="UI\ViewModels\MainViewModel.Properties.cs" />
-		<Compile Include="UI\ViewModels\MainViewModel.Rendering.cs" />
-		<Compile Include="UI\ViewModels\MainViewModel.DVH.cs" />
-		<Compile Include="UI\ViewModels\MainViewModel.Summation.cs" />
-		<Compile Include="UI\ViewModels\MainViewModel.Commands.cs" />
-		<Compile Include="UI\Views\MainWindow.xaml.cs">
-			<DependentUpon>MainWindow.xaml</DependentUpon>
-		</Compile>
-		<Compile Include="UI\Views\StructureSelectionDialog.xaml.cs">
-			<DependentUpon>StructureSelectionDialog.xaml</DependentUpon>
-		</Compile>
-		<Compile Include="UI\Views\PlanSummationDialog.xaml.cs">
-			<DependentUpon>PlanSummationDialog.xaml</DependentUpon>
-		</Compile>
-		<Compile Include="Script.cs" />
-		<Compile Include="Properties\AssemblyInfo.cs" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<Page Include="UI\Styles\SharedStyles.xaml">
-			<SubType>Designer</SubType>
-			<Generator>MSBuild:Compile</Generator>
-		</Page>
-		<Page Include="UI\Controls\InteractiveImageViewer.xaml">
-			<SubType>Designer</SubType>
-			<Generator>MSBuild:Compile</Generator>
-		</Page>
-		<Page Include="UI\Views\MainWindow.xaml">
-			<SubType>Designer</SubType>
-			<Generator>MSBuild:Compile</Generator>
-		</Page>
-		<Page Include="UI\Views\StructureSelectionDialog.xaml">
-			<SubType>Designer</SubType>
-			<Generator>MSBuild:Compile</Generator>
-		</Page>
-		<Page Include="UI\Views\PlanSummationDialog.xaml">
-			<SubType>Designer</SubType>
-			<Generator>MSBuild:Compile</Generator>
-		</Page>
-	</ItemGroup>
-
-	<ItemGroup>
-		<None Include="app.config" />
-		<None Include="FodyWeavers.xml" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
-		<PackageReference Include="Fody" Version="6.8.2">
-			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-			<PrivateAssets>all</PrivateAssets>
-		</PackageReference>
-		<PackageReference Include="Costura.Fody" Version="6.0.0">
-			<PrivateAssets>all</PrivateAssets>
-		</PackageReference>
-		<PackageReference Include="OxyPlot.Core" Version="2.2.0" />
-		<PackageReference Include="OxyPlot.Wpf" Version="2.2.0" />
-	</ItemGroup>
-
-	<Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-
-	<!--
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <ResolveAssemblyWarnOrErrorOnTargetArchitectureMismatch>None</ResolveAssemblyWarnOrErrorOnTargetArchitectureMismatch>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{CB47C100-C47F-436D-8596-8005AB5B13A8}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>ESAPI_EQD2Viewer</RootNamespace>
+    <AssemblyName>ESAPI_EQD2Viewer.esapi</AssemblyName>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <Deterministic>true</Deterministic>
+    <LangVersion>latest</LangVersion>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+  </PropertyGroup>
+  <PropertyGroup>
+    <RealEsapiLibPath>$(MSBuildThisFileDirectory)..\lib\</RealEsapiLibPath>
+    <HasRealEsapi>false</HasRealEsapi>
+    <HasRealEsapi Condition="Exists('$(RealEsapiLibPath)VMS.TPS.Common.Model.API.dll')">true</HasRealEsapi>
+    <HasRealEsapi Condition="'$(CI)' == 'true'">false</HasRealEsapi>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>bin\x64\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DebugType>full</DebugType>
+    <PlatformTarget>x64</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
+    <OutputPath>bin\x64\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Optimize>true</Optimize>
+    <DebugType>pdbonly</DebugType>
+    <PlatformTarget>x64</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="PresentationCore" />
+    <Reference Include="PresentationFramework" />
+    <Reference Include="ReachFramework" />
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xaml" />
+    <Reference Include="WindowsBase" />
+  </ItemGroup>
+  <!-- Lokaali: käytä oikeita ESAPI DLL:iä -->
+  <ItemGroup Condition="'$(HasRealEsapi)' == 'true'">
+    <Reference Include="VMS.TPS.Common.Model.API">
+      <HintPath>$(RealEsapiLibPath)VMS.TPS.Common.Model.API.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="VMS.TPS.Common.Model.Types">
+      <HintPath>$(RealEsapiLibPath)VMS.TPS.Common.Model.Types.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+  </ItemGroup>
+  <!-- CI: käytä Stubs-kirjastoa -->
+  <ItemGroup Condition="'$(HasRealEsapi)' == 'false'">
+    <ProjectReference Include="..\ESAPI_EQD2Viewer.Stubs\ESAPI_EQD2Viewer.Stubs.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Adapters\EsapiDataSource.cs" />
+    <Compile Include="Core\Calculations\ColorMaps.cs" />
+    <Compile Include="Core\Calculations\EQD2Calculator.cs" />
+    <Compile Include="Core\Calculations\ImageUtils.cs" />
+    <Compile Include="Core\Calculations\MarchingSquares.cs" />
+    <Compile Include="Core\Calculations\MatrixMath.cs" />
+    <Compile Include="Core\Calculations\StructureRasterizer.cs" />
+    <Compile Include="Core\Data\ClinicalTypes.cs" />
+    <Compile Include="Core\Data\Vec3.cs" />
+    <Compile Include="Core\Extensions\VVectorExtensions.cs" />
+    <Compile Include="Core\Interfaces\IClinicalDataSource.cs" />
+    <Compile Include="Core\Interfaces\IDVHService.cs" />
+    <Compile Include="Core\Interfaces\IDebugExportService.cs" />
+    <Compile Include="Core\Interfaces\IImageRenderingService.cs" />
+    <Compile Include="Core\Interfaces\ISummationService.cs" />
+    <Compile Include="Core\Logging\SimpleLogger.cs" />
+    <Compile Include="Core\Models\CalculationSettings.cs" />
+    <Compile Include="Core\Models\DoseDisplayMode.cs" />
+    <Compile Include="Core\Models\DVHSummary.cs" />
+    <Compile Include="Core\Models\EQD2Settings.cs" />
+    <Compile Include="Core\Models\IsodoseContourData.cs" />
+    <Compile Include="Core\Models\IsodoseLevel.cs" />
+    <Compile Include="Core\Models\RenderConstants.cs" />
+    <Compile Include="Core\Models\RenderResult.cs" />
+    <Compile Include="Core\Models\StructureContourData.cs" />
+    <Compile Include="Core\Models\DoseVolumePoint.cs" />
+    <Compile Include="Core\Models\SummationConfig.cs" />
+    <Compile Include="Services\DVHService.cs" />
+    <Compile Include="Services\DebugExportService.cs" />
+    <Compile Include="Services\ExportService.cs" />
+    <Compile Include="Services\ImageRenderingService.cs" />
+    <Compile Include="Services\SummationService.cs" />
+    <Compile Include="UI\Controls\InteractiveImageViewer.xaml.cs">
+      <DependentUpon>InteractiveImageViewer.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="UI\ViewModels\MainViewModel.cs" />
+    <Compile Include="UI\ViewModels\MainViewModel.Properties.cs" />
+    <Compile Include="UI\ViewModels\MainViewModel.Rendering.cs" />
+    <Compile Include="UI\ViewModels\MainViewModel.DVH.cs" />
+    <Compile Include="UI\ViewModels\MainViewModel.Summation.cs" />
+    <Compile Include="UI\ViewModels\MainViewModel.Commands.cs" />
+    <Compile Include="UI\Views\MainWindow.xaml.cs">
+      <DependentUpon>MainWindow.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="UI\Views\StructureSelectionDialog.xaml.cs">
+      <DependentUpon>StructureSelectionDialog.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="UI\Views\PlanSummationDialog.xaml.cs">
+      <DependentUpon>PlanSummationDialog.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Script.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Page Include="UI\Styles\SharedStyles.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="UI\Controls\InteractiveImageViewer.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="UI\Views\MainWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="UI\Views\StructureSelectionDialog.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="UI\Views\PlanSummationDialog.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="app.config" />
+    <None Include="FodyWeavers.xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+    <PackageReference Include="Fody" Version="6.8.2">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Costura.Fody" Version="6.0.0">
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="OxyPlot.Core" Version="2.2.0" />
+    <PackageReference Include="OxyPlot.Wpf" Version="2.2.0" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!--
 		Turvamekanismi: Poistaa Stubs-assemblyn resolve-vaiheessa
 		kun oikeat ESAPI DLL:t ovat käytössä. Estää CS0433-konfliktin
 		jos vanha Stubs.dll lojuu bin-kansiossa.
 	-->
-	<Target Name="RemoveStaleStubs"
-			AfterTargets="ResolveAssemblyReferences"
-			Condition="'$(HasRealEsapi)' == 'true'">
-		<ItemGroup>
-			<ReferencePath Remove="@(ReferencePath)" Condition="'%(FileName)' == 'ESAPI_EQD2Viewer.Stubs'" />
-			<ReferenceDependencyPaths Remove="@(ReferenceDependencyPaths)" Condition="'%(FileName)' == 'ESAPI_EQD2Viewer.Stubs'" />
-		</ItemGroup>
-		<Message Text="[ESAPI Build] Removed stale Stubs reference - using real ESAPI DLLs" Importance="high" />
-	</Target>
+  <Target Name="RemoveStaleStubs" AfterTargets="ResolveAssemblyReferences" Condition="'$(HasRealEsapi)' == 'true'">
+    <ItemGroup>
+      <ReferencePath Remove="@(ReferencePath)" Condition="'%(FileName)' == 'ESAPI_EQD2Viewer.Stubs'" />
+      <ReferenceDependencyPaths Remove="@(ReferenceDependencyPaths)" Condition="'%(FileName)' == 'ESAPI_EQD2Viewer.Stubs'" />
+    </ItemGroup>
+    <Message Text="[ESAPI Build] Removed stale Stubs reference - using real ESAPI DLLs" Importance="high" />
+  </Target>
 </Project>

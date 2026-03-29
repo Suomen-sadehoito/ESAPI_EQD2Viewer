@@ -22,8 +22,31 @@ namespace ESAPI_EQD2Viewer.UI.Views
             Closed += (s, e) => viewModel?.Dispose();
         }
 
+        /// <summary>
+        /// DevRunner constructor — no ScriptContext needed.
+        /// Structure selection uses snapshot data instead of ESAPI.
+        /// </summary>
+        public MainWindow(MainViewModel viewModel)
+        {
+            InitializeComponent();
+            _viewModel = viewModel;
+            _context = null;  // Not available in dev mode
+            DataContext = viewModel;
+            Closed += (s, e) => viewModel?.Dispose();
+        }
+
         private void SelectStructures_Click(object sender, RoutedEventArgs e)
         {
+            if (_context == null)
+            {
+                // Dev mode: structures come from snapshot
+                // TODO: Create a StructureSelectionDialog that works with StructureData DTOs
+                MessageBox.Show("Structure selection not yet available in dev mode.\n" +
+                                "Structures are loaded automatically from fixture data.",
+                                "EQD2 Viewer", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
             var plan = _context.ExternalPlanSetup;
             if (plan?.StructureSet == null)
             {

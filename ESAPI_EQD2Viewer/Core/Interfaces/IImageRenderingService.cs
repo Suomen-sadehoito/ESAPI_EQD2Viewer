@@ -3,12 +3,17 @@ using System.Collections.Generic;
 using System.Windows.Media.Imaging;
 using VMS.TPS.Common.Model.API;
 using ESAPI_EQD2Viewer.Core.Models;
+using ESAPI_EQD2Viewer.Core.Data;
 
 namespace ESAPI_EQD2Viewer.Core.Interfaces
 {
     public interface IImageRenderingService : IDisposable
     {
         void Initialize(int width, int height);
+
+        // ================================================================
+        // ESAPI-based Methods
+        // ================================================================
 
         /// <summary>
         /// Preloads CT and dose voxel data into memory caches.
@@ -48,6 +53,44 @@ namespace ESAPI_EQD2Viewer.Core.Interfaces
         /// </summary>
         List<StructureContourData> GenerateStructureContours(Image ctImage, int currentSlice,
             IEnumerable<Structure> structures);
+
+        // ================================================================
+        // ESAPI-Free (Clean Architecture / DTO) Methods
+        // ================================================================
+
+        /// <summary>
+        /// Preloads CT and dose data from Clean Architecture DTOs.
+        /// Used by DevRunner and future test infrastructure.
+        /// </summary>
+        void PreloadData(VolumeData ctImage, DoseVolumeData dose);
+
+        /// <summary>
+        /// Renders CT image using cached data only. No ESAPI parameters.
+        /// </summary>
+        void RenderCtImage(WriteableBitmap targetBitmap, int currentSlice, double windowLevel, double windowWidth);
+
+        /// <summary>
+        /// Renders dose using cached geometry. No ESAPI parameters.
+        /// </summary>
+        string RenderDoseImage(WriteableBitmap targetBitmap, int currentSlice, double planTotalDoseGy,
+            double planNormalization, IsodoseLevel[] levels, DoseDisplayMode displayMode = DoseDisplayMode.Line,
+            double colorwashOpacity = 0.5, double colorwashMinPercent = 0.1, EQD2Settings eqd2Settings = null);
+
+        /// <summary>
+        /// Generates vector contours using cached geometry. No ESAPI parameters.
+        /// </summary>
+        ContourGenerationResult GenerateVectorContours(int currentSlice, double planTotalDoseGy,
+            double planNormalization, IsodoseLevel[] levels, EQD2Settings eqd2Settings = null);
+
+        /// <summary>
+        /// Dose readout using cached geometry. No ESAPI parameters.
+        /// </summary>
+        double GetDoseAtPixel(int currentSlice, int pixelX, int pixelY, EQD2Settings eqd2Settings = null);
+
+        /// <summary>
+        /// Structure contours from StructureData DTOs. No ESAPI Structure objects.
+        /// </summary>
+        List<StructureContourData> GenerateStructureContours(int currentSlice, IEnumerable<StructureData> structures);
     }
 
     /// <summary>
