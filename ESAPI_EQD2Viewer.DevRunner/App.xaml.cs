@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Windows;
@@ -13,34 +14,32 @@ namespace ESAPI_EQD2Viewer.DevRunner
 {
     /// <summary>
     /// Standalone development launcher for EQD2 Viewer.
-    /// 
     /// Replaces Eclipse's Script.Execute() entry point.
     /// Loads clinical data from JSON fixtures instead of live ESAPI.
-    /// The UI and all calculations run identically to the Eclipse version.
     /// </summary>
     public partial class App : Application
     {
         protected override void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
-
             try
             {
                 SimpleLogger.EnableFileLogging("EQD2Viewer_Dev.log");
                 SimpleLogger.Info("=== DevRunner starting ===");
 
                 // ── 1. Find fixture directory ──
-                string fixturePath = ResolveFixturePath(e.Args);
+                string? fixturePath = ResolveFixturePath(e.Args);   // ← CS8603 korjattu
                 if (fixturePath == null)
                 {
                     MessageBox.Show(
                         "No fixture directory found.\n\n" +
                         "Usage:\n" +
-                        "  ESAPI_EQD2Viewer.DevRunner.exe <fixture_path>\n\n" +
+                        " ESAPI_EQD2Viewer.DevRunner.exe <fixture_path>\n\n" +
                         "Or place fixtures in TestFixtures/ next to the exe.\n\n" +
                         "Generate fixtures by running FixtureGenerator in Eclipse.",
                         "EQD2 Viewer — DevRunner",
                         MessageBoxButton.OK, MessageBoxImage.Information);
+
                     Shutdown(1);
                     return;
                 }
@@ -71,7 +70,7 @@ namespace ESAPI_EQD2Viewer.DevRunner
 
                 // ── 6. Launch the UI ──
                 var window = new ESAPI_EQD2Viewer.UI.Views.MainWindow(viewModel);
-                window.Title += "  [DEV MODE — Fixture Data]";
+                window.Title += " [DEV MODE — Fixture Data]";
                 window.Show();
 
                 SimpleLogger.Info("DevRunner UI launched successfully");
@@ -89,12 +88,8 @@ namespace ESAPI_EQD2Viewer.DevRunner
 
         /// <summary>
         /// Resolves fixture directory from command line args or auto-discovery.
-        /// Priority:
-        ///   1. Command-line argument
-        ///   2. TestFixtures/ subdirectories next to the exe
-        ///   3. TestFixtures/ in the project tree (development layout)
         /// </summary>
-        private static string ResolveFixturePath(string[] args)
+        private static string? ResolveFixturePath(string[]? args)   // ← muutettu string? + args?
         {
             // Command-line argument
             if (args != null && args.Length > 0 && Directory.Exists(args[0]))
@@ -106,7 +101,6 @@ namespace ESAPI_EQD2Viewer.DevRunner
             string localFixtures = Path.Combine(baseDir, "TestFixtures");
             if (Directory.Exists(localFixtures))
             {
-                // Pick the first fixture that has metadata.json
                 string first = Directory.GetDirectories(localFixtures)
                     .FirstOrDefault(d => File.Exists(Path.Combine(d, "metadata.json")));
                 if (first != null) return first;
@@ -123,11 +117,12 @@ namespace ESAPI_EQD2Viewer.DevRunner
                         .FirstOrDefault(d => File.Exists(Path.Combine(d, "metadata.json")));
                     if (first != null) return first;
                 }
+
                 dir = Path.GetDirectoryName(dir);
                 if (dir == null) break;
             }
 
-            return null;
+            return null;   // ← sallittu koska palautustyyppi on nyt string?
         }
     }
 }
