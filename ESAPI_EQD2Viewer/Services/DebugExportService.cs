@@ -1,7 +1,7 @@
 using System;
 using System.IO;
 using System.Windows;
-using ESAPI_EQD2Viewer.Core.Interfaces;
+using EQD2Viewer.Core.Interfaces;
 using EQD2Viewer.Core.Data;
 using EQD2Viewer.Core.Models;
 

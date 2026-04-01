@@ -1,8 +1,7 @@
 using EQD2Viewer.Core.Models;
 using System;
-using ESAPI_EQD2Viewer.Core.Models;
 
-namespace ESAPI_EQD2Viewer.Core.Calculations
+namespace EQD2Viewer.Core.Calculations
 {
     /// <summary>
     /// Shared image processing utilities used by both ImageRenderingService and SummationService.

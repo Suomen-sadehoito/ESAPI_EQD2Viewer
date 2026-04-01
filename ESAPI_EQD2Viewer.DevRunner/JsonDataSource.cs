@@ -4,9 +4,9 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
-using ESAPI_EQD2Viewer.Core.Calculations;
-using ESAPI_EQD2Viewer.Core.Data;
-using ESAPI_EQD2Viewer.Core.Interfaces;
+using EQD2Viewer.Core.Calculations;
+using EQD2Viewer.Core.Data;
+using EQD2Viewer.Core.Interfaces;
 
 namespace ESAPI_EQD2Viewer.DevRunner
 {
@@ -89,9 +89,9 @@ namespace ESAPI_EQD2Viewer.DevRunner
             return snapshot;
         }
 
-        // ════════════════════════════════════════════════════════
+        // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         // CT IMAGE
-        // ════════════════════════════════════════════════════════
+        // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         private VolumeData BuildCtImage(GeometryJson geo)
         {
             int xSize = geo.xSize, ySize = geo.ySize, zSize = geo.zSize;
@@ -103,7 +103,7 @@ namespace ESAPI_EQD2Viewer.DevRunner
             var ctSub = LoadJsonOptional<CtSubsampleJson>("ct_subsample.json");
             if (ctSub != null)
             {
-                // Paikallinen non-nullable-viittaus → ei enää CS8602-varoitusta
+                // Paikallinen non-nullable-viittaus â†’ ei enÃ¤Ã¤ CS8602-varoitusta
                 CtSubsampleJson sub = ctSub;
 
                 int huOffset = sub.detectedHuOffset;

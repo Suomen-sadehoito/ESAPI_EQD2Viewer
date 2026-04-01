@@ -1,5 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
-using ESAPI_EQD2Viewer.Core.Models;
+using EQD2Viewer.Core.Models;
 using EQD2Viewer.Core.Models;
 using OxyPlot;
 using System.Collections.ObjectModel;
@@ -47,7 +47,7 @@ namespace ESAPI_EQD2Viewer.UI.ViewModels
                 int fx = _snapshot?.ActivePlan?.NumberOfFractions ?? 0;
                 if (fx <= 0) return "";
                 double gy = GetPrescriptionGy();
-                return $"{fx} fx × {(fx > 0 ? gy / fx : 0):F2} Gy";
+                return $"{fx} fx Ã— {(fx > 0 ? gy / fx : 0):F2} Gy";
             }
         }
 
@@ -269,8 +269,8 @@ namespace ESAPI_EQD2Viewer.UI.ViewModels
         public bool IsOverlayBlend { get => _overlayMode == OverlayMode.Blend; set { if (value) CurrentOverlayMode = OverlayMode.Blend; } }
         public bool IsOverlayVisible => _overlayMode != OverlayMode.Off;
 
-        public string OverlayModeLabel => _overlayMode == OverlayMode.Checkerboard ? "REGISTRATION CHECK — Checkerboard"
-            : _overlayMode == OverlayMode.Blend ? "REGISTRATION CHECK — Blend" : "";
+        public string OverlayModeLabel => _overlayMode == OverlayMode.Checkerboard ? "REGISTRATION CHECK â€” Checkerboard"
+            : _overlayMode == OverlayMode.Blend ? "REGISTRATION CHECK â€” Blend" : "";
 
         private double _overlayOpacity = 0.5;
         public double OverlayOpacity { get => _overlayOpacity; set { if (SetProperty(ref _overlayOpacity, value)) RequestRender(); } }

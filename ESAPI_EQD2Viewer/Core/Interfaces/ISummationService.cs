@@ -6,9 +6,9 @@ using EQD2Viewer.Core.Data;
 using EQD2Viewer.Core.Models;
 using EQD2Viewer.Core.Calculations;
 using EQD2Viewer.Core.Logging;
-using ESAPI_EQD2Viewer.Core.Models;
+using EQD2Viewer.Core.Models;
 
-namespace ESAPI_EQD2Viewer.Core.Interfaces
+namespace EQD2Viewer.Core.Interfaces
 {
     /// <summary>
     /// Two-phase dose summation service for multi-plan re-irradiation assessment.
@@ -19,8 +19,8 @@ namespace ESAPI_EQD2Viewer.Core.Interfaces
     /// 
     /// After Phase 2 completes, the service retains per-plan physical dose arrays,
     /// enabling:
-    ///   - Fast EQD2 recomputation with a different display α/β (no data reloading).
-    ///   - Per-structure DVH calculation with structure-specific α/β values.
+    ///   - Fast EQD2 recomputation with a different display Î±/Î² (no data reloading).
+    ///   - Per-structure DVH calculation with structure-specific Î±/Î² values.
     /// </summary>
     public interface ISummationService : IDisposable
     {
@@ -38,10 +38,10 @@ namespace ESAPI_EQD2Viewer.Core.Interfaces
 
         /// <summary>
         /// Recomputes the EQD2 display sum from stored per-plan physical doses.
-        /// Much faster than full re-summation — skips Phase 1 entirely.
-        /// Called when the user changes the display α/β slider.
+        /// Much faster than full re-summation â€” skips Phase 1 entirely.
+        /// Called when the user changes the display Î±/Î² slider.
         /// </summary>
-        /// <param name="displayAlphaBeta">New α/β value for isodose visualization [Gy].</param>
+        /// <param name="displayAlphaBeta">New Î±/Î² value for isodose visualization [Gy].</param>
         /// <param name="progress">Optional progress reporter.</param>
         /// <param name="ct">Cancellation token.</param>
         /// <returns>Updated summation result with new max dose and reference dose.</returns>
@@ -49,15 +49,15 @@ namespace ESAPI_EQD2Viewer.Core.Interfaces
             IProgress<int> progress, CancellationToken ct);
 
         /// <summary>
-        /// Computes a cumulative DVH for a specific structure using that structure's own α/β.
-        /// Iterates per-plan physical doses, converts each to EQD2 with the given α/β
+        /// Computes a cumulative DVH for a specific structure using that structure's own Î±/Î².
+        /// Iterates per-plan physical doses, converts each to EQD2 with the given Î±/Î²
         /// and each plan's own fractionation, then sums and bins into a histogram.
         /// 
-        /// This is the correct physics: EQD2_total = Σ_i D_i·(d_i + α/β)/(2 + α/β)
+        /// This is the correct physics: EQD2_total = Î£_i D_iÂ·(d_i + Î±/Î²)/(2 + Î±/Î²)
         /// where d_i = D_i/n_i uses each plan's individual fraction count.
         /// </summary>
         /// <param name="structureId">Structure ID for mask lookup.</param>
-        /// <param name="structureAlphaBeta">Structure-specific α/β [Gy].</param>
+        /// <param name="structureAlphaBeta">Structure-specific Î±/Î² [Gy].</param>
         /// <param name="maxDoseGy">Maximum dose for histogram range.</param>
         /// <returns>Cumulative DVH curve, or empty array if structure has no mask.</returns>
         DoseVolumePoint[] ComputeStructureEQD2DVH(string structureId,
@@ -84,7 +84,7 @@ namespace ESAPI_EQD2Viewer.Core.Interfaces
         IReadOnlyList<string> GetCachedStructureIds();
 
         /// <summary>
-        /// Gets the voxel volume in cm³ for the reference CT grid.
+        /// Gets the voxel volume in cmÂ³ for the reference CT grid.
         /// </summary>
         double GetVoxelVolumeCc();
 

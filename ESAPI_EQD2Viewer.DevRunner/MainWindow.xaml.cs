@@ -1,6 +1,6 @@
-﻿using System;
+using System;
 using System.Windows;
-using ESAPI_EQD2Viewer.Core.Data;
+using EQD2Viewer.Core.Data;
 using ESAPI_EQD2Viewer.Services;
 using ESAPI_EQD2Viewer.UI.ViewModels;
 

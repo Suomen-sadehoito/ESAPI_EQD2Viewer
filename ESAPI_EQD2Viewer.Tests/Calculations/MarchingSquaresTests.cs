@@ -1,6 +1,6 @@
-﻿using Xunit;
+using Xunit;
 using FluentAssertions;
-using ESAPI_EQD2Viewer.Core.Calculations;
+using EQD2Viewer.Core.Calculations;
 using System.Linq;
 using Point = System.Windows.Point;  // ← tämä ratkaisee ambiguity-ongelman
 

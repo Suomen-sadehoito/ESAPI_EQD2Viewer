@@ -8,7 +8,7 @@ using EQD2Viewer.Core.Models;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
 
-namespace ESAPI_EQD2Viewer.Adapters
+namespace EQD2Viewer.Esapi.Adapters
 {
     /// <summary>
     /// Production IClinicalDataSource: reads live data from Varian Eclipse via ESAPI.

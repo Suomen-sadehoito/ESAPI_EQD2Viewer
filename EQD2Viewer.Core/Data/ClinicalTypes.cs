@@ -1,49 +1,49 @@
 using System;
 using System.Collections.Generic;
 
-namespace ESAPI_EQD2Viewer.Core.Data
+namespace EQD2Viewer.Core.Data
 {
-    // ═══════════════════════════════════════════════════════════════
-    // CLINICAL SNAPSHOT — Complete data package for a session.
+    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+    // CLINICAL SNAPSHOT â€” Complete data package for a session.
     // Loaded once at startup, then the app operates on this only.
     // No ESAPI calls after loading. Any machine can run the app.
-    // ═══════════════════════════════════════════════════════════════
+    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
     /// <summary>
     /// Immutable snapshot of all clinical data needed to run the application.
     /// Populated by IClinicalDataSource (either from Eclipse or from JSON fixtures).
-    /// After construction, the entire app runs on this data — zero ESAPI dependencies.
+    /// After construction, the entire app runs on this data â€” zero ESAPI dependencies.
     /// </summary>
     public class ClinicalSnapshot
     {
-        // ── Patient ──
+        // â”€â”€ Patient â”€â”€
         public PatientData Patient { get; set; }
 
-        // ── Active plan ──
+        // â”€â”€ Active plan â”€â”€
         public PlanData ActivePlan { get; set; }
 
-        // ── CT image ──
+        // â”€â”€ CT image â”€â”€
         public VolumeData CtImage { get; set; }
 
-        // ── Dose grid ──
+        // â”€â”€ Dose grid â”€â”€
         public DoseVolumeData Dose { get; set; }
 
-        // ── Structures (from active plan's structure set) ──
+        // â”€â”€ Structures (from active plan's structure set) â”€â”€
         public List<StructureData> Structures { get; set; } = new List<StructureData>();
 
-        // ── Pre-computed DVH curves (from Eclipse or fixtures) ──
+        // â”€â”€ Pre-computed DVH curves (from Eclipse or fixtures) â”€â”€
         public List<DvhCurveData> DvhCurves { get; set; } = new List<DvhCurveData>();
 
-        // ── Registrations (for summation) ──
+        // â”€â”€ Registrations (for summation) â”€â”€
         public List<RegistrationData> Registrations { get; set; } = new List<RegistrationData>();
 
-        // ── All courses/plans for summation dialog ──
+        // â”€â”€ All courses/plans for summation dialog â”€â”€
         public List<CourseData> AllCourses { get; set; } = new List<CourseData>();
     }
 
-    // ═══════════════════════════════════════════════════════════════
+    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     // PATIENT
-    // ═══════════════════════════════════════════════════════════════
+    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
     public class PatientData
     {
@@ -52,9 +52,9 @@ namespace ESAPI_EQD2Viewer.Core.Data
         public string FirstName { get; set; } = "";
     }
 
-    // ═══════════════════════════════════════════════════════════════
+    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     // PLAN
-    // ═══════════════════════════════════════════════════════════════
+    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
     public class PlanData
     {
@@ -65,9 +65,9 @@ namespace ESAPI_EQD2Viewer.Core.Data
         public double PlanNormalization { get; set; } = 100.0;
     }
 
-    // ═══════════════════════════════════════════════════════════════
-    // VOLUME GEOMETRY — shared by CT image and dose grid
-    // ═══════════════════════════════════════════════════════════════
+    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+    // VOLUME GEOMETRY â€” shared by CT image and dose grid
+    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
     /// <summary>
     /// 3D grid geometry: dimensions, resolution, spatial orientation.
@@ -89,9 +89,9 @@ namespace ESAPI_EQD2Viewer.Core.Data
         public string Id { get; set; } = "";
     }
 
-    // ═══════════════════════════════════════════════════════════════
-    // CT IMAGE VOLUME — geometry + voxel data + HU offset
-    // ═══════════════════════════════════════════════════════════════
+    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+    // CT IMAGE VOLUME â€” geometry + voxel data + HU offset
+    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
     /// <summary>
     /// Complete CT image: geometry, voxel data, and HU offset.
@@ -113,7 +113,7 @@ namespace ESAPI_EQD2Viewer.Core.Data
         /// </summary>
         public int HuOffset { get; set; }
 
-        // ── Convenience accessors matching the shape of ESAPI Image ──
+        // â”€â”€ Convenience accessors matching the shape of ESAPI Image â”€â”€
         public int XSize => Geometry.XSize;
         public int YSize => Geometry.YSize;
         public int ZSize => Geometry.ZSize;
@@ -127,9 +127,9 @@ namespace ESAPI_EQD2Viewer.Core.Data
         public string FOR => Geometry.FrameOfReference;
     }
 
-    // ═══════════════════════════════════════════════════════════════
-    // DOSE VOLUME — geometry + voxel data + scaling calibration
-    // ═══════════════════════════════════════════════════════════════
+    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+    // DOSE VOLUME â€” geometry + voxel data + scaling calibration
+    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
     public class DoseScaling
     {
@@ -161,11 +161,11 @@ namespace ESAPI_EQD2Viewer.Core.Data
         public int[][,] Voxels { get; set; }
 
         /// <summary>
-        /// Calibration factors for raw → Gy conversion.
+        /// Calibration factors for raw â†’ Gy conversion.
         /// </summary>
         public DoseScaling Scaling { get; set; } = new DoseScaling();
 
-        // ── Convenience accessors ──
+        // â”€â”€ Convenience accessors â”€â”€
         public int XSize => Geometry.XSize;
         public int YSize => Geometry.YSize;
         public int ZSize => Geometry.ZSize;
@@ -178,9 +178,9 @@ namespace ESAPI_EQD2Viewer.Core.Data
         public Vec3 ZDirection => Geometry.ZDirection;
     }
 
-    // ═══════════════════════════════════════════════════════════════
-    // STRUCTURE — anatomy contours
-    // ═══════════════════════════════════════════════════════════════
+    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+    // STRUCTURE â€” anatomy contours
+    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
     /// <summary>
     /// Anatomical structure: metadata, color, and contour polygons per slice.
@@ -208,9 +208,9 @@ namespace ESAPI_EQD2Viewer.Core.Data
             = new Dictionary<int, List<double[][]>>();      
     }
 
-    // ═══════════════════════════════════════════════════════════════
+    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     // DVH CURVE DATA
-    // ═══════════════════════════════════════════════════════════════
+    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
     /// <summary>
     /// Pre-computed cumulative DVH curve for one structure.
@@ -228,9 +228,9 @@ namespace ESAPI_EQD2Viewer.Core.Data
         public double[][] Curve { get; set; }
     }
 
-    // ═══════════════════════════════════════════════════════════════
+    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     // REGISTRATION
-    // ═══════════════════════════════════════════════════════════════
+    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
     /// <summary>
     /// Spatial registration between two frames of reference.
@@ -242,10 +242,10 @@ namespace ESAPI_EQD2Viewer.Core.Data
         public string RegisteredFOR { get; set; } = "";
         public DateTime? CreationDateTime { get; set; }
 
-        /// <summary>4×4 affine transform matrix in row-major order (16 elements).</summary>
+        /// <summary>4Ã—4 affine transform matrix in row-major order (16 elements).</summary>
         public double[] Matrix { get; set; }
 
-        /// <summary>Converts the flat matrix to a 4×4 array for MatrixMath.</summary>
+        /// <summary>Converts the flat matrix to a 4Ã—4 array for MatrixMath.</summary>
         public double[,] ToMatrix4x4()
         {
             if (Matrix == null || Matrix.Length != 16) return null;
@@ -257,12 +257,12 @@ namespace ESAPI_EQD2Viewer.Core.Data
         }
     }
 
-    // ═══════════════════════════════════════════════════════════════
+    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     // COURSE / PLAN DATA (for summation dialog)
-    // ═══════════════════════════════════════════════════════════════
+    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
     /// <summary>
-    /// Course with its plan list — for the summation dialog plan picker.
+    /// Course with its plan list â€” for the summation dialog plan picker.
     /// </summary>
     public class CourseData
     {

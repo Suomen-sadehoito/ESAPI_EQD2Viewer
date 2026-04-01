@@ -4,7 +4,7 @@ using System.IO;
 using System.Text;
 using System.Windows;
 using Microsoft.Win32;
-using ESAPI_EQD2Viewer.Core.Models;
+using EQD2Viewer.Core.Models;
 
 namespace ESAPI_EQD2Viewer.Services
 {

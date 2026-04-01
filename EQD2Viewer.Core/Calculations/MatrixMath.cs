@@ -1,6 +1,6 @@
 using System;
 
-namespace ESAPI_EQD2Viewer.Core.Calculations
+namespace EQD2Viewer.Core.Calculations
 {
     /// <summary>
     /// 4x4 matrix operations for spatial registration transforms.
@@ -18,7 +18,7 @@ namespace ESAPI_EQD2Viewer.Core.Calculations
         {
             if (M == null) return null;
 
-            // Check if the 3x3 rotation part is orthogonal (R * R^T ≈ I)
+            // Check if the 3x3 rotation part is orthogonal (R * R^T â‰ˆ I)
             if (IsOrthogonal3x3(M))
                 return InvertRigid(M);
 
@@ -42,7 +42,7 @@ namespace ESAPI_EQD2Viewer.Core.Calculations
                     return false;
             }
 
-            // Check that columns are orthogonal (dot products ≈ 0)
+            // Check that columns are orthogonal (dot products â‰ˆ 0)
             for (int c1 = 0; c1 < 3; c1++)
             {
                 for (int c2 = c1 + 1; c2 < 3; c2++)
@@ -87,7 +87,7 @@ namespace ESAPI_EQD2Viewer.Core.Calculations
         /// <summary>
         /// General 4x4 matrix inversion using Gauss-Jordan elimination with partial pivoting.
         /// Works for any invertible matrix including affine transforms with scaling/shear.
-        /// Returns null if matrix is singular (determinant ≈ 0).
+        /// Returns null if matrix is singular (determinant â‰ˆ 0).
         /// </summary>
         private static double[,] InvertGaussJordan(double[,] M)
         {

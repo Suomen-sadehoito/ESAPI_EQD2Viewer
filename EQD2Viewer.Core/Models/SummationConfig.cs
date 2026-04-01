@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace ESAPI_EQD2Viewer.Core.Models
+namespace EQD2Viewer.Core.Models
 {
     /// <summary>
     /// Configuration for multi-plan dose summation.

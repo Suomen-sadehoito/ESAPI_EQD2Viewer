@@ -1,16 +1,16 @@
-using ESAPI_EQD2Viewer.Core.Data;
+using EQD2Viewer.Core.Data;
 
-namespace ESAPI_EQD2Viewer.Core.Interfaces
+namespace EQD2Viewer.Core.Interfaces
 {
     /// <summary>
     /// Single abstraction point for all clinical data access.
     /// 
     /// Two implementations:
-    ///   1. EsapiDataSource  — reads from live Varian Eclipse via ESAPI (clinical workstation)
-    ///   2. JsonDataSource   — reads from JSON fixture files (any developer machine)
+    ///   1. EsapiDataSource  â€” reads from live Varian Eclipse via ESAPI (clinical workstation)
+    ///   2. JsonDataSource   â€” reads from JSON fixture files (any developer machine)
     /// 
     /// The entire application operates on the ClinicalSnapshot returned by LoadSnapshot().
-    /// After loading, zero ESAPI calls are made — the app is fully decoupled.
+    /// After loading, zero ESAPI calls are made â€” the app is fully decoupled.
     /// 
     /// Usage:
     ///   IClinicalDataSource source = new EsapiDataSource(context);  // or JsonDataSource

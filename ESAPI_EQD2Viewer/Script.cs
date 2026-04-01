@@ -1,7 +1,7 @@
 using System;
 using System.Windows;
 using VMS.TPS.Common.Model.API;
-using ESAPI_EQD2Viewer.Core.Interfaces;
+using EQD2Viewer.Core.Interfaces;
 using EQD2Viewer.Core.Interfaces;
 using EQD2Viewer.Core.Logging;
 using ESAPI_EQD2Viewer.Services;
@@ -31,7 +31,7 @@ namespace VMS.TPS
             {
                 SimpleLogger.EnableFileLogging();
 
-                // ── Load data through Clean Architecture adapter ──
+                // â”€â”€ Load data through Clean Architecture adapter â”€â”€
                 var dataSource = new ESAPI_EQD2Viewer.Adapters.EsapiDataSource(context);
                 var snapshot = dataSource.LoadSnapshot();
 

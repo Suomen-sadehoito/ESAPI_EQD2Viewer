@@ -1,11 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Windows.Media.Imaging;
-using ESAPI_EQD2Viewer.Core.Data;
-using ESAPI_EQD2Viewer.Core.Models;
+using EQD2Viewer.Core.Data;
+using EQD2Viewer.Core.Models;
 using EQD2Viewer.Core.Models;
 
-namespace ESAPI_EQD2Viewer.Core.Interfaces
+namespace EQD2Viewer.Core.Interfaces
 {
     public interface IImageRenderingService : IDisposable
     {

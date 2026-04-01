@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Windows;
 using EQD2Viewer.Core.Logging;
 
-namespace ESAPI_EQD2Viewer.Core.Calculations
+namespace EQD2Viewer.Core.Calculations
 {
     /// <summary>
     /// Rasterizes structure contour polygons into per-slice bitmasks for fast DVH computation.

@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
-using ESAPI_EQD2Viewer.Core.Data;
+using EQD2Viewer.Core.Data;
 
 namespace ESAPI_EQD2Viewer.UI.Views
 {

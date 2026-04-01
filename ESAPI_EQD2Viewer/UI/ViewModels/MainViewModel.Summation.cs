@@ -4,8 +4,8 @@ using EQD2Viewer.Core.Data;
 using EQD2Viewer.Core.Interfaces;
 using EQD2Viewer.Core.Logging;
 using EQD2Viewer.Core.Models;
-using ESAPI_EQD2Viewer.Core.Interfaces;
-using ESAPI_EQD2Viewer.Core.Models;
+using EQD2Viewer.Core.Interfaces;
+using EQD2Viewer.Core.Models;
 using ESAPI_EQD2Viewer.Services;
 using ESAPI_EQD2Viewer.UI.Views;
 using OxyPlot;
@@ -131,7 +131,7 @@ namespace ESAPI_EQD2Viewer.UI.ViewModels
 
                     _displayAlphaBeta = config.GlobalAlphaBeta;
                     OnPropertyChanged(nameof(DisplayAlphaBeta));
-                    SummationAlphaBetaLabel = $"Summation computed with α/β = {config.GlobalAlphaBeta:F1} Gy";
+                    SummationAlphaBetaLabel = $"Summation computed with Î±/Î² = {config.GlobalAlphaBeta:F1} Gy";
 
                     if (_isodoseMode != IsodoseMode.Absolute) LoadIsodosePreset("ReIrradiation");
 
@@ -186,7 +186,7 @@ namespace ESAPI_EQD2Viewer.UI.ViewModels
             try
             {
                 IsSummationComputing = true;
-                SummationInfo = $"Updating display α/β = {_displayAlphaBeta:F1} Gy...";
+                SummationInfo = $"Updating display Î±/Î² = {_displayAlphaBeta:F1} Gy...";
 
                 var progress = new Progress<int>(pct => SummationProgress = pct);
                 var result = await _summationService.RecomputeEQD2DisplayAsync(
@@ -226,7 +226,7 @@ namespace ESAPI_EQD2Viewer.UI.ViewModels
 
                 var structureSetting = StructureSettings.FirstOrDefault(s => s.Id == structureId);
                 double structureAlphaBeta = structureSetting?.AlphaBeta ?? 3.0;
-                string methodLabel = isEqd2Sum ? $"EQD2 α/β={structureAlphaBeta:F1}" : "Physical Sum";
+                string methodLabel = isEqd2Sum ? $"EQD2 Î±/Î²={structureAlphaBeta:F1}" : "Physical Sum";
 
                 DoseVolumePoint[] dvhPoints;
 
@@ -326,7 +326,7 @@ namespace ESAPI_EQD2Viewer.UI.ViewModels
                     contours.Add(new IsodoseContourData { Geometry = geo, Stroke = brush, StrokeThickness = 1.0 });
                 }
                 ContourLines = contours;
-                StatusText = $"[Summation · Line] Slice {CurrentSlice} | Ref: {refDose:F2} Gy | α/β: {_displayAlphaBeta:F1}";
+                StatusText = $"[Summation Â· Line] Slice {CurrentSlice} | Ref: {refDose:F2} Gy | Î±/Î²: {_displayAlphaBeta:F1}";
             }
             else
             {
@@ -399,7 +399,7 @@ namespace ESAPI_EQD2Viewer.UI.ViewModels
                 }
 
                 string ml = _doseDisplayMode == DoseDisplayMode.Fill ? "Fill" : "Colorwash";
-                StatusText = $"[Summation · {ml}] Slice {CurrentSlice} | Ref: {refDose:F2} Gy | α/β: {_displayAlphaBeta:F1}";
+                StatusText = $"[Summation Â· {ml}] Slice {CurrentSlice} | Ref: {refDose:F2} Gy | Î±/Î²: {_displayAlphaBeta:F1}";
                 DoseImageSource.AddDirtyRect(new System.Windows.Int32Rect(0, 0, w, h));
             }
             finally { DoseImageSource.Unlock(); }

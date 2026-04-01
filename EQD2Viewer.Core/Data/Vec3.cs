@@ -1,4 +1,4 @@
-namespace ESAPI_EQD2Viewer.Core.Data
+namespace EQD2Viewer.Core.Data
 {
     /// <summary>
     /// ESAPI-independent 3D vector type. Replaces VMS.TPS.Common.Model.Types.VVector

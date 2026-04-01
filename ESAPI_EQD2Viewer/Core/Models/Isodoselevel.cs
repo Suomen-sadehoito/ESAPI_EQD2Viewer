@@ -1,8 +1,8 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Media;
 
-namespace ESAPI_EQD2Viewer.Core.Models
+namespace EQD2Viewer.Core.Models
 {
     /// <summary>
     /// Determines how isodose thresholds are interpreted for display.

@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Windows;
-using ESAPI_EQD2Viewer.Core.Data;
-using ESAPI_EQD2Viewer.Core.Interfaces;
+using EQD2Viewer.Core.Data;
+using EQD2Viewer.Core.Interfaces;
 using EQD2Viewer.Core.Interfaces;
 using EQD2Viewer.Core.Logging;
 using ESAPI_EQD2Viewer.Services;
@@ -28,8 +28,8 @@ namespace ESAPI_EQD2Viewer.DevRunner
                 SimpleLogger.EnableFileLogging("EQD2Viewer_Dev.log");
                 SimpleLogger.Info("=== DevRunner starting ===");
 
-                // ── 1. Find fixture directory ──
-                string? fixturePath = ResolveFixturePath(e.Args);   // ← CS8603 korjattu
+                // â”€â”€ 1. Find fixture directory â”€â”€
+                string? fixturePath = ResolveFixturePath(e.Args);   // â† CS8603 korjattu
                 if (fixturePath == null)
                 {
                     MessageBox.Show(
@@ -38,7 +38,7 @@ namespace ESAPI_EQD2Viewer.DevRunner
                         " ESAPI_EQD2Viewer.DevRunner.exe <fixture_path>\n\n" +
                         "Or place fixtures in TestFixtures/ next to the exe.\n\n" +
                         "Generate fixtures by running FixtureGenerator in Eclipse.",
-                        "EQD2 Viewer — DevRunner",
+                        "EQD2 Viewer â€” DevRunner",
                         MessageBoxButton.OK, MessageBoxImage.Information);
 
                     Shutdown(1);
@@ -47,7 +47,7 @@ namespace ESAPI_EQD2Viewer.DevRunner
 
                 SimpleLogger.Info($"Using fixtures: {fixturePath}");
 
-                // ── 2. Load clinical data from JSON ──
+                // â”€â”€ 2. Load clinical data from JSON â”€â”€
                 IClinicalDataSource dataSource = new JsonDataSource(fixturePath);
                 ClinicalSnapshot snapshot = dataSource.LoadSnapshot();
 
@@ -55,23 +55,23 @@ namespace ESAPI_EQD2Viewer.DevRunner
                                   $"{snapshot.ActivePlan.CourseId}/{snapshot.ActivePlan.Id} | " +
                                   $"{snapshot.ActivePlan.TotalDoseGy:F1} Gy / {snapshot.ActivePlan.NumberOfFractions} fx");
 
-                // ── 3. Create services (same as production) ──
+                // â”€â”€ 3. Create services (same as production) â”€â”€
                 IImageRenderingService renderingService = new ImageRenderingService();
                 IDebugExportService debugService = new DebugExportService();
                 IDVHCalculation dvhService = new DVHService();
 
-                // ── 4. Initialize rendering from snapshot ──
+                // â”€â”€ 4. Initialize rendering from snapshot â”€â”€
                 int width = snapshot.CtImage.XSize;
                 int height = snapshot.CtImage.YSize;
                 renderingService.Initialize(width, height);
                 renderingService.PreloadData(snapshot.CtImage, snapshot.Dose);
 
-                // ── 5. Create ViewModel with snapshot (no ScriptContext!) ──
+                // â”€â”€ 5. Create ViewModel with snapshot (no ScriptContext!) â”€â”€
                 var viewModel = new MainViewModel(snapshot, renderingService, debugService, dvhService);
 
-                // ── 6. Launch the UI ──
+                // â”€â”€ 6. Launch the UI â”€â”€
                 var window = new ESAPI_EQD2Viewer.UI.Views.MainWindow(viewModel);
-                window.Title += " [DEV MODE — Fixture Data]";
+                window.Title += " [DEV MODE â€” Fixture Data]";
                 window.Show();
 
                 SimpleLogger.Info("DevRunner UI launched successfully");
@@ -81,7 +81,7 @@ namespace ESAPI_EQD2Viewer.DevRunner
                 SimpleLogger.Error("DevRunner startup failed", ex);
                 MessageBox.Show(
                     $"Startup error:\n\n{ex.Message}\n\n{ex.StackTrace}",
-                    "EQD2 Viewer — DevRunner Error",
+                    "EQD2 Viewer â€” DevRunner Error",
                     MessageBoxButton.OK, MessageBoxImage.Error);
                 Shutdown(1);
             }
@@ -90,7 +90,7 @@ namespace ESAPI_EQD2Viewer.DevRunner
         /// <summary>
         /// Resolves fixture directory from command line args or auto-discovery.
         /// </summary>
-        private static string? ResolveFixturePath(string[]? args)   // ← muutettu string? + args?
+        private static string? ResolveFixturePath(string[]? args)   // â† muutettu string? + args?
         {
             // Command-line argument
             if (args != null && args.Length > 0 && Directory.Exists(args[0]))
@@ -123,7 +123,7 @@ namespace ESAPI_EQD2Viewer.DevRunner
                 if (dir == null) break;
             }
 
-            return null;   // ← sallittu koska palautustyyppi on nyt string?
+            return null;   // â† sallittu koska palautustyyppi on nyt string?
         }
     }
 }

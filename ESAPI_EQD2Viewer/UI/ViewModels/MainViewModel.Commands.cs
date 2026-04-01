@@ -1,5 +1,5 @@
 using CommunityToolkit.Mvvm.Input;
-using ESAPI_EQD2Viewer.Core.Models;
+using EQD2Viewer.Core.Models;
 using ESAPI_EQD2Viewer.Services;
 using System.Linq;
 

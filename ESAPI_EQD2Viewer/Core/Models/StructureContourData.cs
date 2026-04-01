@@ -1,6 +1,6 @@
 using System.Windows.Media;
 
-namespace ESAPI_EQD2Viewer.Core.Models
+namespace EQD2Viewer.Core.Models
 {
     /// <summary>
     /// One structure's contour data for WPF rendering on a single CT slice.

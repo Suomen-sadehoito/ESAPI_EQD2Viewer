@@ -1,13 +1,13 @@
-namespace ESAPI_EQD2Viewer.Core.Models
+namespace EQD2Viewer.Core.Models
 {
     /// <summary>
     /// Method for calculating mean dose in EQD2 conversion.
     /// 
     /// Simple (default): Uses mean dose directly, applies LQ model.
-    ///   D_mean_EQD2 = D_mean * (d + α/β) / (2 + α/β)
+    ///   D_mean_EQD2 = D_mean * (d + Î±/Î²) / (2 + Î±/Î²)
     /// 
     /// Differential: Integrates LQ model over the DVH curve (proper physics).
-    ///   D_mean_EQD2 = ∫[D_min to D_max] EQD2(D) * dV/dD dD / V_total
+    ///   D_mean_EQD2 = âˆ«[D_min to D_max] EQD2(D) * dV/dD dD / V_total
     /// </summary>
     public enum EQD2MeanMethod
     {

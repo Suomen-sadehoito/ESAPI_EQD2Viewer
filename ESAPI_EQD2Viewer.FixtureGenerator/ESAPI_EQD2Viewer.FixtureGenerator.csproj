@@ -67,7 +67,6 @@
       <Private>False</Private>
     </Reference>
   </ItemGroup>
-  <!-- CI: käytä Stubs-kirjastoa -->
   <ItemGroup Condition="'$(HasRealEsapi)' == 'false'">
     <ProjectReference Include="..\ESAPI_EQD2Viewer.Stubs\ESAPI_EQD2Viewer.Stubs.csproj" />
   </ItemGroup>
@@ -91,12 +90,4 @@
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <!-- Turvamekanismi: Poistaa Stubs-assemblyn jos se vuotaa buildiin -->
-  <Target Name="RemoveStaleStubs" AfterTargets="ResolveAssemblyReferences" Condition="'$(HasRealEsapi)' == 'true'">
-    <ItemGroup>
-      <ReferencePath Remove="@(ReferencePath)" Condition="'%(FileName)' == 'ESAPI_EQD2Viewer.Stubs'" />
-      <ReferenceDependencyPaths Remove="@(ReferenceDependencyPaths)" Condition="'%(FileName)' == 'ESAPI_EQD2Viewer.Stubs'" />
-    </ItemGroup>
-    <Message Text="[ESAPI Build] Removed stale Stubs reference - using real ESAPI DLLs" Importance="high" />
-  </Target>
 </Project>

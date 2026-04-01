@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 		<TargetFramework>net48</TargetFramework>
 		<LangVersion>latest</LangVersion>
@@ -10,13 +10,6 @@
 		<MSBuildWarningsAsMessages>MSB3277</MSBuildWarningsAsMessages>
 	</PropertyGroup>
 
-	<!-- Sama HasRealEsapi-logiikka kuin pääprojektissa -->
-	<PropertyGroup>
-		<RealEsapiLibPath>$(MSBuildThisFileDirectory)..\lib\</RealEsapiLibPath>
-		<HasRealEsapi>false</HasRealEsapi>
-		<HasRealEsapi Condition="Exists('$(RealEsapiLibPath)VMS.TPS.Common.Model.API.dll')">true</HasRealEsapi>
-		<HasRealEsapi Condition="'$(CI)' == 'true'">false</HasRealEsapi>
-	</PropertyGroup>
 
 	<ItemGroup>
 		<PackageReference Include="coverlet.collector" Version="6.0.0" />
@@ -42,15 +35,6 @@
 		<Reference Include="PresentationFramework" />
 	</ItemGroup>
 
-	<!-- Lokaali: käytä oikeita ESAPI DLL:iä -->
-	<ItemGroup Condition="'$(HasRealEsapi)' == 'true'">
-		<Reference Include="VMS.TPS.Common.Model.API">
-			<HintPath>..\lib\VMS.TPS.Common.Model.API.dll</HintPath>
-		</Reference>
-		<Reference Include="VMS.TPS.Common.Model.Types">
-			<HintPath>..\lib\VMS.TPS.Common.Model.Types.dll</HintPath>
-		</Reference>
-	</ItemGroup>
 
 	<ItemGroup>
 		<Using Include="System" />
@@ -63,16 +47,4 @@
 		</Content>
 	</ItemGroup>
 
-	<!--
-		Turvamekanismi: Jos Stubs.dll vuotaa transitiivisesti pääprojektin
-		kautta (esim. vanhasta bin-kansiosta), poistetaan se resolve-vaiheessa
-		kun oikeat ESAPI DLL:t ovat käytössä. Estää CS0433-konfliktin.
-	-->
-	<Target Name="RemoveStaleStubs" AfterTargets="ResolveAssemblyReferences" Condition="'$(HasRealEsapi)' == 'true'">
-		<ItemGroup>
-			<ReferencePath Remove="@(ReferencePath)" Condition="'%(FileName)' == 'ESAPI_EQD2Viewer.Stubs'" />
-			<ReferenceDependencyPaths Remove="@(ReferenceDependencyPaths)" Condition="'%(FileName)' == 'ESAPI_EQD2Viewer.Stubs'" />
-		</ItemGroup>
-		<Message Text="[ESAPI Build] Removed stale Stubs reference - using real ESAPI DLLs" Importance="high" />
-	</Target>
 </Project>

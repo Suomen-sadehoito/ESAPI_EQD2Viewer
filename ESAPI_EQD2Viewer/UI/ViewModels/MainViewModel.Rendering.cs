@@ -1,4 +1,4 @@
-using ESAPI_EQD2Viewer.Core.Models;
+using EQD2Viewer.Core.Models;
 using System;
 using System.Collections.ObjectModel;
 using System.Linq;

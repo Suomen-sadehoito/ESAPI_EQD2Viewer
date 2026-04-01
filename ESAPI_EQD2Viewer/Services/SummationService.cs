@@ -9,10 +9,10 @@ using EQD2Viewer.Core.Models;
 using EQD2Viewer.Core.Interfaces;
 using EQD2Viewer.Core.Calculations;
 using EQD2Viewer.Core.Logging;
-using ESAPI_EQD2Viewer.Core.Data;
-using ESAPI_EQD2Viewer.Core.Interfaces;
-using ESAPI_EQD2Viewer.Core.Models;
-using ESAPI_EQD2Viewer.Core.Calculations;
+using EQD2Viewer.Core.Data;
+using EQD2Viewer.Core.Interfaces;
+using EQD2Viewer.Core.Models;
+using EQD2Viewer.Core.Calculations;
 
 
 namespace ESAPI_EQD2Viewer.Services
@@ -20,26 +20,26 @@ namespace ESAPI_EQD2Viewer.Services
     /// <summary>
     /// Two-phase dose summation with per-plan physical dose retention.
     /// 
-    /// Phase 1 — PrepareData() — UI thread:
+    /// Phase 1 â€” PrepareData() â€” UI thread:
     ///   Loads plan data through ISummationDataLoader into plain arrays.
     ///   Rasterizes structure contours into masks for DVH.
-    ///   Zero ESAPI dependencies — all data access is via ISummationDataLoader.
+    ///   Zero ESAPI dependencies â€” all data access is via ISummationDataLoader.
     /// 
-    /// Phase 2 — ComputeAsync() — background:
+    /// Phase 2 â€” ComputeAsync() â€” background:
     ///   Accumulates per-plan physical dose at each voxel.
-    ///   Computes an EQD2 display sum using the configured global α/β.
+    ///   Computes an EQD2 display sum using the configured global Î±/Î².
     /// 
     /// Post-compute:
-    ///   RecomputeEQD2DisplayAsync() — recalculates display sum with a new α/β.
-    ///   ComputeStructureEQD2DVH()   — per-structure DVH with structure-specific α/β.
+    ///   RecomputeEQD2DisplayAsync() â€” recalculates display sum with a new Î±/Î².
+    ///   ComputeStructureEQD2DVH()   â€” per-structure DVH with structure-specific Î±/Î².
     /// 
-    /// Memory: Stores N × W × H × Z × 8 bytes for N plans' physical doses,
-    /// plus W × H × Z × 8 bytes for the display EQD2 sum.
-    /// Typical: 2 plans, 512×512×200 = ~1.2 GB. Acceptable on clinical workstations.
+    /// Memory: Stores N Ã— W Ã— H Ã— Z Ã— 8 bytes for N plans' physical doses,
+    /// plus W Ã— H Ã— Z Ã— 8 bytes for the display EQD2 sum.
+    /// Typical: 2 plans, 512Ã—512Ã—200 = ~1.2 GB. Acceptable on clinical workstations.
     /// </summary>
     public class SummationService : ISummationService
     {
-        // ── Phase 1 output ──
+        // â”€â”€ Phase 1 output â”€â”€
         private List<CachedPlanData> _cachedPlans;
         private CachedRefGeometry _refGeo;
         private SummationConfig _config;
@@ -48,15 +48,15 @@ namespace ESAPI_EQD2Viewer.Services
         private string _referenceFOR;
         private double _voxelVolumeCc;
 
-        // ── Structure masks: structureId → [sliceIndex] → bool[w*h] ──
+        // â”€â”€ Structure masks: structureId â†’ [sliceIndex] â†’ bool[w*h] â”€â”€
         private Dictionary<string, bool[][]> _structureMasks;
         private List<string> _cachedStructureIds;
 
-        // ── Phase 2 output ──
+        // â”€â”€ Phase 2 output â”€â”€
         /// <summary>Per-plan physical dose [planIndex][sliceIndex][voxelIndex] in Gy.</summary>
         private double[][][] _perPlanPhysicalSlices;
 
-        /// <summary>EQD2 display sum [sliceIndex][voxelIndex] in Gy. Recomputed on α/β change.</summary>
+        /// <summary>EQD2 display sum [sliceIndex][voxelIndex] in Gy. Recomputed on Î±/Î² change.</summary>
         private double[][] _summedSlices;
 
         private double _summedReferenceDoseGy;
@@ -82,7 +82,7 @@ namespace ESAPI_EQD2Viewer.Services
         }
 
         // ====================================================================
-        // PHASE 1: Load ESAPI data — MUST run on UI thread
+        // PHASE 1: Load ESAPI data â€” MUST run on UI thread
         // ====================================================================
 
         public SummationResult PrepareData(SummationConfig config)
@@ -101,7 +101,7 @@ namespace ESAPI_EQD2Viewer.Services
                 _refZ = _referenceCtImage.ZSize;
                 _currentDisplayAlphaBeta = config.GlobalAlphaBeta;
 
-                // Voxel volume in cm³ for DVH
+                // Voxel volume in cmÂ³ for DVH
                 _voxelVolumeCc = (_referenceCtImage.XRes * _referenceCtImage.YRes * _referenceCtImage.ZRes) / 1000.0;
 
                 _refGeo = new CachedRefGeometry
@@ -153,7 +153,7 @@ namespace ESAPI_EQD2Viewer.Services
         }
 
         // ====================================================================
-        // PHASE 2: Compute — BACKGROUND THREAD
+        // PHASE 2: Compute â€” BACKGROUND THREAD
         // ====================================================================
 
         public Task<SummationResult> ComputeAsync(IProgress<int> progress, CancellationToken ct)
@@ -178,7 +178,7 @@ namespace ESAPI_EQD2Viewer.Services
                 int planCount = _cachedPlans.Count;
                 int sliceSize = refW * refH;
 
-                // ── Allocate per-plan physical dose storage ──
+                // â”€â”€ Allocate per-plan physical dose storage â”€â”€
                 _perPlanPhysicalSlices = new double[planCount][][];
                 for (int p = 0; p < planCount; p++)
                     _perPlanPhysicalSlices[p] = new double[refZ][];
@@ -190,7 +190,7 @@ namespace ESAPI_EQD2Viewer.Services
                 {
                     ct.ThrowIfCancellationRequested();
 
-                    // ── Step 1: Accumulate physical dose per plan ──
+                    // â”€â”€ Step 1: Accumulate physical dose per plan â”€â”€
                     for (int p = 0; p < planCount; p++)
                     {
                         double[] planSlice = new double[sliceSize];
@@ -204,7 +204,7 @@ namespace ESAPI_EQD2Viewer.Services
                         _perPlanPhysicalSlices[p][z] = planSlice;
                     }
 
-                    // ── Step 2: Compute EQD2 display sum ──
+                    // â”€â”€ Step 2: Compute EQD2 display sum â”€â”€
                     double[] eqd2Slice = new double[sliceSize];
                     for (int p = 0; p < planCount; p++)
                     {
@@ -263,13 +263,13 @@ namespace ESAPI_EQD2Viewer.Services
         }
 
         // ====================================================================
-        // POST-COMPUTE: Recompute EQD2 display with new α/β
+        // POST-COMPUTE: Recompute EQD2 display with new Î±/Î²
         // ====================================================================
 
         /// <summary>
         /// Recomputes the EQD2 display sum from stored per-plan physical doses.
-        /// Only touches Phase 2 data — no ESAPI calls, no coordinate transforms.
-        /// Typically completes in &lt; 2 seconds for 512×512×200 grids.
+        /// Only touches Phase 2 data â€” no ESAPI calls, no coordinate transforms.
+        /// Typically completes in &lt; 2 seconds for 512Ã—512Ã—200 grids.
         /// </summary>
         public Task<SummationResult> RecomputeEQD2DisplayAsync(double displayAlphaBeta,
             IProgress<int> progress, CancellationToken ct)
@@ -283,7 +283,7 @@ namespace ESAPI_EQD2Viewer.Services
 
                     _currentDisplayAlphaBeta = displayAlphaBeta;
 
-                    // Update EQD2 factors for each plan with the new α/β
+                    // Update EQD2 factors for each plan with the new Î±/Î²
                     var planFactors = new (double Q, double L, double Weight, bool UseEqd2)[_cachedPlans.Count];
                     for (int p = 0; p < _cachedPlans.Count; p++)
                     {
@@ -341,7 +341,7 @@ namespace ESAPI_EQD2Viewer.Services
                         MaxDoseGy = globalMax,
                         TotalReferenceDoseGy = _summedReferenceDoseGy,
                         SliceCount = refZ,
-                        StatusMessage = $"[{label} Sum] α/β={displayAlphaBeta:F1} | " +
+                        StatusMessage = $"[{label} Sum] Î±/Î²={displayAlphaBeta:F1} | " +
                                         $"Max: {globalMax:F2} Gy | Ref: {_summedReferenceDoseGy:F2} Gy"
                     };
                 }
@@ -358,14 +358,14 @@ namespace ESAPI_EQD2Viewer.Services
         }
 
         // ====================================================================
-        // POST-COMPUTE: Per-structure DVH with structure-specific α/β
+        // POST-COMPUTE: Per-structure DVH with structure-specific Î±/Î²
         // ====================================================================
 
         /// <summary>
-        /// Computes a cumulative DVH for one structure using its own α/β value.
+        /// Computes a cumulative DVH for one structure using its own Î±/Î² value.
         /// 
         /// For each masked voxel:
-        ///   EQD2_total = Σ_plan [ D_plan × (D_plan/n_plan + α/β) / (2 + α/β) ] × weight_plan
+        ///   EQD2_total = Î£_plan [ D_plan Ã— (D_plan/n_plan + Î±/Î²) / (2 + Î±/Î²) ] Ã— weight_plan
         /// 
         /// This correctly handles different fractionation schedules across plans.
         /// </summary>
@@ -381,7 +381,7 @@ namespace ESAPI_EQD2Viewer.Services
             int planCount = _cachedPlans.Count;
             int sliceCount = Math.Min(_refZ, masks.Length);
 
-            // Pre-compute EQD2 factors per plan with the structure-specific α/β
+            // Pre-compute EQD2 factors per plan with the structure-specific Î±/Î²
             var factors = new (double Q, double L, double Weight, bool UseEqd2)[planCount];
             for (int p = 0; p < planCount; p++)
             {
@@ -411,7 +411,7 @@ namespace ESAPI_EQD2Viewer.Services
                     if (!mask[i]) continue;
                     totalVoxels++;
 
-                    // Sum per-plan EQD2 contributions with structure-specific α/β
+                    // Sum per-plan EQD2 contributions with structure-specific Î±/Î²
                     double eqd2Sum = 0;
                     for (int p = 0; p < planCount; p++)
                     {
@@ -497,7 +497,7 @@ namespace ESAPI_EQD2Viewer.Services
             int[,] doseSlice = cp.DoseVoxels[doseSliceZ];
             double rawScale = cp.RawScale, rawOffset = cp.RawOffset, unitToGy = cp.UnitToGy;
 
-            // NOTE: No EQD2 conversion — stores physical Gy only
+            // NOTE: No EQD2 conversion â€” stores physical Gy only
             for (int py = 0; py < refH; py++)
             {
                 double rx = baseDx + py * dxPerPy;
@@ -560,7 +560,7 @@ namespace ESAPI_EQD2Viewer.Services
             int dxSize = dg.XSize, dySize = dg.YSize, dzSize = dg.ZSize;
             double rawScale = cp.RawScale, rawOffset = cp.RawOffset, unitToGy = cp.UnitToGy;
 
-            // NOTE: No EQD2 conversion — stores physical Gy only
+            // NOTE: No EQD2 conversion â€” stores physical Gy only
             for (int py = 0; py < refH; py++)
             {
                 double rowFdx = baseFdx + py * fdxPerPy;
@@ -872,12 +872,12 @@ namespace ESAPI_EQD2Viewer.Services
                         bool registeredIsRef = string.Equals(reg.RegisteredFOR, referenceFOR, StringComparison.OrdinalIgnoreCase);
 
                         if (sourceIsRef && registeredIsPlan)
-                        { regMatrix = forwardMatrix; SimpleLogger.Info($"Registration {reg.Id}: ref→plan (direct)"); }
+                        { regMatrix = forwardMatrix; SimpleLogger.Info($"Registration {reg.Id}: refâ†’plan (direct)"); }
                         else if (sourceIsPlan && registeredIsRef)
                         {
                             regMatrix = MatrixMath.Invert4x4(forwardMatrix);
                             if (regMatrix == null) SimpleLogger.Error($"Registration {reg.Id}: matrix inversion failed");
-                            else SimpleLogger.Info($"Registration {reg.Id}: plan→ref (inverted)");
+                            else SimpleLogger.Info($"Registration {reg.Id}: planâ†’ref (inverted)");
                         }
                         else
                         { regMatrix = forwardMatrix; SimpleLogger.Warning($"Registration {reg.Id}: unexpected FOR direction, using forward"); }

@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using ESAPI_EQD2Viewer.Core.Data;
+using EQD2Viewer.Core.Data;
 
 namespace EQD2Viewer.Core.Interfaces
 {
@@ -7,8 +7,8 @@ namespace EQD2Viewer.Core.Interfaces
     /// Abstracts on-demand loading of plan dose data for multi-plan summation.
     /// 
     /// Implementations:
-    ///   EsapiSummationDataLoader — loads from live Eclipse via ESAPI (in EQD2Viewer.Esapi)
-    ///   (future) JsonSummationDataLoader — loads from fixture files
+    ///   EsapiSummationDataLoader â€” loads from live Eclipse via ESAPI (in EQD2Viewer.Esapi)
+    ///   (future) JsonSummationDataLoader â€” loads from fixture files
     /// 
     /// Separates the summation algorithm from ESAPI data access,
     /// allowing SummationService to live in the ESAPI-free project.

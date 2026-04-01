@@ -1,7 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
-using ESAPI_EQD2Viewer.Core.Data;
-using ESAPI_EQD2Viewer.Core.Interfaces;
-using ESAPI_EQD2Viewer.Core.Models;
+using EQD2Viewer.Core.Data;
+using EQD2Viewer.Core.Interfaces;
+using EQD2Viewer.Core.Models;
 using OxyPlot;
 using OxyPlot.Axes;
 using System;
@@ -24,19 +24,19 @@ namespace ESAPI_EQD2Viewer.UI.ViewModels
     /// Main view model for the EQD2 Viewer re-irradiation assessment tool.
     /// 
     /// Split into partial classes by responsibility:
-    ///   .cs              — Core lifecycle: constructor, dispose, shared state, isodose management
-    ///   .Properties.cs   — All bindable properties (WPF data binding targets)
-    ///   .Rendering.cs    — CT/dose/structure rendering pipeline (UI thread only)
-    ///   .DVH.cs          — DVH calculation, structure settings, OxyPlot series management
-    ///   .Summation.cs    — Multi-plan dose summation + per-structure EQD2 DVH
-    ///   .Commands.cs     — All RelayCommand handlers (user actions from UI)
+    ///   .cs              â€” Core lifecycle: constructor, dispose, shared state, isodose management
+    ///   .Properties.cs   â€” All bindable properties (WPF data binding targets)
+    ///   .Rendering.cs    â€” CT/dose/structure rendering pipeline (UI thread only)
+    ///   .DVH.cs          â€” DVH calculation, structure settings, OxyPlot series management
+    ///   .Summation.cs    â€” Multi-plan dose summation + per-structure EQD2 DVH
+    ///   .Commands.cs     â€” All RelayCommand handlers (user actions from UI)
     /// 
-    /// α/β architecture:
-    ///   DisplayAlphaBeta  — controls isodose visualization only (slider in sidebar)
-    ///   Per-structure α/β — controls DVH calculations (editable in structure settings grid)
-    ///   Summation α/β     — set at summation dialog; display α/β syncs initially
+    /// Î±/Î² architecture:
+    ///   DisplayAlphaBeta  â€” controls isodose visualization only (slider in sidebar)
+    ///   Per-structure Î±/Î² â€” controls DVH calculations (editable in structure settings grid)
+    ///   Summation Î±/Î²     â€” set at summation dialog; display Î±/Î² syncs initially
     /// 
-    /// All data comes from ClinicalSnapshot — zero ESAPI dependencies at runtime.
+    /// All data comes from ClinicalSnapshot â€” zero ESAPI dependencies at runtime.
     /// </summary>
     public partial class MainViewModel : ObservableObject, IDisposable
     {
@@ -44,11 +44,11 @@ namespace ESAPI_EQD2Viewer.UI.ViewModels
         internal readonly IDebugExportService _debugExportService;
         internal readonly IDVHCalculation _dvhService;
 
-        // ── Clean Architecture data source ──
+        // â”€â”€ Clean Architecture data source â”€â”€
         internal readonly ClinicalSnapshot _snapshot;
 
         /// <summary>
-        /// Optional summation data loader — null when summation is not available
+        /// Optional summation data loader â€” null when summation is not available
         /// (e.g. in DevRunner without full ESAPI data access).
         /// </summary>
         internal readonly ISummationDataLoader _summationDataLoader;
@@ -210,7 +210,7 @@ namespace ESAPI_EQD2Viewer.UI.ViewModels
     }
 
     /// <summary>
-    /// Per-structure α/β setting for DVH EQD2 calculations.
+    /// Per-structure Î±/Î² setting for DVH EQD2 calculations.
     /// Default: 10 Gy for targets (PTV/CTV/GTV), 3 Gy for organs at risk.
     /// </summary>
     public class StructureAlphaBetaItem : INotifyPropertyChanged

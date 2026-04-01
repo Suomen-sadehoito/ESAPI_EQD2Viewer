@@ -1,6 +1,6 @@
-﻿using Xunit;
+using Xunit;
 using FluentAssertions;
-using ESAPI_EQD2Viewer.Core.Calculations;
+using EQD2Viewer.Core.Calculations;
 using ESAPI_EQD2Viewer.Tests.Integration.Models;
 using System;
 

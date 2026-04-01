@@ -2,7 +2,7 @@ name: Unit Tests
 
 on:
   push:
-    branches: [ master, main, develop ]
+    branches: [ master, main, develop, feature/standalone-devrunner ]
   pull_request:
     branches: [ master, main ]
 
@@ -14,6 +14,8 @@ permissions:
 jobs:
   test:
     runs-on: windows-latest
+    env:
+      CI: true
 
     steps:
     - name: Checkout code
@@ -25,12 +27,10 @@ jobs:
     - name: Setup NuGet
       uses: NuGet/setup-nuget@v2
 
-    # Use the CI solution filter — excludes FixtureGenerator which requires real ESAPI DLLs.
-    # The full .sln includes all projects and is used on Eclipse workstations.
     - name: Restore NuGet packages
       run: nuget restore ESAPI_EQD2Viewer.sln
 
-    - name: Build solution (CI filter — excludes FixtureGenerator)
+    - name: Build solution
       run: msbuild ESAPI_EQD2Viewer.sln /p:Configuration=Debug /p:Platform="Any CPU" /t:Build /verbosity:minimal
 
     - name: Setup .NET SDK
@@ -38,10 +38,6 @@ jobs:
       with:
         dotnet-version: '8.0.x'
 
-    # Run all tests including integration tests.
-    # Integration tests auto-discover fixtures in TestFixtures/ — 
-    # the sample_standard_2gy fixture is always present in the repo.
-    # Eclipse-generated fixtures are included when committed.
     - name: Run unit tests and integration tests
       run: |
         dotnet test ESAPI_EQD2Viewer.Tests\ESAPI_EQD2Viewer.Tests.csproj --no-build --configuration Debug --logger "trx;LogFileName=test-results.trx" --results-directory TestResults

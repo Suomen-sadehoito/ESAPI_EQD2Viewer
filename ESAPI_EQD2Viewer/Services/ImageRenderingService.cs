@@ -4,10 +4,10 @@ using System.Diagnostics;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using ESAPI_EQD2Viewer.Core.Data;
-using ESAPI_EQD2Viewer.Core.Models;
-using ESAPI_EQD2Viewer.Core.Interfaces;
-using ESAPI_EQD2Viewer.Core.Calculations;
+using EQD2Viewer.Core.Data;
+using EQD2Viewer.Core.Models;
+using EQD2Viewer.Core.Interfaces;
+using EQD2Viewer.Core.Calculations;
 using EQD2Viewer.Core.Logging;
 using EQD2Viewer.Core.Models;
 using EQD2Viewer.Core.Calculations;
@@ -30,7 +30,7 @@ namespace ESAPI_EQD2Viewer.Services
         private int _huOffset;
         private bool _disposed;
 
-        // ── Cached geometry for ESAPI-free rendering ──
+        // â”€â”€ Cached geometry for ESAPI-free rendering â”€â”€
         private VolumeGeometry _ctGeo;
         private VolumeGeometry _doseGeo;
 
@@ -134,7 +134,7 @@ namespace ESAPI_EQD2Viewer.Services
             result.ReferenceDoseGy = referenceDoseGy;
             result.IsEQD2 = eqd2Active;
 
-            // CT slice → dose slice mapping using cached geometry
+            // CT slice â†’ dose slice mapping using cached geometry
             var ctO = _ctGeo.Origin;
             var ctZ = _ctGeo.ZDirection;
             Vec3 ctPlaneCenter = ctO + ctZ * (currentSlice * _ctGeo.ZRes);
@@ -164,7 +164,7 @@ namespace ESAPI_EQD2Viewer.Services
             result.DoseHeight = dy;
             result.MaxDoseInSlice = maxDose;
 
-            // Coordinate mapping: CT pixel → dose voxel
+            // Coordinate mapping: CT pixel â†’ dose voxel
             Vec3 ctBase = ctO + _ctGeo.ZDirection * (currentSlice * _ctGeo.ZRes);
             Vec3 baseDiff = ctBase - _doseGeo.Origin;
             result.BaseX = baseDiff.Dot(_doseGeo.XDirection) / _doseGeo.XRes;

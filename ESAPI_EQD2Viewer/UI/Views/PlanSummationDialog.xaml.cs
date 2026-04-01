@@ -5,8 +5,8 @@ using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows;
-using ESAPI_EQD2Viewer.Core.Data;
-using ESAPI_EQD2Viewer.Core.Models;
+using EQD2Viewer.Core.Data;
+using EQD2Viewer.Core.Models;
 
 namespace ESAPI_EQD2Viewer.UI.Views
 {
@@ -54,7 +54,7 @@ namespace ESAPI_EQD2Viewer.UI.Views
         {
             var options = new List<RegistrationOption>
             {
-                new RegistrationOption { Id = "", DisplayName = "None — same CT as reference" }
+                new RegistrationOption { Id = "", DisplayName = "None â€” same CT as reference" }
             };
             if (string.IsNullOrEmpty(planFOR) || string.IsNullOrEmpty(referenceFOR)) return options;
             if (string.Equals(planFOR, referenceFOR, StringComparison.OrdinalIgnoreCase)) return options;
@@ -82,7 +82,7 @@ namespace ESAPI_EQD2Viewer.UI.Views
             string referenceFOR = refRow?.ImageFOR ?? "";
 
             var dbg = new System.Text.StringBuilder();
-            dbg.AppendLine("EQD2 VIEWER — REGISTRATION DEBUG REPORT");
+            dbg.AppendLine("EQD2 VIEWER â€” REGISTRATION DEBUG REPORT");
             dbg.AppendLine($"Generated: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
             dbg.AppendLine($"Reference FOR: {referenceFOR}");
             dbg.AppendLine($"Total registrations: {_allRegistrations.Count}");

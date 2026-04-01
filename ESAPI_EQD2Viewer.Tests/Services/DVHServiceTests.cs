@@ -1,7 +1,7 @@
-﻿using Xunit;
+using Xunit;
 using FluentAssertions;
 using ESAPI_EQD2Viewer.Services;
-using ESAPI_EQD2Viewer.Core.Models;
+using EQD2Viewer.Core.Models;
 using EQD2Viewer.Core.Models;
 using System.Linq;
 

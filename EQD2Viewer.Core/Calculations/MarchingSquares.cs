@@ -2,9 +2,9 @@ using EQD2Viewer.Core.Models;
 using EQD2Viewer.Core.Data;
 using System;
 using System.Collections.Generic;
-using ESAPI_EQD2Viewer.Core.Models;
+using EQD2Viewer.Core.Models;
 
-namespace ESAPI_EQD2Viewer.Core.Calculations
+namespace EQD2Viewer.Core.Calculations
 {
     /// <summary>
     /// Marching squares algorithm for generating smooth isodose contour polylines.
