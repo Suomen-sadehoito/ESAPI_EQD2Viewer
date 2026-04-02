@@ -1,11 +1,8 @@
-using Xunit;
-using FluentAssertions;
-using EQD2Viewer.Core.Calculations;
 using EQD2Viewer.Core.Models;
+using EQD2Viewer.Core.Calculations;
 using EQD2Viewer.Services;
 using EQD2Viewer.Fixtures;
-using EQD2Viewer.Fixtures.Models;
-using System;
+using FluentAssertions;
 using System.Linq;
 
 namespace EQD2Viewer.Tests.Integration
@@ -66,7 +63,7 @@ namespace EQD2Viewer.Tests.Integration
 
         [Theory]
         [MemberData(nameof(FixtureLoader.AllFixtureDirectories), MemberType = typeof(FixtureLoader))]
-            public void BuildSummaryFromCurve_AgainstEclipseDVH_DmaxShouldMatch(string fixtureName)
+        public void BuildSummaryFromCurve_AgainstEclipseDVH_DmaxShouldMatch(string fixtureName)
         {
             var dvhFixtures = FixtureLoader.LoadDvhCurves(fixtureName);
 

@@ -4,11 +4,11 @@ namespace EQD2Viewer.Core.Models
     /// Determines how isodose thresholds are interpreted for display.
     /// </summary>
     public enum IsodoseMode
- {
+    {
         /// <summary>
         /// Thresholds as percentage of a reference dose (Eclipse-style).
         /// Typical for single-plan viewing where prescription dose is the reference.
-   /// Example: 95% of 50 Gy = 47.5 Gy threshold.
+        /// Example: 95% of 50 Gy = 47.5 Gy threshold.
         /// </summary>
         Relative,
 
@@ -16,7 +16,7 @@ namespace EQD2Viewer.Core.Models
         /// Thresholds as absolute Gy values (no reference dose needed).
         /// Used for EQD2 summation where clinical tolerances are defined in absolute Gy
         /// (e.g., spinal cord 45 Gy EQD2, brainstem 50 Gy EQD2).
-    /// </summary>
+        /// </summary>
         Absolute
     }
 
@@ -27,8 +27,8 @@ namespace EQD2Viewer.Core.Models
     public enum IsodoseUnit
     {
         /// <summary>Show as percentage of reference dose (e.g., "95%").</summary>
-   Percent,
+        Percent,
         /// <summary>Show as absolute Gy computed from fraction × reference (e.g., "47.5 Gy").</summary>
-    Gy
+        Gy
     }
 }

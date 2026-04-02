@@ -1,6 +1,5 @@
-using Xunit;
-using FluentAssertions;
 using EQD2Viewer.Core.Calculations;
+using FluentAssertions;
 
 namespace EQD2Viewer.Tests.Calculations
 {
@@ -26,7 +25,7 @@ namespace EQD2Viewer.Tests.Calculations
             inv.Should().NotBeNull();
             for (int r = 0; r < 4; r++)
                 for (int c = 0; c < 4; c++)
-                    inv[r, c].Should().BeApproximately(r == c ? 1.0 : 0.0, Tolerance,
+                    inv![r, c].Should().BeApproximately(r == c ? 1.0 : 0.0, Tolerance,
                         $"Identity inverse should be identity at [{r},{c}]");
         }
 
@@ -47,7 +46,7 @@ namespace EQD2Viewer.Tests.Calculations
             var inv = MatrixMath.Invert4x4(M);
 
             inv.Should().NotBeNull();
-            inv[0, 3].Should().BeApproximately(-tx, Tolerance);
+            inv![0, 3].Should().BeApproximately(-tx, Tolerance);
             inv[1, 3].Should().BeApproximately(-ty, Tolerance);
             inv[2, 3].Should().BeApproximately(-tz, Tolerance);
         }
@@ -68,7 +67,7 @@ namespace EQD2Viewer.Tests.Calculations
             inv.Should().NotBeNull();
 
             // M * M^(-1) should = I
-            var product = Multiply4x4(M, inv);
+            var product = Multiply4x4(M, inv!);
             AssertIsIdentity(product, 1e-9);
         }
 
@@ -86,7 +85,7 @@ namespace EQD2Viewer.Tests.Calculations
             var inv = MatrixMath.Invert4x4(M);
             inv.Should().NotBeNull();
 
-            var product = Multiply4x4(M, inv);
+            var product = Multiply4x4(M, inv!);
             AssertIsIdentity(product, 1e-9);
         }
 
@@ -103,11 +102,11 @@ namespace EQD2Viewer.Tests.Calculations
             var inv = MatrixMath.Invert4x4(M);
             inv.Should().NotBeNull();
 
-            inv[0, 0].Should().BeApproximately(0.5, Tolerance);
+            inv![0, 0].Should().BeApproximately(0.5, Tolerance);
             inv[1, 1].Should().BeApproximately(1.0 / 3.0, Tolerance);
             inv[2, 2].Should().BeApproximately(2.0, Tolerance);
 
-            var product = Multiply4x4(M, inv);
+            var product = Multiply4x4(M, inv!);
             AssertIsIdentity(product, 1e-9);
         }
 
@@ -122,7 +121,7 @@ namespace EQD2Viewer.Tests.Calculations
             var inv = MatrixMath.Invert4x4(M);
             inv.Should().NotBeNull();
 
-            var product = Multiply4x4(M, inv);
+            var product = Multiply4x4(M, inv!);
             AssertIsIdentity(product, 1e-8);
         }
 
@@ -201,7 +200,7 @@ namespace EQD2Viewer.Tests.Calculations
 
             double ox = 100, oy = 200, oz = 300;
             MatrixMath.TransformPoint(M, ox, oy, oz, out double tx, out double ty, out double tz);
-            MatrixMath.TransformPoint(inv, tx, ty, tz, out double rx, out double ry, out double rz);
+            MatrixMath.TransformPoint(inv!, tx, ty, tz, out double rx, out double ry, out double rz);
 
             rx.Should().BeApproximately(ox, 1e-8, "round-trip should preserve X");
             ry.Should().BeApproximately(oy, 1e-8, "round-trip should preserve Y");
@@ -239,7 +238,7 @@ namespace EQD2Viewer.Tests.Calculations
             foreach (var (px, py, pz) in testPoints)
             {
                 MatrixMath.TransformPoint(M, px, py, pz, out double tx, out double ty, out double tz);
-                MatrixMath.TransformPoint(inv, tx, ty, tz, out double rx, out double ry, out double rz);
+                MatrixMath.TransformPoint(inv!, tx, ty, tz, out double rx, out double ry, out double rz);
                 rx.Should().BeApproximately(px, 1e-6, $"X round-trip for ({px},{py},{pz})");
                 ry.Should().BeApproximately(py, 1e-6, $"Y round-trip for ({px},{py},{pz})");
                 rz.Should().BeApproximately(pz, 1e-6, $"Z round-trip for ({px},{py},{pz})");

@@ -1,18 +1,18 @@
 namespace EQD2Viewer.Core.Models
 {
     /// <summary>
-  /// Constants related to UI rendering and interaction logic.
+    /// Constants related to UI rendering and interaction logic.
     /// Domain and physics constants live in DomainConstants.cs.
     /// </summary>
     public static class RenderConstants
     {
         // ?? Colorwash ??
-     /// <summary>Maximum dose as fraction of reference dose for colorwash upper bound.</summary>
- public const double ColorwashMaxFraction = 1.15;
+        /// <summary>Maximum dose as fraction of reference dose for colorwash upper bound.</summary>
+        public const double ColorwashMaxFraction = 1.15;
 
         // ?? Registration overlay ??
         /// <summary>Checkerboard block size in pixels for registration verification overlay.</summary>
-  public const int CheckerboardBlockSize = 32;
+        public const int CheckerboardBlockSize = 32;
 
         // ?? Rendering ??
         /// <summary>Minimum zoom factor for image viewer.</summary>
@@ -20,20 +20,20 @@ namespace EQD2Viewer.Core.Models
         /// <summary>Maximum zoom factor for image viewer.</summary>
         public const double MaxZoom = 10.0;
         /// <summary>Zoom step multiplier per scroll tick.</summary>
- public const double ZoomStepFactor = 1.1;
-   /// <summary>Windowing mouse sensitivity (pixels to HU).</summary>
+        public const double ZoomStepFactor = 1.1;
+        /// <summary>Windowing mouse sensitivity (pixels to HU).</summary>
         public const double WindowingSensitivity = 2.0;
         /// <summary>Minimum frame interval in ms for windowing throttle.</summary>
- public const double WindowingThrottleMs = 33.0;
+        public const double WindowingThrottleMs = 33.0;
 
-    // ?? Structure rendering ??
+        // ?? Structure rendering ??
         /// <summary>Default stroke thickness for structure contours in CT pixel units.</summary>
         public const double StructureContourThickness = 1.5;
 
-    // ?? Summation & UI ??
+        // ?? Summation & UI ??
         /// <summary>Progress report interval (every Nth slice).</summary>
-  public const int SummationProgressInterval = 4;
+        public const int SummationProgressInterval = 4;
         /// <summary>Debounce delay in ms for ?/? slider during active summation.</summary>
-    public const int AlphaBetaDebounceMs = 500;
+        public const int AlphaBetaDebounceMs = 500;
     }
 }

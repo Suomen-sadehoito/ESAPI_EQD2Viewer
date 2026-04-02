@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+    <ProjectGuid>{4AECD0F8-4BDA-4450-A70F-0782C2BC3D3C}</ProjectGuid>
     <OutputType>Library</OutputType>
     <TargetFramework>net48</TargetFramework>
     <RootNamespace>EQD2Viewer.Core</RootNamespace>

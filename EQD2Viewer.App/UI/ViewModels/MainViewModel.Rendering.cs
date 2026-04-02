@@ -1,13 +1,12 @@
-using EQD2Viewer.Core.Models;
 using EQD2Viewer.Services.Rendering;
+using EQD2Viewer.Core.Models;
+using EQD2Viewer.Core.Logging;
 using System;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading;
 using System.Windows;
 using System.Windows.Threading;
-using EQD2Viewer.Core.Data;
-using EQD2Viewer.Core.Logging;
 
 namespace EQD2Viewer.App.UI.ViewModels
 {
@@ -57,25 +56,25 @@ namespace EQD2Viewer.App.UI.ViewModels
           ? new EQD2Settings { IsEnabled = true, AlphaBeta = _doseOverlay.DisplayAlphaBeta, NumberOfFractions = _doseOverlay.NumberOfFractions }
         : null;
 
-        if (_doseOverlay.DoseDisplayMode == DoseDisplayMode.Line)
-  {
-_renderingService.RenderDoseImage(DoseImageSource, CurrentSlice,
-             planTotalDoseGy, planNormalization, _doseOverlay._isodoseLevelArray,
-   _doseOverlay.DoseDisplayMode, _doseOverlay.ColorwashOpacity, _doseOverlay.ColorwashMinPercent, eqd2);
+            if (_doseOverlay.DoseDisplayMode == DoseDisplayMode.Line)
+            {
+                _renderingService.RenderDoseImage(DoseImageSource, CurrentSlice,
+                             planTotalDoseGy, planNormalization, _doseOverlay._isodoseLevelArray,
+                   _doseOverlay.DoseDisplayMode, _doseOverlay.ColorwashOpacity, _doseOverlay.ColorwashMinPercent, eqd2);
 
-        var result = _renderingService.GenerateVectorContours(CurrentSlice,
-  planTotalDoseGy, planNormalization, _doseOverlay._isodoseLevelArray, eqd2);
+                var result = _renderingService.GenerateVectorContours(CurrentSlice,
+          planTotalDoseGy, planNormalization, _doseOverlay._isodoseLevelArray, eqd2);
 
-   ContourLines = new ObservableCollection<IsodoseContourData>(result.Contours);
-         StatusText = result.StatusText ?? "";
-         }
-     else
-  {
-    if (_contourLines?.Count > 0) ContourLines = new ObservableCollection<IsodoseContourData>();
+                ContourLines = new ObservableCollection<IsodoseContourData>(result.Contours);
+                StatusText = result.StatusText ?? "";
+            }
+            else
+            {
+                if (_contourLines?.Count > 0) ContourLines = new ObservableCollection<IsodoseContourData>();
 
-             StatusText = _renderingService.RenderDoseImage(DoseImageSource, CurrentSlice,
-        planTotalDoseGy, planNormalization, _doseOverlay._isodoseLevelArray,
-         _doseOverlay.DoseDisplayMode, _doseOverlay.ColorwashOpacity, _doseOverlay.ColorwashMinPercent, eqd2);
+                StatusText = _renderingService.RenderDoseImage(DoseImageSource, CurrentSlice,
+           planTotalDoseGy, planNormalization, _doseOverlay._isodoseLevelArray,
+            _doseOverlay.DoseDisplayMode, _doseOverlay.ColorwashOpacity, _doseOverlay.ColorwashMinPercent, eqd2);
             }
         }
 
@@ -98,7 +97,7 @@ _renderingService.RenderDoseImage(DoseImageSource, CurrentSlice,
             int w = _snapshot.CtImage.XSize, h = _snapshot.CtImage.YSize;
             var bmp = OverlayImageSource;
 
-           // Bounds safety: verify bitmap dimensions match expected size
+            // Bounds safety: verify bitmap dimensions match expected size
             if (bmp == null || bmp.PixelWidth != w || bmp.PixelHeight != h)
                 return;
 

@@ -1,7 +1,7 @@
-using System;
-using EQD2Viewer.Core.Data;
-using EQD2Viewer.Core.Interfaces;
 using EQD2Viewer.Core.Serialization;
+using EQD2Viewer.Core.Interfaces;
+using EQD2Viewer.Core.Data;
+using System;
 
 namespace EQD2Viewer.Fixtures
 {
@@ -25,12 +25,12 @@ namespace EQD2Viewer.Fixtures
         /// <param name="snapshotDir">
         /// Directory containing snapshot_meta.json and companion files
         /// written by SnapshotSerializer.Write().
- /// </param>
+        /// </param>
         public JsonDataSource(string snapshotDir)
-  {
-if (string.IsNullOrWhiteSpace(snapshotDir))
-       throw new ArgumentNullException(nameof(snapshotDir));
-      _snapshotDir = snapshotDir;
+        {
+            if (string.IsNullOrWhiteSpace(snapshotDir))
+                throw new ArgumentNullException(nameof(snapshotDir));
+            _snapshotDir = snapshotDir;
         }
 
         /// <summary>
@@ -39,12 +39,12 @@ if (string.IsNullOrWhiteSpace(snapshotDir))
         /// Can be called from any thread (no Eclipse threading constraints).
         /// </summary>
         public ClinicalSnapshot LoadSnapshot()
-     {
-     return SnapshotSerializer.ReadAuto(_snapshotDir);
-     }
+        {
+            return SnapshotSerializer.ReadAuto(_snapshotDir);
+        }
 
         /// <summary>
-   /// Checks whether a given directory looks like a valid snapshot directory.
+        /// Checks whether a given directory looks like a valid snapshot directory.
         /// </summary>
         public static bool IsSnapshotDirectory(string dir) =>
       System.IO.File.Exists(

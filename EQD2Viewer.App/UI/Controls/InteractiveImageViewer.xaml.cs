@@ -1,11 +1,11 @@
+using EQD2Viewer.Core.Models;
+using EQD2Viewer.Services.Rendering;
 using System;
 using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
-using EQD2Viewer.Core.Models;
-using EQD2Viewer.Services.Rendering;
 
 namespace EQD2Viewer.App.UI.Controls
 {

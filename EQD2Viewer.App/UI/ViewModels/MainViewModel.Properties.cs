@@ -1,7 +1,6 @@
-using CommunityToolkit.Mvvm.ComponentModel;
-using EQD2Viewer.Core.Data;
-using EQD2Viewer.Core.Models;
 using EQD2Viewer.Services.Rendering;
+using EQD2Viewer.Core.Models;
+using EQD2Viewer.Core.Data;
 using OxyPlot;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;

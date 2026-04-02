@@ -1,5 +1,5 @@
-using System.Windows.Media;
 using EQD2Viewer.Core.Models;
+using System.Windows.Media;
 
 namespace EQD2Viewer.Services.Rendering
 {
@@ -9,31 +9,31 @@ namespace EQD2Viewer.Services.Rendering
     /// </summary>
     public class StructureContourData
     {
-    /// <summary>
+        /// <summary>
         /// All contour polylines for this structure on the current slice,
         /// compiled into a single frozen StreamGeometry.
-  /// </summary>
+        /// </summary>
         public StreamGeometry Geometry { get; set; } = null!;
 
         /// <summary>
-  /// Stroke color (matches the structure's ESAPI color).
-      /// </summary>
+        /// Stroke color (matches the structure's ESAPI color).
+        /// </summary>
         public SolidColorBrush Stroke { get; set; } = null!;
 
         /// <summary>
-  /// Line thickness in CT pixel units.
+        /// Line thickness in CT pixel units.
         /// </summary>
-  public double StrokeThickness { get; set; } = RenderConstants.StructureContourThickness;
+        public double StrokeThickness { get; set; } = RenderConstants.StructureContourThickness;
 
         /// <summary>
-   /// Structure ID for legend display.
+        /// Structure ID for legend display.
         /// </summary>
         public string StructureId { get; set; } = "";
 
-      /// <summary>
-/// Optional dashed pattern for specific structure types (e.g. support structures).
+        /// <summary>
+        /// Optional dashed pattern for specific structure types (e.g. support structures).
         /// Null = solid line.
         /// </summary>
-      public DoubleCollection? StrokeDashArray { get; set; }
-  }
+        public DoubleCollection? StrokeDashArray { get; set; }
+    }
 }

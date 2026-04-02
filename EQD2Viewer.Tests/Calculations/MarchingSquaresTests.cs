@@ -1,8 +1,6 @@
-using Xunit;
-using FluentAssertions;
 using EQD2Viewer.Core.Calculations;
+using FluentAssertions;
 using System.Linq;
-using Point = System.Windows.Point;  // ← tämä ratkaisee ambiguity-ongelman
 
 namespace EQD2Viewer.Tests.Calculations
 {
@@ -113,7 +111,7 @@ namespace EQD2Viewer.Tests.Calculations
         [Fact]
         public void GenerateContours_NullField_ShouldReturnEmpty()
         {
-            var contours = MarchingSquares.GenerateContours(null, 4, 4, 5.0);
+            var contours = MarchingSquares.GenerateContours(null!, 4, 4, 5.0);
             contours.Should().BeEmpty();
         }
 

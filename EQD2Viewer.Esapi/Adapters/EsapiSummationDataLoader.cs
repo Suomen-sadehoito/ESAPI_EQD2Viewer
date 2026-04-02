@@ -1,13 +1,13 @@
+using EQD2Viewer.Core.Logging;
+using EQD2Viewer.Core.Calculations;
+using VMS.TPS.Common.Model.Types;
+using VMS.TPS.Common.Model.API;
+using EQD2Viewer.Core.Models;
+using EQD2Viewer.Core.Interfaces;
+using EQD2Viewer.Core.Data;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using EQD2Viewer.Core.Data;
-using EQD2Viewer.Core.Calculations;
-using EQD2Viewer.Core.Interfaces;
-using EQD2Viewer.Core.Logging;
-using EQD2Viewer.Core.Models;
-using VMS.TPS.Common.Model.API;
-using VMS.TPS.Common.Model.Types;
 
 namespace EQD2Viewer.Esapi.Adapters
 {
@@ -228,8 +228,12 @@ namespace EQD2Viewer.Esapi.Adapters
 
         private static VolumeGeometry ToGeometry(Image img) => new VolumeGeometry
         {
-            XSize = img.XSize, YSize = img.YSize, ZSize = img.ZSize,
-            XRes = img.XRes, YRes = img.YRes, ZRes = img.ZRes,
+            XSize = img.XSize,
+            YSize = img.YSize,
+            ZSize = img.ZSize,
+            XRes = img.XRes,
+            YRes = img.YRes,
+            ZRes = img.ZRes,
             Origin = ToVec3(img.Origin),
             XDirection = ToVec3(img.XDirection),
             YDirection = ToVec3(img.YDirection),
@@ -240,8 +244,12 @@ namespace EQD2Viewer.Esapi.Adapters
 
         private static VolumeGeometry ToDoseGeometry(Dose dose) => new VolumeGeometry
         {
-            XSize = dose.XSize, YSize = dose.YSize, ZSize = dose.ZSize,
-            XRes = dose.XRes, YRes = dose.YRes, ZRes = dose.ZRes,
+            XSize = dose.XSize,
+            YSize = dose.YSize,
+            ZSize = dose.ZSize,
+            XRes = dose.XRes,
+            YRes = dose.YRes,
+            ZRes = dose.ZRes,
             Origin = ToVec3(dose.Origin),
             XDirection = ToVec3(dose.XDirection),
             YDirection = ToVec3(dose.YDirection),

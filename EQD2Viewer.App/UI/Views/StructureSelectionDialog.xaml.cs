@@ -1,7 +1,7 @@
+using EQD2Viewer.Core.Data;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
-using EQD2Viewer.Core.Data;
 
 namespace EQD2Viewer.App.UI.Views
 {

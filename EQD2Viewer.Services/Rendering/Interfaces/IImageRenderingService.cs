@@ -1,20 +1,20 @@
+using EQD2Viewer.Core.Models;
+using EQD2Viewer.Core.Data;
 using System;
 using System.Collections.Generic;
 using System.Windows.Media.Imaging;
-using EQD2Viewer.Core.Data;
-using EQD2Viewer.Core.Models;
 
 namespace EQD2Viewer.Services.Rendering
 {
-/// <summary>
-  /// WPF-specific rendering service interface.
+    /// <summary>
+    /// WPF-specific rendering service interface.
     /// Operates on WriteableBitmap and produces WPF StreamGeometry contours.
     /// 
     /// This interface lives in the Services layer because it bridges
     /// pure domain data (from Core) with WPF rendering primitives.
     /// 
     /// All data inputs come from Core types (VolumeData, DoseVolumeData, etc.)
-    /// — this is the adapter boundary between pure domain data and WPF rendering.
+    /// ï¿½ this is the adapter boundary between pure domain data and WPF rendering.
     /// </summary>
     public interface IImageRenderingService : IDisposable
     {
@@ -34,11 +34,11 @@ namespace EQD2Viewer.Services.Rendering
         double GetDoseAtPixel(int currentSlice, int pixelX, int pixelY, EQD2Settings? eqd2Settings = null);
 
         List<StructureContourData> GenerateStructureContours(int currentSlice, IEnumerable<StructureData> structures);
-  }
+    }
 
     public class ContourGenerationResult
     {
-   public List<IsodoseContourData> Contours { get; set; } = new List<IsodoseContourData>();
+        public List<IsodoseContourData> Contours { get; set; } = new List<IsodoseContourData>();
         public string? StatusText { get; set; }
     }
 }

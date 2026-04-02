@@ -3,6 +3,7 @@ using EQD2Viewer.Core.Data;
 using EQD2Viewer.Core.Models;
 using OxyPlot;
 using OxyPlot.Series;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
@@ -46,7 +47,8 @@ namespace EQD2Viewer.App.UI.ViewModels
                 {
                     Title = $"{structure.Id} ({planId})",
                     Tag = $"Physical_{planId}_{structure.Id}",
-                    Color = color, StrokeThickness = 2
+                    Color = color,
+                    StrokeThickness = 2
                 };
                 if (dvhCurve.Curve != null)
                     series.Points.AddRange(dvhCurve.Curve.Select(p => new DataPoint(p[0], p[1])));
@@ -93,17 +95,18 @@ namespace EQD2Viewer.App.UI.ViewModels
 
                 var eqd2Curve = curveInGy != null
                     ? EQD2Calculator.ConvertCurveToEQD2(curveInGy, _doseOverlay.NumberOfFractions, alphaBeta)
-                    : new DoseVolumePoint[0];
+                    : Array.Empty<DoseVolumePoint>();
 
                 var color = OxyColor.FromArgb(entry.Structure.ColorA, entry.Structure.ColorR,
                     entry.Structure.ColorG, entry.Structure.ColorB);
 
                 var eqd2Series = new LineSeries
                 {
-                    Title = $"{entry.Structure.Id} EQD2 (Î±/Î²={alphaBeta:F1})",
+                    Title = $"{entry.Structure.Id} EQD2 (α/β={alphaBeta:F1})",
                     LineStyle = LineStyle.Dash,
                     Tag = $"EQD2_{entry.PlanId}_{entry.Structure.Id}",
-                    Color = color, StrokeThickness = 2
+                    Color = color,
+                    StrokeThickness = 2
                 };
                 eqd2Series.Points.AddRange(eqd2Curve.Select(p => new DataPoint(p.DoseGy, p.VolumePercent)));
                 PlotModel.Series.Add(eqd2Series);

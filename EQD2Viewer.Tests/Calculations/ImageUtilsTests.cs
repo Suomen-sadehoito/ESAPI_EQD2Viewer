@@ -1,6 +1,5 @@
-using Xunit;
-using FluentAssertions;
 using EQD2Viewer.Core.Calculations;
+using FluentAssertions;
 
 namespace EQD2Viewer.Tests.Calculations
 {

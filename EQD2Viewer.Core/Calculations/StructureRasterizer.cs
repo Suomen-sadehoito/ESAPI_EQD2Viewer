@@ -1,8 +1,6 @@
 using EQD2Viewer.Core.Data;
 using System;
 using System.Collections.Generic;
-using System.Windows;
-using EQD2Viewer.Core.Logging;
 
 namespace EQD2Viewer.Core.Calculations
 {

@@ -1,11 +1,10 @@
 using CommunityToolkit.Mvvm.Input;
+using EQD2Viewer.App.UI.Views;
 using EQD2Viewer.Core.Calculations;
-using EQD2Viewer.Core.Data;
 using EQD2Viewer.Core.Interfaces;
 using EQD2Viewer.Core.Logging;
 using EQD2Viewer.Core.Models;
 using EQD2Viewer.Services.Rendering;
-using EQD2Viewer.App.UI.Views;
 using OxyPlot;
 using OxyPlot.Series;
 using System;
@@ -226,7 +225,7 @@ namespace EQD2Viewer.App.UI.ViewModels
 
                 var structureSetting = StructureSettings.FirstOrDefault(s => s.Id == structureId);
                 double structureAlphaBeta = structureSetting?.AlphaBeta ?? 3.0;
-                string methodLabel = isEqd2Sum ? $"EQD2 Î±/Î²={structureAlphaBeta:F1}" : "Physical Sum";
+                string methodLabel = isEqd2Sum ? $"EQD2 α/β={structureAlphaBeta:F1}" : "Physical Sum";
 
                 DoseVolumePoint[] dvhPoints;
 
@@ -241,8 +240,8 @@ namespace EQD2Viewer.App.UI.ViewModels
                     bool[][] masks = new bool[sliceCount][];
                     for (int z = 0; z < sliceCount; z++)
                     {
-                        summedSlices[z] = _summationService.GetSummedSlice(z) ?? new double[0];
-                        masks[z] = _summationService.GetStructureMask(structureId, z) ?? new bool[0];
+                        summedSlices[z] = _summationService.GetSummedSlice(z) ?? Array.Empty<double>();
+                        masks[z] = _summationService.GetStructureMask(structureId, z) ?? Array.Empty<bool>();
                     }
                     dvhPoints = _dvhService.CalculateDVHFromSummedDose(summedSlices, masks, voxelVolCc, maxDoseGy);
                 }
@@ -288,23 +287,23 @@ namespace EQD2Viewer.App.UI.ViewModels
 
         private void RenderSummationScene()
         {
-          double[]? summedSlice = _summationService!.GetSummedSlice(CurrentSlice);
- if (summedSlice == null) return;
+            double[]? summedSlice = _summationService!.GetSummedSlice(CurrentSlice);
+            if (summedSlice == null) return;
 
             double refDose = _summationService.SummedReferenceDoseGy;
-    if (refDose < DomainConstants.MinReferenceDoseGy) refDose = 1.0;
+            if (refDose < DomainConstants.MinReferenceDoseGy) refDose = 1.0;
 
-        int w = _snapshot.CtImage!.XSize, h = _snapshot.CtImage!.YSize;
+            int w = _snapshot.CtImage!.XSize, h = _snapshot.CtImage!.YSize;
 
- if (_doseOverlay.DoseDisplayMode == DoseDisplayMode.Line)
+            if (_doseOverlay.DoseDisplayMode == DoseDisplayMode.Line)
             {
-  ClearDoseBitmap(w, h);
-        var contours = new ObservableCollection<IsodoseContourData>();
+                ClearDoseBitmap(w, h);
+                var contours = new ObservableCollection<IsodoseContourData>();
 
-  foreach (var level in _doseOverlay._isodoseLevelArray)
-      {
-    if (!level.IsVisible) continue;
-    double thr = _doseOverlay.GetThresholdGy(level, refDose);
+                foreach (var level in _doseOverlay._isodoseLevelArray)
+                {
+                    if (!level.IsVisible) continue;
+                    double thr = _doseOverlay.GetThresholdGy(level, refDose);
                     if (thr <= 0) continue;
                     var polylines = MarchingSquares.GenerateContours(summedSlice, w, h, thr);
                     if (polylines.Count == 0) continue;
@@ -337,96 +336,96 @@ namespace EQD2Viewer.App.UI.ViewModels
 
         private unsafe void ClearDoseBitmap(int w, int h)
         {
-       var bmp = DoseImageSource;
-         if (bmp == null || bmp.PixelWidth != w || bmp.PixelHeight != h)
-        return;
+            var bmp = DoseImageSource;
+            if (bmp == null || bmp.PixelWidth != w || bmp.PixelHeight != h)
+                return;
 
             bmp.Lock();
             try
- {
-             byte* p = (byte*)bmp.BackBuffer;
-            int safeLen = h * bmp.BackBufferStride;
-    for (int i = 0; i < safeLen; i++) p[i] = 0;
-    bmp.AddDirtyRect(new System.Windows.Int32Rect(0, 0, w, h));
+            {
+                byte* p = (byte*)bmp.BackBuffer;
+                int safeLen = h * bmp.BackBufferStride;
+                for (int i = 0; i < safeLen; i++) p[i] = 0;
+                bmp.AddDirtyRect(new System.Windows.Int32Rect(0, 0, w, h));
             }
-        finally { bmp.Unlock(); }
+            finally { bmp.Unlock(); }
         }
 
-      private unsafe void RenderSummedDoseBitmap(double[] slice, double refDose, int w, int h)
+        private unsafe void RenderSummedDoseBitmap(double[] slice, double refDose, int w, int h)
         {
-    var bmp = DoseImageSource;
-        if (bmp == null || bmp.PixelWidth != w || bmp.PixelHeight != h)
-       return;
+            var bmp = DoseImageSource;
+            if (bmp == null || bmp.PixelWidth != w || bmp.PixelHeight != h)
+                return;
 
             bmp.Lock();
-     try
+            try
             {
- byte* pBuf = (byte*)bmp.BackBuffer;
-     int stride = bmp.BackBufferStride;
+                byte* pBuf = (byte*)bmp.BackBuffer;
+                int stride = bmp.BackBufferStride;
 
-  // Bounds safety: verify stride is sufficient for pixel width
-       if (stride < w * 4)
-                 return;
+                // Bounds safety: verify stride is sufficient for pixel width
+                if (stride < w * 4)
+                    return;
 
-     int totalBytes = h * stride;
+                int totalBytes = h * stride;
                 for (int i = 0; i < totalBytes; i++) pBuf[i] = 0;
 
-// Bounds safety: verify slice data matches expected dimensions
-          if (slice.Length < w * h)
-    {
-        bmp.AddDirtyRect(new System.Windows.Int32Rect(0, 0, w, h));
-             return;
+                // Bounds safety: verify slice data matches expected dimensions
+                if (slice.Length < w * h)
+                {
+                    bmp.AddDirtyRect(new System.Windows.Int32Rect(0, 0, w, h));
+                    return;
                 }
 
-    if (_doseOverlay.DoseDisplayMode == DoseDisplayMode.Fill)
-      {
-     // ...existing Fill mode code...
-           int vc = 0;
-           for (int i = 0; i < _doseOverlay._isodoseLevelArray.Length; i++) if (_doseOverlay._isodoseLevelArray[i].IsVisible) vc++;
-        if (vc > 0)
-             {
-   double[] thr = new double[vc]; uint[] col = new uint[vc]; int vi = 0;
-           for (int i = 0; i < _doseOverlay._isodoseLevelArray.Length; i++)
-  {
-     if (!_doseOverlay._isodoseLevelArray[i].IsVisible) continue;
-         thr[vi] = _doseOverlay.GetThresholdGy(_doseOverlay._isodoseLevelArray[i], refDose);
-          col[vi] = (_doseOverlay._isodoseLevelArray[i].Color & 0x00FFFFFF) | ((uint)_doseOverlay._isodoseLevelArray[i].Alpha << 24);
-    vi++;
-       }
-   for (int py = 0; py < h; py++)
-      {
-     uint* row = (uint*)(pBuf + py * stride); int ro = py * w;
-              for (int px = 0; px < w; px++)
-             {
-                double d = slice[ro + px]; if (d <= 0) continue;
-           for (int li = 0; li < vc; li++) if (d >= thr[li]) { row[px] = col[li]; break; }
-              }
-}
-        }
-           }
+                if (_doseOverlay.DoseDisplayMode == DoseDisplayMode.Fill)
+                {
+                    // ...existing Fill mode code...
+                    int vc = 0;
+                    for (int i = 0; i < _doseOverlay._isodoseLevelArray.Length; i++) if (_doseOverlay._isodoseLevelArray[i].IsVisible) vc++;
+                    if (vc > 0)
+                    {
+                        double[] thr = new double[vc]; uint[] col = new uint[vc]; int vi = 0;
+                        for (int i = 0; i < _doseOverlay._isodoseLevelArray.Length; i++)
+                        {
+                            if (!_doseOverlay._isodoseLevelArray[i].IsVisible) continue;
+                            thr[vi] = _doseOverlay.GetThresholdGy(_doseOverlay._isodoseLevelArray[i], refDose);
+                            col[vi] = (_doseOverlay._isodoseLevelArray[i].Color & 0x00FFFFFF) | ((uint)_doseOverlay._isodoseLevelArray[i].Alpha << 24);
+                            vi++;
+                        }
+                        for (int py = 0; py < h; py++)
+                        {
+                            uint* row = (uint*)(pBuf + py * stride); int ro = py * w;
+                            for (int px = 0; px < w; px++)
+                            {
+                                double d = slice[ro + px]; if (d <= 0) continue;
+                                for (int li = 0; li < vc; li++) if (d >= thr[li]) { row[px] = col[li]; break; }
+                            }
+                        }
+                    }
+                }
                 else if (_doseOverlay.DoseDisplayMode == DoseDisplayMode.Colorwash)
-      {
-         // ...existing Colorwash mode code...
-          byte cwA = (byte)(System.Math.Max(0, System.Math.Min(1, _doseOverlay.ColorwashOpacity)) * 255);
-     double minGy = refDose * _doseOverlay.ColorwashMinPercent, maxGy = refDose * RenderConstants.ColorwashMaxFraction;
-   double range = maxGy - minGy;
-      if (range > 0)
- for (int py = 0; py < h; py++)
-        {
-              uint* row = (uint*)(pBuf + py * stride); int ro = py * w;
-         for (int px = 0; px < w; px++)
-  {
-         double d = slice[ro + px]; if (d < minGy) continue;
-     row[px] = ColorMaps.Jet(System.Math.Min(1.0, (d - minGy) / range), cwA);
-  }
-           }
-      }
+                {
+                    // ...existing Colorwash mode code...
+                    byte cwA = (byte)(System.Math.Max(0, System.Math.Min(1, _doseOverlay.ColorwashOpacity)) * 255);
+                    double minGy = refDose * _doseOverlay.ColorwashMinPercent, maxGy = refDose * RenderConstants.ColorwashMaxFraction;
+                    double range = maxGy - minGy;
+                    if (range > 0)
+                        for (int py = 0; py < h; py++)
+                        {
+                            uint* row = (uint*)(pBuf + py * stride); int ro = py * w;
+                            for (int px = 0; px < w; px++)
+                            {
+                                double d = slice[ro + px]; if (d < minGy) continue;
+                                row[px] = ColorMaps.Jet(System.Math.Min(1.0, (d - minGy) / range), cwA);
+                            }
+                        }
+                }
 
-          string ml = _doseOverlay.DoseDisplayMode == DoseDisplayMode.Fill ? "Fill" : "Colorwash";
-  StatusText = $"[Summation · {ml}] Slice {CurrentSlice} | Ref: {refDose:F2} Gy | α/β: {_doseOverlay.DisplayAlphaBeta:F1}";
-bmp.AddDirtyRect(new System.Windows.Int32Rect(0, 0, w, h));
-      }
-        finally { bmp.Unlock(); }
+                string ml = _doseOverlay.DoseDisplayMode == DoseDisplayMode.Fill ? "Fill" : "Colorwash";
+                StatusText = $"[Summation · {ml}] Slice {CurrentSlice} | Ref: {refDose:F2} Gy | α/β: {_doseOverlay.DisplayAlphaBeta:F1}";
+                bmp.AddDirtyRect(new System.Windows.Int32Rect(0, 0, w, h));
+            }
+            finally { bmp.Unlock(); }
         }
     }
 }

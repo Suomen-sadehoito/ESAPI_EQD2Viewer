@@ -1,9 +1,7 @@
-using Xunit;
-using FluentAssertions;
+using EQD2Viewer.Fixtures.Models;
 using EQD2Viewer.Core.Calculations;
 using EQD2Viewer.Fixtures;
-using EQD2Viewer.Fixtures.Models;
-using System;
+using FluentAssertions;
 
 namespace EQD2Viewer.Tests.Integration
 {
@@ -157,7 +155,7 @@ namespace EQD2Viewer.Tests.Integration
                 if (pt.doseGy >= 0)
                 {
                     // Find the right slice
-                    DoseSlice matchingSlice = null;
+                    DoseSlice? matchingSlice = null;
                     foreach (var s in slices)
                         if (s.sliceIndex == pt.doseVoxelZ) { matchingSlice = s; break; }
 

@@ -1,10 +1,10 @@
+using EQD2Viewer.Fixtures.Models;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
-using EQD2Viewer.Fixtures.Models;
 
 namespace EQD2Viewer.Fixtures
 {

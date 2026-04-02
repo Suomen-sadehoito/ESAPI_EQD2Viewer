@@ -1,12 +1,8 @@
-using Xunit;
-using FluentAssertions;
 using EQD2Viewer.Core.Calculations;
 using EQD2Viewer.Fixtures;
-using EQD2Viewer.Fixtures.Models;
-using System;
+using FluentAssertions;
 using System.Collections.Generic;
 using System.Linq;
-using Point = System.Windows.Point;
 
 namespace EQD2Viewer.Tests.Integration
 {
@@ -46,7 +42,7 @@ namespace EQD2Viewer.Tests.Integration
                             imgGeo.yDirection[0], imgGeo.yDirection[1], imgGeo.yDirection[2]);
 
                         pixels.Should().NotBeNull($"WorldToPixel returned null for {structure.id}");
-                        pixels.Length.Should().Be(contour.points.Length);
+                        pixels!.Length.Should().Be(contour.points.Length);
 
                         // Pixel coordinates should be finite
                         foreach (var pt in pixels)
@@ -94,7 +90,7 @@ namespace EQD2Viewer.Tests.Integration
                             imgGeo.xDirection[0], imgGeo.xDirection[1], imgGeo.xDirection[2],
                             imgGeo.yDirection[0], imgGeo.yDirection[1], imgGeo.yDirection[2]);
 
-                        var mask = StructureRasterizer.RasterizePolygon(pixels, w, h);
+                        var mask = StructureRasterizer.RasterizePolygon(pixels!, w, h);
                         mask.Should().NotBeNull();
                         mask.Length.Should().Be(w * h);
                         allMasks.Add(mask);
@@ -142,10 +138,11 @@ namespace EQD2Viewer.Tests.Integration
                             imgGeo.xRes, imgGeo.yRes,
                             imgGeo.xDirection[0], imgGeo.xDirection[1], imgGeo.xDirection[2],
                             imgGeo.yDirection[0], imgGeo.yDirection[1], imgGeo.yDirection[2]);
+                        pixels.Should().NotBeNull();
 
                         // Compute expected area from Shoelace formula
                         double shoelaceArea = 0;
-                        for (int i = 0; i < pixels.Length; i++)
+                        for (int i = 0; i < pixels!.Length; i++)
                         {
                             int j = (i + 1) % pixels.Length;
                             shoelaceArea += pixels[i].X * pixels[j].Y;
@@ -153,7 +150,7 @@ namespace EQD2Viewer.Tests.Integration
                         }
                         shoelaceArea = Math.Abs(shoelaceArea) / 2.0;
 
-                        var mask = StructureRasterizer.RasterizePolygon(pixels, w, h);
+                        var mask = StructureRasterizer.RasterizePolygon(pixels!, w, h);
                         int filledPixels = mask.Count(v => v);
 
                         // Rasterized area should be within ±30% of geometric area
@@ -196,7 +193,7 @@ namespace EQD2Viewer.Tests.Integration
                     for (int c = 0; c < 4; c++)
                     {
                         double sum = 0;
-                        for (int k = 0; k < 4; k++) sum += M[r, k] * inv[k, c];
+                        for (int k = 0; k < 4; k++) sum += M![r, k] * inv![k, c];
                         double expected = (r == c) ? 1.0 : 0.0;
                         sum.Should().BeApproximately(expected, 1e-6,
                             $"M*M^-1 not identity at [{r},{c}] for {reg.id}");
@@ -225,7 +222,7 @@ namespace EQD2Viewer.Tests.Integration
                 {
                     double ox = testX[i], oy = testY[i], oz = testZ[i];
 
-                    MatrixMath.TransformPoint(M, ox, oy, oz, out double tx, out double ty, out double tz);
+                    MatrixMath.TransformPoint(M!, ox, oy, oz, out double tx, out double ty, out double tz);
                     MatrixMath.TransformPoint(inv, tx, ty, tz, out double rx, out double ry, out double rz);
 
                     rx.Should().BeApproximately(ox, 1e-4, $"X round-trip for {reg.id}");

@@ -1,6 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+    <ProjectGuid>{89142CBA-C27C-4C2D-BC54-22EFCFACFCD9}</ProjectGuid>
     <TargetFramework>net48</TargetFramework>
     <OutputType>Library</OutputType>
     <RootNamespace>EQD2Viewer.Stubs</RootNamespace>

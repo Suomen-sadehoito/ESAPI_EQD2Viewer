@@ -1,7 +1,5 @@
-using EQD2Viewer.App.UI.ViewModels;
 using EQD2Viewer.Services.Rendering;
-using EQD2Viewer.Core.Models;
-using EQD2Viewer.Core.Data;
+using EQD2Viewer.App.UI.ViewModels;
 using System.Linq;
 using System.Windows;
 using System.Windows.Input;

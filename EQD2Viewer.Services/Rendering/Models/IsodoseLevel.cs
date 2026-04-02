@@ -1,19 +1,18 @@
+using EQD2Viewer.Core.Data;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Media;
-using EQD2Viewer.Core.Data;
-using EQD2Viewer.Core.Models;
 
 namespace EQD2Viewer.Services.Rendering
 {
     /// <summary>
     /// Represents a single isodose level with dual-mode threshold support, color, and visibility.
     /// 
-    /// In <see cref="IsodoseMode.Relative"/>: threshold = <see cref="Fraction"/> × referenceDose.
+    /// In <see cref="IsodoseMode.Relative"/>: threshold = <see cref="Fraction"/> ï¿½ referenceDose.
     /// In <see cref="IsodoseMode.Absolute"/>: threshold = <see cref="AbsoluteDoseGy"/> directly.
     /// 
     /// Both modes share the same color, visibility, and alpha settings.
-  /// Implements <see cref="INotifyPropertyChanged"/> for WPF data binding in the isodose DataGrid.
+    /// Implements <see cref="INotifyPropertyChanged"/> for WPF data binding in the isodose DataGrid.
     /// 
     /// This class lives in the Services layer because of the <see cref="MediaColor"/> property
     /// which depends on System.Windows.Media.Color. The core data (Fraction, Color as uint,
@@ -21,54 +20,54 @@ namespace EQD2Viewer.Services.Rendering
     /// </summary>
     public class IsodoseLevel : INotifyPropertyChanged
     {
-      private double _fraction;
+        private double _fraction;
         private double _absoluteDoseGy;
-   private string _label;
+        private string _label;
         private uint _color;
         private byte _alpha;
-     private bool _isVisible = true;
+        private bool _isVisible = true;
 
         /// <summary>
- /// Threshold as fraction of reference dose (e.g., 1.10 = 110%, 0.50 = 50%).
-     /// Used in <see cref="IsodoseMode.Relative"/> mode.
-        /// Range: typically 0.05–1.20. Values above 1.0 represent hot spots.
+        /// Threshold as fraction of reference dose (e.g., 1.10 = 110%, 0.50 = 50%).
+        /// Used in <see cref="IsodoseMode.Relative"/> mode.
+        /// Range: typically 0.05ï¿½1.20. Values above 1.0 represent hot spots.
         /// </summary>
         public double Fraction
         {
-        get => _fraction;
-   set { _fraction = value; OnPropertyChanged(); OnPropertyChanged(nameof(MediaColor)); }
+            get => _fraction;
+            set { _fraction = value; OnPropertyChanged(); OnPropertyChanged(nameof(MediaColor)); }
         }
 
         /// <summary>
         /// Threshold as absolute dose in Gy.
         /// Used in <see cref="IsodoseMode.Absolute"/> mode (EQD2 summation re-irradiation assessment).
-        /// Range: typically 5–80 Gy for clinical tolerances.
+        /// Range: typically 5ï¿½80 Gy for clinical tolerances.
         /// </summary>
         public double AbsoluteDoseGy
         {
-     get => _absoluteDoseGy;
-   set { _absoluteDoseGy = value; OnPropertyChanged(); }
+            get => _absoluteDoseGy;
+            set { _absoluteDoseGy = value; OnPropertyChanged(); }
         }
 
         /// <summary>
         /// Display label shown in the isodose table (e.g., "110%", "45.0 Gy", "50%").
-    /// Updated by the ViewModel when isodose mode, display unit, or reference dose changes.
+        /// Updated by the ViewModel when isodose mode, display unit, or reference dose changes.
         /// </summary>
         public string Label
         {
-get => _label;
-    set { _label = value; OnPropertyChanged(); }
+            get => _label;
+            set { _label = value; OnPropertyChanged(); }
         }
 
-     /// <summary>
+        /// <summary>
         /// Isodose line/fill color as packed ARGB uint (0xAARRGGBB format).
         /// The alpha channel in <see cref="Color"/> is typically 0xFF (opaque);
-  /// actual overlay transparency comes from the separate <see cref="Alpha"/> property.
+        /// actual overlay transparency comes from the separate <see cref="Alpha"/> property.
         /// </summary>
-      public uint Color
+        public uint Color
         {
-        get => _color;
-       set { _color = value; OnPropertyChanged(); OnPropertyChanged(nameof(MediaColor)); }
+            get => _color;
+            set { _color = value; OnPropertyChanged(); OnPropertyChanged(nameof(MediaColor)); }
         }
 
         /// <summary>
@@ -78,23 +77,23 @@ get => _label;
         /// </summary>
         public byte Alpha
         {
-    get => _alpha;
-         set { _alpha = value; OnPropertyChanged(); }
- }
+            get => _alpha;
+            set { _alpha = value; OnPropertyChanged(); }
+        }
 
         /// <summary>
         /// Whether this isodose level is rendered on the dose overlay.
         /// Toggled via checkbox in the isodose level DataGrid.
         /// </summary>
-      public bool IsVisible
+        public bool IsVisible
         {
-     get => _isVisible;
-      set { _isVisible = value; OnPropertyChanged(); }
+            get => _isVisible;
+            set { _isVisible = value; OnPropertyChanged(); }
         }
 
-     /// <summary>
-/// WPF-bindable <see cref="System.Windows.Media.Color"/> for UI display
-   /// (color swatch in DataGrid, color picker). Always fully opaque (A=255).
+        /// <summary>
+        /// WPF-bindable <see cref="System.Windows.Media.Color"/> for UI display
+        /// (color swatch in DataGrid, color picker). Always fully opaque (A=255).
         /// </summary>
         public Color MediaColor => System.Windows.Media.Color.FromArgb(
  255,
@@ -102,17 +101,17 @@ get => _label;
    (byte)((_color >> 8) & 0xFF),
             (byte)(_color & 0xFF));
 
-      /// <summary>
+        /// <summary>
         /// Creates an isodose level for relative (percentage) mode.
         /// </summary>
         public IsodoseLevel(double fraction, string label, uint color, byte alpha = 140)
         {
- _fraction = fraction;
-          _absoluteDoseGy = 0;
+            _fraction = fraction;
+            _absoluteDoseGy = 0;
             _label = label;
-      _color = color;
-      _alpha = alpha;
-    }
+            _color = color;
+            _alpha = alpha;
+        }
 
         /// <summary>
         /// Creates an isodose level for absolute (Gy) mode.
@@ -120,10 +119,10 @@ get => _label;
         public IsodoseLevel(double fraction, double absoluteGy, string label, uint color, byte alpha = 140)
         {
             _fraction = fraction;
-  _absoluteDoseGy = absoluteGy;
-    _label = label;
-  _color = color;
-       _alpha = alpha;
+            _absoluteDoseGy = absoluteGy;
+            _label = label;
+            _color = color;
+            _alpha = alpha;
         }
 
         /// <summary>
@@ -131,11 +130,11 @@ get => _label;
         /// Bridges the pure data layer with the WPF-bindable layer.
         /// </summary>
         public IsodoseLevel(IsodoseLevelData data)
-   {
-     _fraction = data.Fraction;
+        {
+            _fraction = data.Fraction;
             _absoluteDoseGy = data.AbsoluteDoseGy;
-  _label = "";
- _color = data.Color;
+            _label = "";
+            _color = data.Color;
             _alpha = data.Alpha;
             _isVisible = data.IsVisible;
         }
@@ -144,18 +143,18 @@ get => _label;
         /// Converts to a Core data transfer object (no WPF dependencies).
         /// </summary>
         public IsodoseLevelData ToData()
-    {
-         return new IsodoseLevelData(_fraction, _absoluteDoseGy, _color, _alpha, _isVisible);
+        {
+            return new IsodoseLevelData(_fraction, _absoluteDoseGy, _color, _alpha, _isVisible);
         }
 
-      // =================================================================
-     // RELATIVE MODE PRESETS (single-plan viewing)
+        // =================================================================
+        // RELATIVE MODE PRESETS (single-plan viewing)
         // =================================================================
 
         public static IsodoseLevel[] GetEclipseDefaults()
         {
-    return new[]
-    {
+            return new[]
+            {
          new IsodoseLevel(1.10, "110%", 0xFFFF0000, 160),
         new IsodoseLevel(1.05, "105%", 0xFFFF4400, 150),
               new IsodoseLevel(1.00, "100%", 0xFFFF8800, 140),
@@ -171,8 +170,8 @@ get => _label;
 
         public static IsodoseLevel[] GetDefaults()
         {
-          return new[]
-         {
+            return new[]
+           {
     new IsodoseLevel(1.05, "105%", 0xFFFF0000, 140),
      new IsodoseLevel(1.00, "100%", 0xFFFF8800, 130),
              new IsodoseLevel(0.95, "95%",  0xFFFFFF00, 120),
@@ -180,24 +179,24 @@ get => _label;
       };
         }
 
-     public static IsodoseLevel[] GetMinimalSet()
+        public static IsodoseLevel[] GetMinimalSet()
         {
- return new[]
-   {
+            return new[]
+              {
          new IsodoseLevel(1.05, "105%", 0xFFFF0000, 140),
     new IsodoseLevel(0.95, "95%",  0xFFFFFF00, 120),
    new IsodoseLevel(0.50, "50%",  0xFF0000FF, 100),
    };
         }
 
-   // =================================================================
+        // =================================================================
         // ABSOLUTE MODE PRESETS (EQD2 summation / re-irradiation)
         // =================================================================
 
-     public static IsodoseLevel[] GetReIrradiationPreset()
+        public static IsodoseLevel[] GetReIrradiationPreset()
         {
-      return new[]
-            {
+            return new[]
+                  {
           new IsodoseLevel(0, 60, "60 Gy", 0xFFFF0000, 160),
        new IsodoseLevel(0, 50, "50 Gy", 0xFFFF4400, 150),
   new IsodoseLevel(0, 45, "45 Gy", 0xFFFF8800, 140),
@@ -211,8 +210,8 @@ get => _label;
 
         public static IsodoseLevel[] GetStereotacticPreset()
         {
-       return new[]
- {
+            return new[]
+      {
   new IsodoseLevel(0, 80, "80 Gy", 0xFFFF0000, 160),
           new IsodoseLevel(0, 60, "60 Gy", 0xFFFF4400, 150),
              new IsodoseLevel(0, 50, "50 Gy", 0xFFFF8800, 140),
@@ -224,7 +223,7 @@ get => _label;
         }
 
         public static IsodoseLevel[] GetPalliativePreset()
-  {
+        {
             return new[]
             {
      new IsodoseLevel(0, 45, "45 Gy", 0xFFFF0000, 160),
@@ -236,26 +235,26 @@ new IsodoseLevel(0, 35, "35 Gy", 0xFFFF8800, 140),
          new IsodoseLevel(0, 10, "10 Gy", 0xFF0088FF, 90),
            new IsodoseLevel(0, 5,  "5 Gy",  0xFF0000FF, 70),
       };
-}
+        }
 
         // =================================================================
-     // COLOR PALETTE
+        // COLOR PALETTE
         // =================================================================
 
-  public static uint[] ColorPalette => new uint[]
-        {
+        public static uint[] ColorPalette => new uint[]
+              {
 0xFFFF0000, 0xFFFF4400, 0xFFFF8800, 0xFFFFBB00,
     0xFFFFFF00, 0xFF88FF00, 0xFF00FF00, 0xFF00FF88,
             0xFF00FFFF, 0xFF00BBFF, 0xFF0088FF, 0xFF0000FF,
     0xFF4400FF, 0xFF8800FF, 0xFFFF00FF, 0xFFFF0088,
-   };
+         };
 
-      public event PropertyChangedEventHandler? PropertyChanged;
+        public event PropertyChangedEventHandler? PropertyChanged;
 
-      protected void OnPropertyChanged([CallerMemberName] string? name = null)
-      {
- PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
-  }
+        protected void OnPropertyChanged([CallerMemberName] string? name = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+        }
 
     }
 }

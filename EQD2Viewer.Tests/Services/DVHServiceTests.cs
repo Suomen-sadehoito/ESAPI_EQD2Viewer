@@ -1,7 +1,6 @@
-using Xunit;
-using FluentAssertions;
-using EQD2Viewer.Services;
 using EQD2Viewer.Core.Models;
+using EQD2Viewer.Services;
+using FluentAssertions;
 using System.Linq;
 
 namespace EQD2Viewer.Tests.Services
@@ -151,7 +150,7 @@ namespace EQD2Viewer.Tests.Services
         [Fact]
         public void BuildSummaryFromCurve_NullCurve_ShouldReturnEmptySummary()
         {
-            var summary = _service.BuildSummaryFromCurve("Test", "P1", "Phys", null, 50.0);
+            var summary = _service.BuildSummaryFromCurve("Test", "P1", "Phys", null!, 50.0);
             summary.DMax.Should().Be(0);
             summary.DMean.Should().Be(0);
         }

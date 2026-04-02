@@ -104,7 +104,7 @@ namespace EQD2Viewer.Core.Data
         public VolumeGeometry Geometry { get; set; } = new VolumeGeometry();
 
         /// <summary>
- /// CT voxel data indexed by [sliceZ][x, y].
+        /// CT voxel data indexed by [sliceZ][x, y].
         /// Values are raw DICOM stored values (may need HuOffset subtraction).
         /// </summary>
         public int[][,] Voxels { get; set; } = null!;
@@ -159,7 +159,7 @@ namespace EQD2Viewer.Core.Data
         /// Raw dose voxels indexed by [sliceZ][x, y].
         /// Apply DoseScaling to convert to Gy.
         /// </summary>
-public int[][,] Voxels { get; set; } = null!;
+        public int[][,] Voxels { get; set; } = null!;
 
         /// <summary>
         /// Calibration factors for raw â†’ Gy conversion.
@@ -205,7 +205,7 @@ public int[][,] Voxels { get; set; } = null!;
         /// Key: slice index.  Value: list of polygons (each polygon is array of [x,y,z] points in mm).
         /// </summary>
         public Dictionary<int, List<double[][]>> ContoursBySlice { get; set; }
-            = new Dictionary<int, List<double[][]>>();      
+            = new Dictionary<int, List<double[][]>>();
     }
 
     // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•Â¬â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
@@ -244,9 +244,9 @@ public int[][,] Voxels { get; set; } = null!;
         public double[] Matrix { get; set; } = null!;
 
         /// <summary>Converts the flat matrix to a 4Ã—4 array for MatrixMath.</summary>
-     public double[,]? ToMatrix4x4()
+        public double[,]? ToMatrix4x4()
         {
-      if (Matrix == null || Matrix.Length != 16) return null;
+            if (Matrix == null || Matrix.Length != 16) return null;
             var m = new double[4, 4];
             for (int r = 0; r < 4; r++)
                 for (int c = 0; c < 4; c++)

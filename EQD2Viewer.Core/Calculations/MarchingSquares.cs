@@ -1,6 +1,5 @@
-using EQD2Viewer.Core.Models;
 using EQD2Viewer.Core.Data;
-using System;
+using EQD2Viewer.Core.Models;
 using System.Collections.Generic;
 
 namespace EQD2Viewer.Core.Calculations

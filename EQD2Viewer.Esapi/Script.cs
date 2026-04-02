@@ -1,8 +1,11 @@
+using EQD2Viewer.Core.Interfaces;
+using VMS.TPS.Common.Model.API;
+using EQD2Viewer.App;
+using EQD2Viewer.Esapi.Adapters;
+using EQD2Viewer.Core.Logging;
+using EQD2Viewer.Core.Data;
 using System;
 using System.Windows;
-using VMS.TPS.Common.Model.API;
-using EQD2Viewer.Core.Interfaces;
-using EQD2Viewer.Core.Logging;
 
 [assembly: ESAPIScript(IsWriteable = false)]
 namespace VMS.TPS
@@ -24,46 +27,46 @@ namespace VMS.TPS
     {
         [System.Runtime.CompilerServices.MethodImpl(
   System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-  public void Execute(ScriptContext context)
+        public void Execute(ScriptContext context)
         {
-        if (context.Patient == null || context.Image == null)
-          {
-       MessageBox.Show(
-      "Please open a patient with an image before running the script.",
-        "EQD2 Viewer",
-        MessageBoxButton.OK,
-MessageBoxImage.Warning);
-     return;
+            if (context.Patient == null || context.Image == null)
+            {
+                MessageBox.Show(
+               "Please open a patient with an image before running the script.",
+                 "EQD2 Viewer",
+                 MessageBoxButton.OK,
+         MessageBoxImage.Warning);
+                return;
             }
 
             try
-     {
-        SimpleLogger.EnableFileLogging();
+            {
+                SimpleLogger.EnableFileLogging();
 
-    // � Load the full clinical snapshot via the ESAPI adapter layer �
-              var dataSource = new EQD2Viewer.Esapi.Adapters.EsapiDataSource(context);
-   var snapshot = dataSource.LoadSnapshot();
+                // � Load the full clinical snapshot via the ESAPI adapter layer �
+                var dataSource = new EQD2Viewer.Esapi.Adapters.EsapiDataSource(context);
+                var snapshot = dataSource.LoadSnapshot();
 
- // � Create the ESAPI summation data loader for on-demand plan loading �
- ISummationDataLoader summationLoader =
- new EQD2Viewer.Esapi.Adapters.EsapiSummationDataLoader(context.Patient);
+                // � Create the ESAPI summation data loader for on-demand plan loading �
+                ISummationDataLoader summationLoader =
+                new EQD2Viewer.Esapi.Adapters.EsapiSummationDataLoader(context.Patient);
 
- // � Launch the UI via the composition root (no direct WPF type references here) �
-    EQD2Viewer.App.AppLauncher.Launch(
-           snapshot,
-    summationLoader,
-   windowTitle: null,
-        useShowDialog: true);
-    }
-   catch (Exception ex)
-  {
-          SimpleLogger.Error("Fatal error in Script.Execute", ex);
+                // � Launch the UI via the composition root (no direct WPF type references here) �
+                EQD2Viewer.App.AppLauncher.Launch(
+                       snapshot,
+                summationLoader,
+               windowTitle: null,
+                    useShowDialog: true);
+            }
+            catch (Exception ex)
+            {
+                SimpleLogger.Error("Fatal error in Script.Execute", ex);
                 MessageBox.Show(
    $"Error:\n\n{ex.Message}\n\nStack Trace:\n{ex.StackTrace}",
           "EQD2 Viewer Error",
           MessageBoxButton.OK,
    MessageBoxImage.Error);
             }
-     }
+        }
     }
 }

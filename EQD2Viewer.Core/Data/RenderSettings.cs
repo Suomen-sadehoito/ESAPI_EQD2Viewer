@@ -2,11 +2,11 @@ using System.Collections.Generic;
 
 namespace EQD2Viewer.Core.Data
 {
-/// <summary>
+    /// <summary>
     /// Optional rendering/display parameters captured at export time.
     /// 
     /// When a snapshot is exported from Eclipse, these settings record the exact
-  /// display state so that the application's rendering can be verified to produce
+    /// display state so that the application's rendering can be verified to produce
     /// visually identical results.
     /// 
     /// All fields are optional — older snapshots without these settings still load
@@ -15,14 +15,14 @@ namespace EQD2Viewer.Core.Data
     public class RenderSettings
     {
         /// <summary>CT window level (HU) at time of export. Default: 40 (soft tissue).</summary>
-      public double WindowLevel { get; set; } = 40;
+        public double WindowLevel { get; set; } = 40;
 
         /// <summary>CT window width (HU) at time of export. Default: 400 (soft tissue).</summary>
-     public double WindowWidth { get; set; } = 400;
+        public double WindowWidth { get; set; } = 400;
 
-   /// <summary>
+        /// <summary>
         /// Isodose levels active at export time.
-  /// Each entry: { "fraction": 0.95, "absoluteGy": 0, "color": 0xFFFFFF00, "visible": true }
+        /// Each entry: { "fraction": 0.95, "absoluteGy": 0, "color": 0xFFFFFF00, "visible": true }
         /// Null if isodose settings were not captured.
         /// </summary>
         public List<IsodoseLevelSetting> IsodoseLevels { get; set; } = new List<IsodoseLevelSetting>();
@@ -42,7 +42,7 @@ namespace EQD2Viewer.Core.Data
         public double Fraction { get; set; }
         public double AbsoluteDoseGy { get; set; }
         public uint Color { get; set; }
-     public bool IsVisible { get; set; } = true;
+        public bool IsVisible { get; set; } = true;
     }
 
     /// <summary>
@@ -51,10 +51,10 @@ namespace EQD2Viewer.Core.Data
     /// </summary>
     public class ReferenceDosePoint
     {
-    public int CtPixelX { get; set; }
+        public int CtPixelX { get; set; }
         public int CtPixelY { get; set; }
         public int CtSlice { get; set; }
         public double ExpectedDoseGy { get; set; }
- public bool IsInsideDoseGrid { get; set; }
+        public bool IsInsideDoseGrid { get; set; }
     }
 }

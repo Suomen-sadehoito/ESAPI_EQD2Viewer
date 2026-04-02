@@ -1,9 +1,8 @@
+using EQD2Viewer.Core.Serialization;
+using EQD2Viewer.Core.Data;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using EQD2Viewer.Core.Data;
-using EQD2Viewer.Core.Serialization;
-using VMS.TPS.Common.Model.API;
 
 namespace EQD2Viewer.FixtureGenerator
 {
@@ -88,13 +87,13 @@ namespace EQD2Viewer.FixtureGenerator
                     }
 
                     settings.ReferenceDosePoints.Add(new ReferenceDosePoint
-                     {
-                         CtPixelX = px,
-                      CtPixelY = py,
-                   CtSlice = midSlice,
-                ExpectedDoseGy = Math.Round(doseGy, 6),
-                 IsInsideDoseGrid = inside
-              });
+                    {
+                        CtPixelX = px,
+                        CtPixelY = py,
+                        CtSlice = midSlice,
+                        ExpectedDoseGy = Math.Round(doseGy, 6),
+                        IsInsideDoseGrid = inside
+                    });
                 }
             }
 

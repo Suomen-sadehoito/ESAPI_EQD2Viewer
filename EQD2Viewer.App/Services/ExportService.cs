@@ -1,10 +1,10 @@
+using EQD2Viewer.Core.Models;
+using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Windows;
-using Microsoft.Win32;
-using EQD2Viewer.Core.Models;
 
 namespace EQD2Viewer.App.Services
 {

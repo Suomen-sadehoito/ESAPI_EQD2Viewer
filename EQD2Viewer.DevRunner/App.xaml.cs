@@ -1,10 +1,10 @@
-﻿using System;
-using System.IO;
-using System.Linq;
-using System.Windows;
 using EQD2Viewer.Core.Data;
 using EQD2Viewer.Core.Interfaces;
 using EQD2Viewer.Core.Logging;
+using System;
+using System.IO;
+using System.Linq;
+using System.Windows;
 
 namespace EQD2Viewer.DevRunner
 {
@@ -24,68 +24,68 @@ namespace EQD2Viewer.DevRunner
     {
         protected override void OnStartup(StartupEventArgs e)
         {
-      base.OnStartup(e);
+            base.OnStartup(e);
             try
-     {
-        SimpleLogger.EnableFileLogging("EQD2Viewer_Dev.log");
-     SimpleLogger.Info("=== DevRunner starting ===");
+            {
+                SimpleLogger.EnableFileLogging("EQD2Viewer_Dev.log");
+                SimpleLogger.Info("=== DevRunner starting ===");
 
-  // â€” 1. Find fixture directory â€”
-      string? fixturePath = ResolveFixturePath(e.Args);
+                // â€” 1. Find fixture directory â€”
+                string? fixturePath = ResolveFixturePath(e.Args);
                 if (fixturePath == null)
-  {
- MessageBox.Show(
-       "No fixture directory found.\n\n" +
-        "Usage:\n" +
-      "  EQD2Viewer.DevRunner.exe <fixture_path>\n\n" +
-           "Or place fixtures in TestFixtures/ next to the exe.\n\n" +
-              "Generate fixtures by running FixtureGenerator in Eclipse.",
-            "EQD2 Viewer â€” DevRunner",
-       MessageBoxButton.OK, MessageBoxImage.Information);
+                {
+                    MessageBox.Show(
+                          "No fixture directory found.\n\n" +
+                           "Usage:\n" +
+                         "  EQD2Viewer.DevRunner.exe <fixture_path>\n\n" +
+                              "Or place fixtures in TestFixtures/ next to the exe.\n\n" +
+                                 "Generate fixtures by running FixtureGenerator in Eclipse.",
+                               "EQD2 Viewer â€” DevRunner",
+                          MessageBoxButton.OK, MessageBoxImage.Information);
 
-   Shutdown(1);
-           return;
-           }
+                    Shutdown(1);
+                    return;
+                }
 
-    SimpleLogger.Info($"Using fixtures: {fixturePath}");
+                SimpleLogger.Info($"Using fixtures: {fixturePath}");
 
-   // â€” 2. Load clinical data â€” auto-detect format â€”
-     IClinicalDataSource dataSource;
+                // â€” 2. Load clinical data â€” auto-detect format â€”
+                IClinicalDataSource dataSource;
                 if (EQD2Viewer.Fixtures.JsonDataSource.IsSnapshotDirectory(fixturePath))
                 {
-              SimpleLogger.Info("Detected snapshot format");
-           dataSource = new EQD2Viewer.Fixtures.JsonDataSource(fixturePath);
-         }
-          else
-    {
-         SimpleLogger.Info("Detected test fixture format");
-           dataSource = new FixtureFormatDataSource(fixturePath);
+                    SimpleLogger.Info("Detected snapshot format");
+                    dataSource = new EQD2Viewer.Fixtures.JsonDataSource(fixturePath);
+                }
+                else
+                {
+                    SimpleLogger.Info("Detected test fixture format");
+                    dataSource = new FixtureFormatDataSource(fixturePath);
                 }
 
                 ClinicalSnapshot snapshot = dataSource.LoadSnapshot();
 
-             SimpleLogger.Info($"Snapshot: {snapshot.Patient.Id} | " +
-            $"{snapshot.ActivePlan.CourseId}/{snapshot.ActivePlan.Id} | " +
-          $"{snapshot.ActivePlan.TotalDoseGy:F1} Gy / {snapshot.ActivePlan.NumberOfFractions} fx");
+                SimpleLogger.Info($"Snapshot: {snapshot.Patient.Id} | " +
+               $"{snapshot.ActivePlan.CourseId}/{snapshot.ActivePlan.Id} | " +
+             $"{snapshot.ActivePlan.TotalDoseGy:F1} Gy / {snapshot.ActivePlan.NumberOfFractions} fx");
 
-   // â€” 3. Launch via the shared composition root â€”
-         EQD2Viewer.App.AppLauncher.Launch(
-          snapshot,
-         windowTitle: "[DEV MODE â€” Fixture Data]",
-        useShowDialog: false);
+                // â€” 3. Launch via the shared composition root â€”
+                EQD2Viewer.App.AppLauncher.Launch(
+                 snapshot,
+                windowTitle: "[DEV MODE â€” Fixture Data]",
+               useShowDialog: false);
 
-     SimpleLogger.Info("DevRunner UI launched successfully");
+                SimpleLogger.Info("DevRunner UI launched successfully");
             }
-   catch (Exception ex)
-      {
-     SimpleLogger.Error("DevRunner startup failed", ex);
-     MessageBox.Show(
-  $"Startup error:\n\n{ex.Message}\n\n{ex.StackTrace}",
-      "EQD2 Viewer â€” DevRunner Error",
-       MessageBoxButton.OK, MessageBoxImage.Error);
-   Shutdown(1);
-       }
-  }
+            catch (Exception ex)
+            {
+                SimpleLogger.Error("DevRunner startup failed", ex);
+                MessageBox.Show(
+             $"Startup error:\n\n{ex.Message}\n\n{ex.StackTrace}",
+                 "EQD2 Viewer â€” DevRunner Error",
+                  MessageBoxButton.OK, MessageBoxImage.Error);
+                Shutdown(1);
+            }
+        }
 
         /// <summary>
         /// Resolves fixture directory from command line args or auto-discovery.
@@ -94,42 +94,42 @@ namespace EQD2Viewer.DevRunner
         private static string? ResolveFixturePath(string[] args)
         {
             if (args != null && args.Length > 0 && Directory.Exists(args[0]))
-    return args[0];
+                return args[0];
 
             string baseDir = AppDomain.CurrentDomain.BaseDirectory;
 
-    // Look for TestFixtures/ next to exe
-    string localFixtures = Path.Combine(baseDir, "TestFixtures");
-  if (Directory.Exists(localFixtures))
+            // Look for TestFixtures/ next to exe
+            string localFixtures = Path.Combine(baseDir, "TestFixtures");
+            if (Directory.Exists(localFixtures))
             {
- string first = Directory.GetDirectories(localFixtures)
-      .FirstOrDefault(d => IsFixtureDirectory(d));
-    if (first != null) return first;
-       }
+                string first = Directory.GetDirectories(localFixtures)
+                     .FirstOrDefault(d => IsFixtureDirectory(d));
+                if (first != null) return first;
+            }
 
-          // Walk up the directory tree to find TestFixtures in the project
+            // Walk up the directory tree to find TestFixtures in the project
             string dir = baseDir;
             for (int i = 0; i < 8; i++)
             {
-      string candidate = Path.Combine(dir, "EQD2Viewer.Tests", "TestFixtures");
-     if (Directory.Exists(candidate))
-       {
-      string first = Directory.GetDirectories(candidate)
-            .FirstOrDefault(d => IsFixtureDirectory(d));
-             if (first != null) return first;
+                string candidate = Path.Combine(dir, "EQD2Viewer.Tests", "TestFixtures");
+                if (Directory.Exists(candidate))
+                {
+                    string first = Directory.GetDirectories(candidate)
+                          .FirstOrDefault(d => IsFixtureDirectory(d));
+                    if (first != null) return first;
+                }
+
+                dir = Path.GetDirectoryName(dir);
+                if (dir == null) break;
             }
 
-       dir = Path.GetDirectoryName(dir);
- if (dir == null) break;
-        }
-
-      return null;
+            return null;
         }
 
         private static bool IsFixtureDirectory(string dir)
-     {
-          return File.Exists(Path.Combine(dir, "metadata.json"))
-    || EQD2Viewer.Fixtures.JsonDataSource.IsSnapshotDirectory(dir);
+        {
+            return File.Exists(Path.Combine(dir, "metadata.json"))
+      || EQD2Viewer.Fixtures.JsonDataSource.IsSnapshotDirectory(dir);
         }
     }
 }

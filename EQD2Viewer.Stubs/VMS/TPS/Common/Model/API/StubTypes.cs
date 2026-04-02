@@ -22,8 +22,8 @@
     /// <summary>Stub for PlanningItem (base of PlanSetup and PlanSum).</summary>
     public abstract class PlanningItem
     {
-      public string Id { get; set; }
- public Dose Dose { get; set; }
+        public string Id { get; set; }
+        public Dose Dose { get; set; }
         public DVHData GetDVHCumulativeData(Structure s, DoseValuePresentation dp,
        VolumePresentation vp, double res) => null;
     }
@@ -34,17 +34,17 @@
         public int? NumberOfFractions { get; set; }
         public double PlanNormalizationValue { get; set; }
         public new Dose Dose { get; set; }
-public StructureSet StructureSet { get; set; }
+        public StructureSet StructureSet { get; set; }
         public Course Course { get; set; }
-   public new DVHData GetDVHCumulativeData(Structure s, DoseValuePresentation dp,
-          VolumePresentation vp, double res) => null;
+        public new DVHData GetDVHCumulativeData(Structure s, DoseValuePresentation dp,
+               VolumePresentation vp, double res) => null;
     }
 
     public class PlanSum : PlanningItem
     {
-      public Course Course { get; set; }
-      public System.Collections.Generic.IEnumerable<PlanSetup> PlanSetups { get; set; }
-      = new System.Collections.Generic.List<PlanSetup>();
+        public Course Course { get; set; }
+        public System.Collections.Generic.IEnumerable<PlanSetup> PlanSetups { get; set; }
+        = new System.Collections.Generic.List<PlanSetup>();
     }
 
     public class ExternalPlanSetup : PlanSetup { }
@@ -121,7 +121,7 @@ public StructureSet StructureSet { get; set; }
         public Patient Patient { get; set; }
         public Image Image { get; set; }
         public ExternalPlanSetup ExternalPlanSetup { get; set; }
-      public System.Collections.Generic.IEnumerable<PlanSum> PlanSumsInScope { get; set; }
+        public System.Collections.Generic.IEnumerable<PlanSum> PlanSumsInScope { get; set; }
     }
 
     public class ESAPIScriptAttribute : System.Attribute

@@ -1,3 +1,5 @@
+using EQD2Viewer.Core.Models;
+using EQD2Viewer.Core.Data;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -5,8 +7,6 @@ using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows;
-using EQD2Viewer.Core.Data;
-using EQD2Viewer.Core.Models;
 
 namespace EQD2Viewer.App.UI.Views
 {
@@ -136,12 +136,17 @@ namespace EQD2Viewer.App.UI.Views
 
                     var row = new PlanRowItem
                     {
-                        CourseId = course.Id, PlanId = plan.PlanId,
-                        ImageId = plan.ImageId ?? "", ImageFOR = plan.ImageFOR ?? "",
-                        TotalDoseGy = plan.TotalDoseGy, NumberOfFractions = plan.NumberOfFractions,
+                        CourseId = course.Id,
+                        PlanId = plan.PlanId,
+                        ImageId = plan.ImageId ?? "",
+                        ImageFOR = plan.ImageFOR ?? "",
+                        TotalDoseGy = plan.TotalDoseGy,
+                        NumberOfFractions = plan.NumberOfFractions,
                         PlanNormalization = plan.PlanNormalization,
-                        IsIncluded = isCurrentPlan, IsReference = isCurrentPlan,
-                        SelectedRegistrationId = "", Weight = 1.0,
+                        IsIncluded = isCurrentPlan,
+                        IsReference = isCurrentPlan,
+                        SelectedRegistrationId = "",
+                        Weight = 1.0,
                         RelevantRegistrations = new List<RegistrationOption>()
                     };
                     row.PropertyChanged += OnRowPropertyChanged;
@@ -189,8 +194,11 @@ namespace EQD2Viewer.App.UI.Views
                 GlobalAlphaBeta = alphaBeta,
                 Plans = includedPlans.Select(p => new SummationPlanEntry
                 {
-                    DisplayLabel = $"{p.CourseId} / {p.PlanId}", CourseId = p.CourseId, PlanId = p.PlanId,
-                    NumberOfFractions = p.NumberOfFractions, TotalDoseGy = p.TotalDoseGy,
+                    DisplayLabel = $"{p.CourseId} / {p.PlanId}",
+                    CourseId = p.CourseId,
+                    PlanId = p.PlanId,
+                    NumberOfFractions = p.NumberOfFractions,
+                    TotalDoseGy = p.TotalDoseGy,
                     PlanNormalization = double.IsNaN(p.PlanNormalization) || p.PlanNormalization <= 0 ? 100.0 : p.PlanNormalization,
                     IsReference = p.IsReference,
                     RegistrationId = p.IsReference ? "" : (p.SelectedRegistrationId ?? ""),

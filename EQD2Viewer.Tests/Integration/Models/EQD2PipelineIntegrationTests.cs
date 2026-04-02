@@ -1,7 +1,6 @@
-using Xunit;
-using FluentAssertions;
 using EQD2Viewer.Core.Calculations;
 using EQD2Viewer.Fixtures;
+using FluentAssertions;
 using System.Linq;
 
 namespace EQD2Viewer.Tests.Integration

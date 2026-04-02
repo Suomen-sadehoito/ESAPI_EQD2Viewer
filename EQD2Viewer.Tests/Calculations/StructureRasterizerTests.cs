@@ -1,7 +1,6 @@
-using Xunit;
-using FluentAssertions;
-using EQD2Viewer.Core.Calculations;
 using EQD2Viewer.Core.Data;
+using EQD2Viewer.Core.Calculations;
+using FluentAssertions;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -81,7 +80,7 @@ namespace EQD2Viewer.Tests.Calculations
         [Fact]
         public void RasterizePolygon_NullInput_ShouldReturnEmptyMask()
         {
-            bool[] mask = StructureRasterizer.RasterizePolygon(null, 10, 10);
+            bool[] mask = StructureRasterizer.RasterizePolygon(null!, 10, 10);
             mask.Should().NotBeNull();
             mask.All(v => !v).Should().BeTrue("null polygon should produce empty mask");
         }
@@ -193,7 +192,7 @@ namespace EQD2Viewer.Tests.Calculations
         public void CombineContourMasks_NullOrEmpty_ShouldReturnEmptyMask()
         {
             int w = 10, h = 10;
-            var result1 = StructureRasterizer.CombineContourMasks(null, w, h);
+            var result1 = StructureRasterizer.CombineContourMasks(null!, w, h);
             result1.All(v => !v).Should().BeTrue();
 
             var result2 = StructureRasterizer.CombineContourMasks(
@@ -225,7 +224,7 @@ namespace EQD2Viewer.Tests.Calculations
                 xDirX, xDirY, xDirZ, yDirX, yDirY, yDirZ);
 
             pixels.Should().NotBeNull();
-            pixels.Length.Should().Be(3);
+            pixels!.Length.Should().Be(3);
             pixels[0].X.Should().BeApproximately(10, 1e-10);
             pixels[0].Y.Should().BeApproximately(20, 1e-10);
             pixels[1].X.Should().BeApproximately(0, 1e-10);
@@ -245,7 +244,7 @@ namespace EQD2Viewer.Tests.Calculations
                 0, 0, 0, spacingX, spacingY,
                 1, 0, 0, 0, 1, 0);
 
-            pixels[0].X.Should().BeApproximately(5.0, 1e-10);
+            pixels![0].X.Should().BeApproximately(5.0, 1e-10);
             pixels[0].Y.Should().BeApproximately(10.0, 1e-10);
         }
 
@@ -258,7 +257,7 @@ namespace EQD2Viewer.Tests.Calculations
                 100, 200, 0, 1, 1,
                 1, 0, 0, 0, 1, 0);
 
-            pixels[0].X.Should().BeApproximately(10, 1e-10);
+            pixels![0].X.Should().BeApproximately(10, 1e-10);
             pixels[0].Y.Should().BeApproximately(20, 1e-10);
         }
 

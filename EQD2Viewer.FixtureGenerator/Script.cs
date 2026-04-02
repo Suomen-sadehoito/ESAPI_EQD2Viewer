@@ -1,9 +1,11 @@
+using VMS.TPS.Common.Model.API;
+using EQD2Viewer.Core.Logging;
+using EQD2Viewer.Core.Data;
+using EQD2Viewer.Esapi.Adapters;
 using System;
 using System.IO;
 using System.Linq;
 using System.Windows;
-using VMS.TPS.Common.Model.API;
-using EQD2Viewer.Esapi.Adapters;
 
 [assembly: ESAPIScript(IsWriteable = false)]
 
@@ -85,88 +87,88 @@ namespace VMS.TPS
 
         private static void RunSnapshotExport(ScriptContext context)
         {
-            string patId    = context.Patient?.Id ?? "UNKNOWN";
-      string planId   = context.ExternalPlanSetup?.Id ?? "NOPLAN";
-       string courseId = context.ExternalPlanSetup?.Course?.Id ?? "NOCOURSE";
+            string patId = context.Patient?.Id ?? "UNKNOWN";
+            string planId = context.ExternalPlanSetup?.Id ?? "NOPLAN";
+            string courseId = context.ExternalPlanSetup?.Course?.Id ?? "NOCOURSE";
 
-       string outputDir = EQD2Viewer.FixtureGenerator.SnapshotExporter
-           .BuildOutputDirName(patId, courseId, planId);
-  Directory.CreateDirectory(outputDir);
+            string outputDir = EQD2Viewer.FixtureGenerator.SnapshotExporter
+                .BuildOutputDirName(patId, courseId, planId);
+            Directory.CreateDirectory(outputDir);
 
-          // Load via the same EsapiDataSource the live application uses —
-  // this guarantees the snapshot is byte-for-byte equivalent to what the app sees.
+            // Load via the same EsapiDataSource the live application uses —
+            // this guarantees the snapshot is byte-for-byte equivalent to what the app sees.
             var dataSource = new EsapiDataSource(context);
-      var snapshot   = dataSource.LoadSnapshot();
+            var snapshot = dataSource.LoadSnapshot();
 
             var exporter = new EQD2Viewer.FixtureGenerator.SnapshotExporter();
-      string report = exporter.ExportSnapshot(snapshot, outputDir);
+            string report = exporter.ExportSnapshot(snapshot, outputDir);
 
-      MessageBox.Show(
- $"Snapshot tallennettu:\n{outputDir}\n\n{report}\n\n" +
- "Avaa toisella koneella:\n" +
- "  var source = new JsonDataSource(@\"<polku>\");\n" +
-         "  var snapshot = source.LoadSnapshot();",
- "Fixture Generator — Snapshot valmis",
-       MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show(
+       $"Snapshot tallennettu:\n{outputDir}\n\n{report}\n\n" +
+       "Avaa toisella koneella:\n" +
+       "  var source = new JsonDataSource(@\"<polku>\");\n" +
+               "  var snapshot = source.LoadSnapshot();",
+       "Fixture Generator — Snapshot valmis",
+             MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
-     // ────────────────────────────────────────────────────────
-      // MODE B: Selective test fixtures
+        // ────────────────────────────────────────────────────────
+        // MODE B: Selective test fixtures
         // ────────────────────────────────────────────────────────
 
         private static void RunFixtureExport(ScriptContext context,
         PlanningItem planningItem, string planType)
         {
-   string courseId = GetCourseId(planningItem);
-     string planLabel = SanitizePath(
-  $"{context.Patient.Id}_{courseId}_{planningItem.Id}");
+            string courseId = GetCourseId(planningItem);
+            string planLabel = SanitizePath(
+         $"{context.Patient.Id}_{courseId}_{planningItem.Id}");
             string outputDir = Path.Combine(
            Environment.GetFolderPath(Environment.SpecialFolder.Desktop),
       "EQD2_Fixtures", planLabel);
-     Directory.CreateDirectory(outputDir);
+            Directory.CreateDirectory(outputDir);
 
-    var exporter = new EQD2Viewer.FixtureGenerator.FixtureExporter();
-     string report = exporter.ExportAll(context, planningItem, planType, outputDir);
+            var exporter = new EQD2Viewer.FixtureGenerator.FixtureExporter();
+            string report = exporter.ExportAll(context, planningItem, planType, outputDir);
 
-    MessageBox.Show(
-          $"Fixtures tallennettu ({planType}):\n{outputDir}\n\n{report}\n\n" +
-     "Kopioi kansio projektiin:\n" +
-                "EQD2Viewer.Tests\\TestFixtures\\",
- "Fixture Generator — Testifixturit valmis",
-       MessageBoxButton.OK, MessageBoxImage.Information);
-      }
+            MessageBox.Show(
+                  $"Fixtures tallennettu ({planType}):\n{outputDir}\n\n{report}\n\n" +
+             "Kopioi kansio projektiin:\n" +
+                        "EQD2Viewer.Tests\\TestFixtures\\",
+         "Fixture Generator — Testifixturit valmis",
+               MessageBoxButton.OK, MessageBoxImage.Information);
+        }
 
-     // ────────────────────────────────────────────────────────
+        // ────────────────────────────────────────────────────────
         // HELPERS
         // ────────────────────────────────────────────────────────
 
         private static PlanningItem ResolvePlanningItem(ScriptContext context, out string planType)
-   {
+        {
             if (context.PlanSumsInScope != null)
-       {
-   var planSum = context.PlanSumsInScope.FirstOrDefault(ps => ps.Dose != null);
-      if (planSum != null) { planType = "PlanSum"; return planSum; }
+            {
+                var planSum = context.PlanSumsInScope.FirstOrDefault(ps => ps.Dose != null);
+                if (planSum != null) { planType = "PlanSum"; return planSum; }
             }
 
-      var plan = context.ExternalPlanSetup;
+            var plan = context.ExternalPlanSetup;
             if (plan != null && plan.Dose != null) { planType = "PlanSetup"; return plan; }
 
-    planType = "Unknown";
+            planType = "Unknown";
             return null;
         }
 
-     private static string GetCourseId(PlanningItem item)
+        private static string GetCourseId(PlanningItem item)
         {
-        if (item is PlanSetup ps)  return ps.Course?.Id  ?? "NoC";
-          if (item is PlanSum sum)   return sum.Course?.Id ?? "NoC";
-          return "NoC";
+            if (item is PlanSetup ps) return ps.Course?.Id ?? "NoC";
+            if (item is PlanSum sum) return sum.Course?.Id ?? "NoC";
+            return "NoC";
         }
 
-private static string SanitizePath(string name)
+        private static string SanitizePath(string name)
         {
             foreach (char c in Path.GetInvalidFileNameChars())
-  name = name.Replace(c, '_');
+                name = name.Replace(c, '_');
             return name;
-    }
+        }
     }
 }
