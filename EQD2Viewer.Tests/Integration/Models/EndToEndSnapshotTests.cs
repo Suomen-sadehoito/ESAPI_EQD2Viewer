@@ -12,7 +12,7 @@ namespace EQD2Viewer.Tests.Integration.Models
 {
     /// <summary>
     /// End-to-end tests that verify the full pipeline:
-    ///   ClinicalSnapshot ? ImageRenderingService ? pixel/dose values
+    ///   ClinicalSnapshot -> ImageRenderingService -> pixel/dose values
     ///
     /// Three tiers of tests:
     ///
@@ -21,13 +21,13 @@ namespace EQD2Viewer.Tests.Integration.Models
     ///    Verifies: CT windowing math, dose scaling, coordinate mapping, EQD2 conversion.
     ///
     /// 2. SELF-CONSISTENCY TESTS (always run)
-    ///    Verifies that serialize?deserialize?render produces identical pixels.
+    ///    Verifies that serialize -> deserialize -> render produces identical pixels.
     ///    Catches serialization bugs and rendering non-determinism.
     ///
     /// 3. ECLIPSE REFERENCE TESTS (run when real snapshot is available)
     ///    Loads a full binary snapshot exported from Eclipse (via FixtureGenerator).
-    /// Compares app-computed dose values against Eclipse-computed reference points.
-    /// These tests are skipped when the snapshot directory does not exist.
+    ///    Compares app-computed dose values against Eclipse-computed reference points.
+    ///    These tests are skipped when the snapshot directory does not exist.
     ///
     /// WHY NUMERICAL VERIFICATION OVER VISUAL (SSIM):
     ///   - Eclipse and this app use different rendering backends (DirectX vs WPF).
@@ -43,7 +43,7 @@ namespace EQD2Viewer.Tests.Integration.Models
         public EndToEndSnapshotTests()
         {
             _tempDir = Path.Combine(Path.GetTempPath(),
-             "EQD2_E2E_" + Guid.NewGuid().ToString("N").Substring(0, 8));
+                "EQD2_E2E_" + Guid.NewGuid().ToString("N").Substring(0, 8));
             Directory.CreateDirectory(_tempDir);
         }
 
@@ -53,9 +53,9 @@ namespace EQD2Viewer.Tests.Integration.Models
             catch { /* best-effort cleanup */ }
         }
 
-        // ????????????????????????????????????????????????????????
-        // TIER 1: SYNTHETIC PHANTOM � analytical verification
-        // ????????????????????????????????????????????????????????
+        // ========================================================
+        // TIER 1: SYNTHETIC PHANTOM -- analytical verification
+        // ========================================================
 
         /// <summary>
         /// Verifies dose value computation at specific pixel locations
@@ -79,30 +79,28 @@ namespace EQD2Viewer.Tests.Integration.Models
             // Center (inside dose region): should be 2.0 Gy
             double doseCenter = svc.GetDoseAtPixel(midSlice, center, center, null);
             doseCenter.Should().BeApproximately(2.0, 0.01,
-              "center pixel should be 2.0 Gy (inside uniform dose region)");
+                "center pixel should be 2.0 Gy (inside uniform dose region)");
 
             // Just inside the boundary
             double doseInside = svc.GetDoseAtPixel(midSlice, quarter, quarter, null);
             doseInside.Should().BeApproximately(2.0, 0.01,
-                           "quarter point should be 2.0 Gy (at dose region boundary)");
+                "quarter point should be 2.0 Gy (at dose region boundary)");
 
             // Corner (outside dose region): should be 0 or NaN
             double doseCorner = svc.GetDoseAtPixel(midSlice, 0, 0, null);
             if (!double.IsNaN(doseCorner))
                 doseCorner.Should().BeApproximately(0.0, 0.01,
-            "corner pixel should be 0 Gy (outside dose region)");
+                    "corner pixel should be 0 Gy (outside dose region)");
 
             svc.Dispose();
         }
 
         /// <summary>
-        /// Verifies EQD2 conversion at pixel level.
-        /// Physical dose 2.0 Gy/fx � 25 fx = 50 Gy.
-        /// Per-voxel: 2.0 Gy physical ? EQD2 = 2.0 � (2.0/25 + 3) / (2 + 3) � 25
-        /// For ?/?=3: EQD2(2.0 Gy per fx, 25 fx) = 50 � (2+3/25�2)/(2+3) ... 
-        /// Actually: d_fx = 2.0 Gy, EQD2 = D � (d + ?/?) / (2 + ?/?) = 50 � (2+3)/(2+3) = 50 Gy
-        /// Wait � EQD2(D, n, ?/?) = D � (d + ?/?) / (2 + ?/?) where d = D/n
-        /// d = 50/25 = 2.0, so EQD2 = 50 � (2+3)/(2+3) = 50 Gy when ?/?=3 and d=2.
+        /// Verifies per-voxel EQD2 conversion using the linear-quadratic (LQ) model.
+        ///
+        /// Phantom voxel dose = 2.0 Gy, fractions = 25, alpha/beta = 3.0 Gy.
+        /// Formula: EQD2 = D * (d + alpha/beta) / (2 + alpha/beta), where d = D / n.
+        /// Expected: d = 2.0 / 25 = 0.08, EQD2 = 2.0 * (0.08 + 3.0) / (2.0 + 3.0) = 1.232 Gy.
         /// </summary>
         [Fact]
         public void SyntheticPhantom_EQD2AtPixel_ShouldMatchFormula()
@@ -115,11 +113,7 @@ namespace EQD2Viewer.Tests.Integration.Models
             int midSlice = snap.CtImage.ZSize / 2;
             int center = snap.CtImage.XSize / 2;
 
-            // Physical dose at center = 2.0 Gy (per the phantom design)
-            // EQD2 with 25 fractions, ?/?=3:
-            //   d = 2.0 Gy, D = 50 Gy ? but this is per-VOXEL dose, not total plan dose
-            //   The rendering service converts per-voxel: EQD2 = d � n � (d/n + ?/?) / (2 + ?/?)
-            //   Here d = 2.0 Gy raw voxel value, converted through EQD2Calculator.ToEQD2(dGy, n, ab)
+            // Raw voxel dose = 2.0 Gy, converted via EQD2Calculator.ToEQD2(doseGy, n, alphaBeta)
             var eqd2Settings = new EQD2Settings
             {
                 IsEnabled = true,
@@ -136,17 +130,17 @@ namespace EQD2Viewer.Tests.Integration.Models
             double expectedEqd2 = 2.0 * (dPerFraction + 3.0) / (2.0 + 3.0);
 
             eqd2Dose.Should().BeApproximately(expectedEqd2, 0.001,
-        "EQD2 dose should match the LQ model formula");
+                "EQD2 dose should match the LQ model formula");
 
             svc.Dispose();
         }
 
-        // ????????????????????????????????????????????????????????
-        // TIER 2: SELF-CONSISTENCY � serialize?render round-trip
-        // ????????????????????????????????????????????????????????
+        // ========================================================
+        // TIER 2: SELF-CONSISTENCY -- serialize -> render round-trip
+        // ========================================================
 
         /// <summary>
-        /// Verifies that dose values survive the full serialize?deserialize pipeline.
+        /// Verifies that dose values survive the full serialize -> deserialize pipeline.
         /// Renders dose from original and from round-tripped snapshot, compares pixel-by-pixel.
         /// </summary>
         [Fact]
@@ -199,14 +193,14 @@ namespace EQD2Viewer.Tests.Integration.Models
                 WindowWidth = 400,
                 IsodoseLevels = new List<IsodoseLevelSetting>
                 {
-            new IsodoseLevelSetting { Fraction = 0.95, Color = 0xFFFFFF00, IsVisible = true },
-          new IsodoseLevelSetting { Fraction = 0.50, Color = 0xFF0000FF, IsVisible = true },
-       },
+                    new IsodoseLevelSetting { Fraction = 0.95, Color = 0xFFFFFF00, IsVisible = true },
+                    new IsodoseLevelSetting { Fraction = 0.50, Color = 0xFF0000FF, IsVisible = true },
+                },
                 ReferenceDosePoints = new List<ReferenceDosePoint>
-    {
-              new ReferenceDosePoint { CtPixelX = 8, CtPixelY = 8, CtSlice = 2, ExpectedDoseGy = 1.0, IsInsideDoseGrid = true },
-      new ReferenceDosePoint { CtPixelX = 0, CtPixelY = 0, CtSlice = 2, ExpectedDoseGy = 0.0, IsInsideDoseGrid = true },
-       }
+                {
+                    new ReferenceDosePoint { CtPixelX = 8, CtPixelY = 8, CtSlice = 2, ExpectedDoseGy = 1.0, IsInsideDoseGrid = true },
+                    new ReferenceDosePoint { CtPixelX = 0, CtPixelY = 0, CtSlice = 2, ExpectedDoseGy = 0.0, IsInsideDoseGrid = true },
+                }
             };
 
             string dir = Path.Combine(_tempDir, "rendersettings_rt");
@@ -224,9 +218,9 @@ namespace EQD2Viewer.Tests.Integration.Models
             loaded.RenderSettings.ReferenceDosePoints[1].IsInsideDoseGrid.Should().BeTrue();
         }
 
-        // ????????????????????????????????????????????????????????
-        // TIER 3: ECLIPSE REFERENCE � requires real snapshot
-        // ????????????????????????????????????????????????????????
+        // ========================================================
+        // TIER 3: ECLIPSE REFERENCE -- requires real snapshot
+        // ========================================================
 
         /// <summary>
         /// Loads a real clinical snapshot exported from Eclipse and verifies
@@ -239,10 +233,10 @@ namespace EQD2Viewer.Tests.Integration.Models
         [Fact]
         public void EclipseSnapshot_DoseAtReferencePoints_ShouldMatchEclipseValues()
         {
-            string snapshotDir = FindEclipseSnapshotDir();
+            string? snapshotDir = FindEclipseSnapshotDir();
             if (snapshotDir == null)
             {
-                // Skip � no Eclipse snapshot available (expected in CI)
+                // No Eclipse snapshot available (expected in CI)
                 return;
             }
 
@@ -252,9 +246,9 @@ namespace EQD2Viewer.Tests.Integration.Models
             snap.Dose.Should().NotBeNull("dose grid should exist");
 
             if (snap.RenderSettings?.ReferenceDosePoints == null ||
-         snap.RenderSettings.ReferenceDosePoints.Count == 0)
+                snap.RenderSettings.ReferenceDosePoints.Count == 0)
             {
-                // Snapshot exists but has no reference points � export again with latest generator
+                // Snapshot has no reference points; re-export with the latest generator
                 return;
             }
 
@@ -270,26 +264,26 @@ namespace EQD2Viewer.Tests.Integration.Models
 
                 if (!refPoint.IsInsideDoseGrid)
                 {
-                    // Outside dose grid � app should return NaN
+                    // Outside dose grid -- app should return NaN
                     if (double.IsNaN(appDose)) passed++;
                     continue;
                 }
 
                 if (double.IsNaN(appDose))
                 {
-                    // App thinks we're outside the grid but Eclipse said we're inside � investigate
+                    // App thinks we're outside the grid but Eclipse said we're inside -- investigate
                     continue;
                 }
 
                 // Tolerance: 0.5% of expected dose or 0.01 Gy absolute, whichever is larger
                 double tolerance = Math.Max(0.01, Math.Abs(refPoint.ExpectedDoseGy) * 0.005);
                 appDose.Should().BeApproximately(refPoint.ExpectedDoseGy, tolerance,
-                $"dose mismatch at CT pixel ({refPoint.CtPixelX},{refPoint.CtPixelY}) slice {refPoint.CtSlice}");
+                    $"dose mismatch at CT pixel ({refPoint.CtPixelX},{refPoint.CtPixelY}) slice {refPoint.CtSlice}");
                 passed++;
             }
 
             passed.Should().BeGreaterOrEqualTo(total * 8 / 10,
-                     $"at least 80% of reference points should match (passed {passed}/{total})");
+                $"at least 80% of reference points should match (passed {passed}/{total})");
 
             svc.Dispose();
         }
@@ -316,29 +310,31 @@ namespace EQD2Viewer.Tests.Integration.Models
                 // Build summary from the serialized curve
                 var curve = dvh.Curve.Select(p => new DoseVolumePoint(p[0], p[1])).ToArray();
                 var summary = dvhService.BuildSummaryFromCurve(
-            dvh.StructureId, dvh.PlanId, "Physical", curve, dvh.VolumeCc);
+                    dvh.StructureId, dvh.PlanId, "Physical", curve, dvh.VolumeCc);
 
                 // DMax from our summary should be close to Eclipse's DMax
                 double dmaxTolerance = Math.Max(0.1, dvh.DMaxGy * 0.02); // 2% or 0.1 Gy
                 summary.DMax.Should().BeApproximately(dvh.DMaxGy, dmaxTolerance,
-    $"{dvh.StructureId}: DMax mismatch");
+                    $"{dvh.StructureId}: DMax mismatch");
 
                 // Volume should match
                 if (dvh.VolumeCc > 0)
                     summary.Volume.Should().BeApproximately(dvh.VolumeCc, dvh.VolumeCc * 0.01,
-           $"{dvh.StructureId}: volume mismatch");
+                        $"{dvh.StructureId}: volume mismatch");
             }
         }
 
-        // ????????????????????????????????????????????????????????
+        // ========================================================
         // HELPERS
-        // ????????????????????????????????????????????????????????
+        // ========================================================
 
         /// <summary>
         /// Creates a synthetic co-registered phantom where CT and dose share
         /// the same grid (same origin, same resolution, same size).
         /// Dose is uniform in the central 50% region.
         /// </summary>
+        /// <param name="size">Width and height of the square CT and dose grids (in pixels).</param>
+        /// <param name="doseGyInRegion">Uniform dose value in Gy applied to the central 50% region.</param>
         private static ClinicalSnapshot CreateCoregisteredPhantom(int size, double doseGyInRegion)
         {
             int slices = 5;
@@ -365,7 +361,7 @@ namespace EQD2Viewer.Tests.Integration.Models
                     for (int x = 0; x < size; x++)
                     {
                         bool inRegion = x >= size / 4 && x < 3 * size / 4
-                           && y >= size / 4 && y < 3 * size / 4;
+                            && y >= size / 4 && y < 3 * size / 4;
                         doseVoxels[z][x, y] = inRegion ? rawDose : 0;
                     }
             }
@@ -423,14 +419,16 @@ namespace EQD2Viewer.Tests.Integration.Models
 
         /// <summary>
         /// Searches for an Eclipse snapshot directory in standard locations.
-        /// Returns null if none found (test will be skipped).
+        /// Checks the <c>EQD2_SNAPSHOT_DIR</c> environment variable first, then
+        /// walks up from the output directory looking for TestFixtures/snapshot/.
         /// </summary>
+        /// <returns>Full path to the snapshot directory, or <c>null</c> if not found.</returns>
         private static string? FindEclipseSnapshotDir()
         {
             // 1. Environment variable (CI/CD can set this)
             string envPath = Environment.GetEnvironmentVariable("EQD2_SNAPSHOT_DIR");
             if (!string.IsNullOrEmpty(envPath) && Directory.Exists(envPath)
-            && File.Exists(Path.Combine(envPath, SnapshotSerializer.MetaFileName)))
+                && File.Exists(Path.Combine(envPath, SnapshotSerializer.MetaFileName)))
                 return envPath;
 
             // 2. TestFixtures/snapshot/ in test project
@@ -440,7 +438,7 @@ namespace EQD2Viewer.Tests.Integration.Models
             {
                 string candidate = Path.Combine(dir, "EQD2Viewer.Tests", "TestFixtures", "snapshot");
                 if (Directory.Exists(candidate)
-                      && File.Exists(Path.Combine(candidate, SnapshotSerializer.MetaFileName)))
+                    && File.Exists(Path.Combine(candidate, SnapshotSerializer.MetaFileName)))
                     return candidate;
 
                 // Also check for any subdirectory with snapshot_meta.json
