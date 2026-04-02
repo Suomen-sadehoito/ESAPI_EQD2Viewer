@@ -1,7 +1,9 @@
 using CommunityToolkit.Mvvm.ComponentModel;
+using EQD2Viewer.Core.Data;
 using EQD2Viewer.Core.Models;
 using EQD2Viewer.Services.Rendering;
 using OxyPlot;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Windows.Media.Imaging;
 
@@ -54,6 +56,14 @@ namespace EQD2Viewer.App.UI.ViewModels
                 return $"{fx} fx × {(fx > 0 ? gy / fx : 0):F2} Gy";
             }
         }
+
+        /// <summary>
+        /// All structures available in the current snapshot.
+        /// Exposed for the structure selection dialog — avoids direct access
+        /// to internal snapshot state from the View layer.
+        /// </summary>
+        public IReadOnlyList<StructureData> AvailableStructures =>
+            _snapshot?.Structures ?? (IReadOnlyList<StructureData>)new StructureData[0];
 
         // ════════════════════════════════════════════════════════
         // CT IMAGE VIEWER STATE

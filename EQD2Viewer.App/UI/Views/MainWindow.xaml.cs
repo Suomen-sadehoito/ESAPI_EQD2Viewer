@@ -23,15 +23,15 @@ namespace EQD2Viewer.App.UI.Views
 
         private void SelectStructures_Click(object sender, RoutedEventArgs e)
         {
-            var snapshot = _viewModel._snapshot;
-            if (snapshot?.Structures == null || snapshot.Structures.Count == 0)
+            var structures = _viewModel.AvailableStructures;
+            if (structures == null || structures.Count == 0)
             {
                 MessageBox.Show("No structures available.",
                     "EQD2 Viewer", MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
 
-            var dialog = new StructureSelectionDialog(snapshot.Structures);
+            var dialog = new StructureSelectionDialog(structures);
             dialog.Owner = this;
 
             if (dialog.ShowDialog() == true && dialog.SelectedStructures.Any())

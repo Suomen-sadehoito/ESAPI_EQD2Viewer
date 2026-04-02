@@ -98,13 +98,18 @@ _renderingService.RenderDoseImage(DoseImageSource, CurrentSlice,
             int w = _snapshot.CtImage.XSize, h = _snapshot.CtImage.YSize;
             var bmp = OverlayImageSource;
 
+           // Bounds safety: verify bitmap dimensions match expected size
+            if (bmp == null || bmp.PixelWidth != w || bmp.PixelHeight != h)
+                return;
+
             if (_overlayMode == OverlayMode.Off || _summationService == null || !_isSummationActive)
             {
                 bmp.Lock();
                 try
                 {
                     byte* p = (byte*)bmp.BackBuffer;
-                    for (int i = 0; i < h * bmp.BackBufferStride; i++) p[i] = 0;
+                    int safeLen = h * bmp.BackBufferStride;
+                    for (int i = 0; i < safeLen; i++) p[i] = 0;
                     bmp.AddDirtyRect(new Int32Rect(0, 0, w, h));
                 }
                 finally { bmp.Unlock(); }
@@ -118,7 +123,13 @@ _renderingService.RenderDoseImage(DoseImageSource, CurrentSlice,
             {
                 byte* p = (byte*)bmp.BackBuffer;
                 int stride = bmp.BackBufferStride;
-                for (int i = 0; i < h * stride; i++) p[i] = 0;
+
+                // Bounds safety: verify stride is sufficient for pixel width
+                if (stride < w * 4)
+                    return;
+
+                int totalBytes = h * stride;
+                for (int i = 0; i < totalBytes; i++) p[i] = 0;
 
                 if (secondaryCt == null || secondaryCt.Length != w * h)
                 { bmp.AddDirtyRect(new Int32Rect(0, 0, w, h)); return; }

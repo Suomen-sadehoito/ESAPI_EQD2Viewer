@@ -173,32 +173,36 @@ for (int y = 0; y < dy; y++)
           if (_ctCache == null || currentSlice < 0 || currentSlice >= _ctCache.Length) return;
 
        int[,] currentCtSlice = _ctCache[currentSlice];
-            if (currentCtSlice.GetLength(0) != _width || currentCtSlice.GetLength(1) != _height) return;
+    if (currentCtSlice.GetLength(0) != _width || currentCtSlice.GetLength(1) != _height) return;
 
-            AssertBitmapCompatible(targetBitmap, _width, _height);
+ AssertBitmapCompatible(targetBitmap, _width, _height);
+
+         // Bounds safety: verify bitmap dimensions and stride before unsafe access
+            if (targetBitmap.PixelWidth != _width || targetBitmap.PixelHeight != _height) return;
+    if (targetBitmap.BackBufferStride < _width * 4) return;
 
        targetBitmap.Lock();
-            try
-            {
+try
+       {
    byte* pBackBuffer = (byte*)targetBitmap.BackBuffer;
     int stride = targetBitmap.BackBufferStride;
   double huMin = windowLevel - (windowWidth / 2.0);
    double factor = (windowWidth > 0) ? 255.0 / windowWidth : 0;
-          int huOffset = _huOffset;
+       int huOffset = _huOffset;
 
-           for (int y = 0; y < _height; y++)
-                {
+    for (int y = 0; y < _height; y++)
+            {
          uint* pRow = (uint*)(pBackBuffer + y * stride);
 for (int x = 0; x < _width; x++)
   {
-           int hu = currentCtSlice[x, y] - huOffset;
+       int hu = currentCtSlice[x, y] - huOffset;
       double valDouble = (hu - huMin) * factor;
        byte val = (byte)(valDouble < 0 ? 0 : (valDouble > 255 ? 255 : valDouble));
               pRow[x] = (0xFFu << 24) | ((uint)val << 16) | ((uint)val << 8) | val;
       }
    }
-         targetBitmap.AddDirtyRect(new Int32Rect(0, 0, _width, _height));
-       }
+targetBitmap.AddDirtyRect(new Int32Rect(0, 0, _width, _height));
+  }
   finally { targetBitmap.Unlock(); }
         }
 
@@ -209,12 +213,17 @@ for (int x = 0; x < _width; x++)
         {
          AssertBitmapCompatible(targetBitmap, _width, _height);
 
+      // Bounds safety: verify bitmap dimensions and stride before unsafe access
+            if (targetBitmap.PixelWidth != _width || targetBitmap.PixelHeight != _height) return "Bitmap size mismatch";
+      if (targetBitmap.BackBufferStride < _width * 4) return "Bitmap stride too small";
+
      targetBitmap.Lock();
        try
  {
        int doseStride = targetBitmap.BackBufferStride;
      byte* pDoseBuffer = (byte*)targetBitmap.BackBuffer;
- for (int i = 0; i < _height * doseStride; i++) pDoseBuffer[i] = 0;
+        int totalBytes = _height * doseStride;
+ for (int i = 0; i < totalBytes; i++) pDoseBuffer[i] = 0;
 
            if (displayMode == DoseDisplayMode.Line)
         {
@@ -397,6 +406,8 @@ int dy = (int)Math.Round(diff.Dot(_doseGeo.YDirection) / _doseGeo.YRes);
           double refDoseGy, IsodoseLevel[] levels)
         {
             if (levels == null || levels.Length == 0) return;
+            if (ctDoseMap == null || ctDoseMap.Length < _width * _height) return;
+            if (stride < _width * 4) return;
 
             int vc = 0;
    for (int i = 0; i < levels.Length; i++) if (levels[i].IsVisible) vc++;
@@ -431,6 +442,9 @@ int dy = (int)Math.Round(diff.Dot(_doseGeo.YDirection) / _doseGeo.YRes);
         private unsafe void RenderColorwashMode(byte* pBuffer, int stride, double[] ctDoseMap,
             double refDoseGy, byte alpha, double minPercent)
   {
+            if (ctDoseMap == null || ctDoseMap.Length < _width * _height) return;
+     if (stride < _width * 4) return;
+
      double minGy = refDoseGy * minPercent;
             double maxGy = refDoseGy * RenderConstants.ColorwashMaxFraction;
    double range = maxGy - minGy;
