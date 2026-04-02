@@ -104,12 +104,12 @@ namespace VMS.TPS
             string report = exporter.ExportSnapshot(snapshot, outputDir);
 
             MessageBox.Show(
-       $"Snapshot tallennettu:\n{outputDir}\n\n{report}\n\n" +
-       "Avaa toisella koneella:\n" +
-       "  var source = new JsonDataSource(@\"<polku>\");\n" +
-               "  var snapshot = source.LoadSnapshot();",
-       "Fixture Generator — Snapshot valmis",
-             MessageBoxButton.OK, MessageBoxImage.Information);
+                $"Snapshot tallennettu:\n{outputDir}\n\n{report}\n\n" +
+                "Avaa toisella koneella:\n" +
+                "  var source = new JsonDataSource(@\"<polku>\");\n" +
+                "  var snapshot = source.LoadSnapshot();",
+                "Fixture Generator — Snapshot valmis",
+                MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
         // ========================================================
@@ -117,25 +117,25 @@ namespace VMS.TPS
         // ========================================================
 
         private static void RunFixtureExport(ScriptContext context,
-        PlanningItem planningItem, string planType)
+            PlanningItem planningItem, string planType)
         {
             string courseId = GetCourseId(planningItem);
             string planLabel = SanitizePath(
-         $"{context.Patient.Id}_{courseId}_{planningItem.Id}");
+                $"{context.Patient.Id}_{courseId}_{planningItem.Id}");
             string outputDir = Path.Combine(
-           Environment.GetFolderPath(Environment.SpecialFolder.Desktop),
-      "EQD2_Fixtures", planLabel);
+                Environment.GetFolderPath(Environment.SpecialFolder.Desktop),
+                "EQD2_Fixtures", planLabel);
             Directory.CreateDirectory(outputDir);
 
             var exporter = new EQD2Viewer.FixtureGenerator.FixtureExporter();
             string report = exporter.ExportAll(context, planningItem, planType, outputDir);
 
             MessageBox.Show(
-                  $"Fixtures tallennettu ({planType}):\n{outputDir}\n\n{report}\n\n" +
-             "Kopioi kansio projektiin:\n" +
-                        "EQD2Viewer.Tests\\TestFixtures\\",
-         "Fixture Generator — Testifixturit valmis",
-               MessageBoxButton.OK, MessageBoxImage.Information);
+                $"Fixtures tallennettu ({planType}):\n{outputDir}\n\n{report}\n\n" +
+                "Kopioi kansio projektiin:\n" +
+                "EQD2Viewer.Tests\\TestFixtures\\",
+                "Fixture Generator — Testifixturit valmis",
+                MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
         // ========================================================

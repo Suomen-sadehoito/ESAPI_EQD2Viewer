@@ -341,7 +341,7 @@ namespace EQD2Viewer.Tests.Integration.Models
             int huOffset = 32768;
 
             // Uniform raw dose value that maps to doseGyInRegion Gy
-            // rawScale=0.001, rawOffset=0, unitToGy=1.0 ? raw = doseGy / 0.001
+            // rawScale=0.001, rawOffset=0, unitToGy=1.0 -> raw = doseGy / 0.001
             int rawDose = (int)(doseGyInRegion / 0.001);
 
             var ctVoxels = new int[slices][,];

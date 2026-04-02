@@ -12,7 +12,7 @@ namespace EQD2Viewer.App
     /// Composition root for launching the EQD2 Viewer UI.
     /// Called from both the ESAPI Script.cs and the DevRunner.
     /// 
-    /// This class owns the wiring of services ? ViewModel ? Window.
+    /// This class owns the wiring of services -> ViewModel -> Window.
     /// Neither EQD2Viewer.Esapi nor EQD2Viewer.DevRunner need to know
     /// about internal service types -- they just provide the data and call Launch().
     /// </summary>
@@ -32,10 +32,10 @@ namespace EQD2Viewer.App
         /// False to call Show() (standalone WPF apps manage their own message loop).
         /// </param>
         public static void Launch(
-          ClinicalSnapshot snapshot,
-         ISummationDataLoader? summationLoader = null,
-     string? windowTitle = null,
-                bool useShowDialog = true)
+            ClinicalSnapshot snapshot,
+            ISummationDataLoader? summationLoader = null,
+            string? windowTitle = null,
+            bool useShowDialog = true)
         {
             if (snapshot == null) throw new ArgumentNullException(nameof(snapshot));
 
@@ -52,12 +52,12 @@ namespace EQD2Viewer.App
 
             // -- Build ViewModel --
             var viewModel = new MainViewModel(
-            snapshot,
-              renderingService,
-         debugService,
-                    dvhService,
+                snapshot,
+                renderingService,
+                debugService,
+                dvhService,
                 summationLoader,
-                        summationLoader != null ? new SummationServiceFactory() : null);
+                summationLoader != null ? new SummationServiceFactory() : null);
 
             // -- Launch window --
             var window = new MainWindow(viewModel);

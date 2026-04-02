@@ -33,7 +33,7 @@
         // ?? Summation & UI ??
         /// <summary>Progress report interval (every Nth slice).</summary>
         public const int SummationProgressInterval = 4;
-        /// <summary>Debounce delay in ms for ?/? slider during active summation.</summary>
+        /// <summary>Debounce delay in ms for alpha/beta slider during active summation.</summary>
         public const int AlphaBetaDebounceMs = 500;
     }
 }

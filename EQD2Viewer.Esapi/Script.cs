@@ -16,7 +16,7 @@ namespace VMS.TPS
     /// 
     /// Responsibilities:
     ///   1. Validate that a patient + image are open.
-    ///   2. Load the full ClinicalSnapshot via EsapiDataSource (ESAPI ? POCOs).
+    ///   2. Load the full ClinicalSnapshot via EsapiDataSource (ESAPI -> POCOs).
     ///   3. Create the EsapiSummationDataLoader for on-demand plan loading.
     ///   4. Delegate UI creation to AppLauncher (no WPF type knowledge here).
     /// 
@@ -26,16 +26,16 @@ namespace VMS.TPS
     public class Script
     {
         [System.Runtime.CompilerServices.MethodImpl(
-  System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+            System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         public void Execute(ScriptContext context)
         {
             if (context.Patient == null || context.Image == null)
             {
                 MessageBox.Show(
-               "Please open a patient with an image before running the script.",
-                 "EQD2 Viewer",
-                 MessageBoxButton.OK,
-         MessageBoxImage.Warning);
+                    "Please open a patient with an image before running the script.",
+                    "EQD2 Viewer",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
                 return;
             }
 
@@ -49,23 +49,23 @@ namespace VMS.TPS
 
                 // -- Create the ESAPI summation data loader for on-demand plan loading --
                 ISummationDataLoader summationLoader =
-                new EQD2Viewer.Esapi.Adapters.EsapiSummationDataLoader(context.Patient);
+                    new EQD2Viewer.Esapi.Adapters.EsapiSummationDataLoader(context.Patient);
 
                 // -- Launch the UI via the composition root (no direct WPF type references here) --
                 EQD2Viewer.App.AppLauncher.Launch(
-                       snapshot,
-                summationLoader,
-               windowTitle: null,
+                    snapshot,
+                    summationLoader,
+                    windowTitle: null,
                     useShowDialog: true);
             }
             catch (Exception ex)
             {
                 SimpleLogger.Error("Fatal error in Script.Execute", ex);
                 MessageBox.Show(
-   $"Error:\n\n{ex.Message}\n\nStack Trace:\n{ex.StackTrace}",
-          "EQD2 Viewer Error",
-          MessageBoxButton.OK,
-   MessageBoxImage.Error);
+                    $"Error:\n\n{ex.Message}\n\nStack Trace:\n{ex.StackTrace}",
+                    "EQD2 Viewer Error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
             }
         }
     }

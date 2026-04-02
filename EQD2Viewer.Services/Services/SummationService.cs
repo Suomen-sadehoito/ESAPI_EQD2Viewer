@@ -281,7 +281,7 @@ namespace EQD2Viewer.Services
                MaxDoseGy = globalMax,
                TotalReferenceDoseGy = _summedReferenceDoseGy,
                SliceCount = refZ,
-               StatusMessage = $"[{label} Sum] ?/?={displayAlphaBeta:F1} | Max: {globalMax:F2} Gy | Ref: {_summedReferenceDoseGy:F2} Gy"
+               a/b={displayAlphaBeta:F1}
            };
        }
        catch (OperationCanceledException) { return new SummationResult { Success = false, StatusMessage = "Recomputation cancelled." }; }

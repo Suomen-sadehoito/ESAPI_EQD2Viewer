@@ -12,7 +12,7 @@ namespace EQD2Viewer.App.UI.ViewModels
     /// Extracted from MainViewModel to encapsulate all dose overlay concerns:
     ///   - Isodose level presets, add/remove, color cycling
     ///   - Display mode (Line / Fill / Colorwash)
-    ///   - EQD2 on/off, display ?/? slider, fraction count
+    ///   - EQD2 on/off, display alpha/beta slider, fraction count
     ///   - Isodose mode (Relative % vs Absolute Gy)
     ///
     /// Communicates with other ViewModels through <see cref="ViewModelEventBus"/>:

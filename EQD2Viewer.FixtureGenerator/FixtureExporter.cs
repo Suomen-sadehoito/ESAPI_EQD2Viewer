@@ -50,10 +50,10 @@ namespace EQD2Viewer.FixtureGenerator
 
             // == 5. Representative dose slices (25%, 50%, 75%) ==
             int[] doseSlices = {
-           dose.ZSize / 4,
+                dose.ZSize / 4,
                 dose.ZSize / 2,
-       3 * dose.ZSize / 4
-};
+                3 * dose.ZSize / 4
+            };
             foreach (int z in doseSlices)
             {
                 ExportDoseSlice(dose, plan, z, outputDir);
@@ -69,15 +69,15 @@ namespace EQD2Viewer.FixtureGenerator
             if (structureSet != null)
             {
                 var structures = structureSet.Structures
-           .Where(s => !s.IsEmpty && s.DicomType != "SUPPORT")
-                .OrderBy(s => s.Id)
-                   .ToList();  // No Take() limit — export everything
+                    .Where(s => !s.IsEmpty && s.DicomType != "SUPPORT")
+                    .OrderBy(s => s.Id)
+                    .ToList();  // No Take() limit -- export everything
 
                 int[] ctSlicesForContours = doseSlices
-             .Select(dz => MapDoseSliceToCt(image, dose, dz))
-                     .Where(cz => cz >= 0 && cz < image.ZSize)
-            .Distinct()
-                .ToArray();
+                    .Select(dz => MapDoseSliceToCt(image, dose, dz))
+                    .Where(cz => cz >= 0 && cz < image.ZSize)
+                    .Distinct()
+                    .ToArray();
 
                 foreach (var structure in structures)
                 {

@@ -14,7 +14,7 @@ namespace EQD2Viewer.Tests.Integration.Models
     /// End-to-end rendering pipeline tests using synthetic ClinicalSnapshots.
     ///
     /// These tests exercise the full chain that runs in production:
-    ///   ClinicalSnapshot ? ImageRenderingService ? WriteableBitmap
+    ///   ClinicalSnapshot -> ImageRenderingService -> WriteableBitmap
     ///
     /// The pipeline is tested at three levels:
     ///   1. CT rendering -- windowing, HU offset, bitmap output
@@ -72,7 +72,7 @@ namespace EQD2Viewer.Tests.Integration.Models
             }
 
             // Dose: uniform in central 50% region, zero outside
-            // Raw value 1000 with rawScale=0.001, unitToGy=1.0 ? 1.0 Gy
+            // Raw value 1000 with rawScale=0.001, unitToGy=1.0 -> 1.0 Gy
             var doseVoxels = new int[doseZ][,];
             for (int z = 0; z < doseZ; z++)
             {
@@ -181,14 +181,14 @@ namespace EQD2Viewer.Tests.Integration.Models
             var bmp = new WriteableBitmap(snap.CtImage.XSize, snap.CtImage.YSize,
              96, 96, PixelFormats.Bgra32, null);
 
-            // Soft tissue window: Level=40, Width=400 ? range [-160, 240] HU
+            // Soft tissue window: Level=40, Width=400 -> range [-160, 240] HU
             svc.RenderCtImage(bmp, snap.CtImage.ZSize / 2, 40, 400);
 
-            // Left edge: HU = -1000 ? below window ? should be black (or near-black)
+            // Left edge: HU = -1000 -> below window -> should be black (or near-black)
             var leftPixel = ReadPixel(bmp, 0, snap.CtImage.YSize / 2);
             leftPixel.R.Should().BeLessThan(10, "far-left should be dark (HU=-1000, below window)");
 
-            // Right edge: HU = +1000 ? above window ? should be white (or near-white)
+            // Right edge: HU = +1000 -> above window -> should be white (or near-white)
             var rightPixel = ReadPixel(bmp, snap.CtImage.XSize - 1, snap.CtImage.YSize / 2);
             rightPixel.R.Should().BeGreaterThan(245, "far-right should be bright (HU=+1000, above window)");
 
@@ -219,7 +219,7 @@ namespace EQD2Viewer.Tests.Integration.Models
             svc.RenderCtImage(bmpLung, midSlice, -600, 1600);
             var lungPixel = ReadPixel(bmpLung, midX, midY);
 
-            // Same pixel, different windowing ? different brightness
+            // Same pixel, different windowing -> different brightness
             softPixel.R.Should().NotBe(lungPixel.R,
            "different window settings should produce different pixel values");
 
@@ -263,7 +263,7 @@ namespace EQD2Viewer.Tests.Integration.Models
         }
 
         // ========================================================
-        // FULL ROUND-TRIP: Serialize ? Read ? Render
+        // FULL ROUND-TRIP: Serialize -> Read -> Render
         // ========================================================
 
         [Fact]
@@ -302,7 +302,7 @@ namespace EQD2Viewer.Tests.Integration.Models
             for (int i = 0; i < pixels1.Length; i++)
             {
                 pixels1[i].Should().Be(pixels2[i],
-       $"pixel byte {i} should match after binary round-trip");
+                    $"pixel byte {i} should match after binary round-trip");
             }
 
             svc1.Dispose();

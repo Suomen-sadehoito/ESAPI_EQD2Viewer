@@ -10,7 +10,7 @@ namespace EQD2Viewer.Tests.Integration.Models
     /// End-to-end tests for SnapshotSerializer binary (v3.0) and JSON+RLE (v2.0) formats.
     ///
     /// These tests verify the full serialization round-trip:
-    ///   ClinicalSnapshot ? Write ? disk ? Read ? ClinicalSnapshot
+    ///   ClinicalSnapshot -> Write -> disk -> Read -> ClinicalSnapshot
     ///
     /// Both formats are tested to ensure:
     ///   - All fields survive the round-trip (patient, plan, CT, dose, structures, DVH, etc.)
@@ -123,68 +123,68 @@ namespace EQD2Viewer.Tests.Integration.Models
 
             // Structures
             snap.Structures = new List<StructureData>
-    {
-        new StructureData
-        {
-      Id = "PTV", DicomType = "PTV",
-            ColorR = 255, ColorG = 0, ColorB = 0, ColorA = 255,
-         IsEmpty = false, HasMesh = true,
-  ContoursBySlice = new Dictionary<int, List<double[][]>>
-        {
-             [1] = new List<double[][]>
-  {
-     new[]
-   {
-      new[] { -10.0, -10.0, 0.0 },
-         new[] { 10.0, -10.0, 0.0 },
-    new[] { 10.0, 10.0, 0.0 },
-        new[] { -10.0, 10.0, 0.0 }
-         }
-           }
-       }
-       }
-        };
+            {
+                new StructureData
+                {
+                    Id = "PTV", DicomType = "PTV",
+                    ColorR = 255, ColorG = 0, ColorB = 0, ColorA = 255,
+                    IsEmpty = false, HasMesh = true,
+                    ContoursBySlice = new Dictionary<int, List<double[][]>>
+                    {
+                        [1] = new List<double[][]>
+                        {
+                            new[]
+                            {
+                                new[] { -10.0, -10.0, 0.0 },
+                                new[] { 10.0, -10.0, 0.0 },
+                                new[] { 10.0, 10.0, 0.0 },
+                                new[] { -10.0, 10.0, 0.0 }
+                            }
+                        }
+                    }
+                }
+            };
 
             // DVH curves
             snap.DvhCurves = new List<DvhCurveData>
-  {
-             new DvhCurveData
-       {
-          StructureId = "PTV", PlanId = "Plan1",
-         DMaxGy = 52.5, DMeanGy = 50.1, DMinGy = 48.0, VolumeCc = 125.0,
-          Curve = new[] { new[] { 0.0, 100.0 }, new[] { 50.0, 50.0 }, new[] { 55.0, 0.0 } }
-     }
+            {
+                new DvhCurveData
+                {
+                    StructureId = "PTV", PlanId = "Plan1",
+                    DMaxGy = 52.5, DMeanGy = 50.1, DMinGy = 48.0, VolumeCc = 125.0,
+                    Curve = new[] { new[] { 0.0, 100.0 }, new[] { 50.0, 50.0 }, new[] { 55.0, 0.0 } }
+                }
             };
 
             // Registrations
             snap.Registrations = new List<RegistrationData>
- {
-            new RegistrationData
-     {
-     Id = "Reg1", SourceFOR = "1.2.3.4.5", RegisteredFOR = "1.2.3.4.6",
-      CreationDateTime = new DateTime(2024, 1, 15, 10, 30, 0),
-    Matrix = new double[] { 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 5.0, -3.0, 1.0, 1 }
-     }
-        };
+            {
+                new RegistrationData
+                {
+                    Id = "Reg1", SourceFOR = "1.2.3.4.5", RegisteredFOR = "1.2.3.4.6",
+                    CreationDateTime = new DateTime(2024, 1, 15, 10, 30, 0),
+                    Matrix = new double[] { 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 5.0, -3.0, 1.0, 1 }
+                }
+            };
 
             // Courses
             snap.AllCourses = new List<CourseData>
- {
-          new CourseData
-        {
-   Id = "C1",
-       Plans = new List<PlanSummaryData>
-         {
-       new PlanSummaryData
-  {
-     PlanId = "Plan1", CourseId = "C1",
-               TotalDoseGy = 50.0, NumberOfFractions = 25,
-      PlanNormalization = 100.0, HasDose = true,
-                 ImageFOR = "1.2.3.4.5"
-        }
-          }
-         }
-     };
+            {
+                new CourseData
+                {
+                    Id = "C1",
+                    Plans = new List<PlanSummaryData>
+                    {
+                        new PlanSummaryData
+                        {
+                            PlanId = "Plan1", CourseId = "C1",
+                            TotalDoseGy = 50.0, NumberOfFractions = 25,
+                            PlanNormalization = 100.0, HasDose = true,
+                            ImageFOR = "1.2.3.4.5"
+                        }
+                    }
+                }
+            };
 
             return snap;
         }
@@ -242,8 +242,8 @@ namespace EQD2Viewer.Tests.Integration.Models
                 for (int y = 0; y < original.CtImage.YSize; y++)
                     for (int x = 0; x < original.CtImage.XSize; x++)
                         loaded.CtImage.Voxels[z][x, y].Should().Be(
-                                 original.CtImage.Voxels[z][x, y],
-                        $"CT voxel mismatch at ({x},{y},{z})");
+                            original.CtImage.Voxels[z][x, y],
+                            $"CT voxel mismatch at ({x},{y},{z})");
         }
 
         [Fact]
@@ -466,8 +466,8 @@ namespace EQD2Viewer.Tests.Integration.Models
                 for (int y = 0; y < original.CtImage.YSize; y++)
                     for (int x = 0; x < original.CtImage.XSize; x++)
                         fromJson.CtImage.Voxels[z][x, y].Should().Be(
-                           fromBin.CtImage.Voxels[z][x, y],
-                                    $"cross-format CT mismatch at ({x},{y},{z})");
+                            fromBin.CtImage.Voxels[z][x, y],
+                            $"cross-format CT mismatch at ({x},{y},{z})");
         }
 
         // ========================================================
@@ -487,11 +487,11 @@ namespace EQD2Viewer.Tests.Integration.Models
             string dir = Path.Combine(_tempDir, "bad_version");
             Directory.CreateDirectory(dir);
             File.WriteAllText(Path.Combine(dir, "snapshot_meta.json"),
-  "{\"formatVersion\":\"99.0\"}");
+                "{\"formatVersion\":\"99.0\"}");
 
             Action act = () => SnapshotSerializer.ReadAuto(dir);
             act.Should().Throw<InvalidOperationException>()
-             .WithMessage("*99.0*");
+                .WithMessage("*99.0*");
         }
 
         private static long GetDirectorySize(string dir)

@@ -11,10 +11,10 @@ namespace EQD2Viewer.FixtureGenerator
     ///
     /// The caller (Script.cs) is responsible for loading the ClinicalSnapshot via
     /// EsapiDataSource -- this class only handles the serialization step.
-    /// This avoids a circular project reference (FixtureGenerator ? EQD2Viewer.Esapi).
+    /// This avoids a circular project reference (FixtureGenerator -> EQD2Viewer.Esapi).
     ///
     /// Compared to the existing FixtureExporter (targeted testing tool):
-    ///   FixtureExporter   ? selective fixture files for unit/integration tests (~1 MB)
+    ///   FixtureExporter   -> selective fixture files for unit/integration tests (~1 MB)
     ///   SnapshotExporter  -> full ClinicalSnapshot for end-to-end QA (~5-30 MB binary)
     ///
     /// Output: Desktop\EQD2_Snapshots\{PatientId}_{CourseId}_{PlanId}_snapshot\

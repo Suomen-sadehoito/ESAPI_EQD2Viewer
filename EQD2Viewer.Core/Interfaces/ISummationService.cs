@@ -15,8 +15,8 @@ namespace EQD2Viewer.Core.Interfaces
     ///
     /// After Phase 2 completes, the service retains per-plan physical dose arrays,
     /// enabling:
-    ///   - Fast EQD2 recomputation with a different display ?/? (no data reloading).
-    ///   - Per-structure DVH calculation with structure-specific ?/? values.
+    ///   - Fast EQD2 recomputation with a different display alpha/beta (no data reloading).
+    ///   - Per-structure DVH calculation with structure-specific alpha/beta values.
     /// </summary>
     public interface ISummationService : IDisposable
     {
@@ -35,13 +35,13 @@ namespace EQD2Viewer.Core.Interfaces
         /// <summary>
         /// Recomputes the EQD2 display sum from stored per-plan physical doses.
         /// Much faster than full re-summation -- skips Phase 1 entirely.
-        /// Called when the user changes the display ?/? slider.
+        /// Called when the user changes the display alpha/beta slider.
         /// </summary>
         Task<SummationResult> RecomputeEQD2DisplayAsync(double displayAlphaBeta,
      IProgress<int> progress, CancellationToken ct);
 
         /// <summary>
-        /// Computes a cumulative DVH for a specific structure using that structure's own ?/?.
+        /// Computes a cumulative DVH for a specific structure using that structure's own alpha/beta.
         /// </summary>
         DoseVolumePoint[] ComputeStructureEQD2DVH(string structureId,
         double structureAlphaBeta, double maxDoseGy);

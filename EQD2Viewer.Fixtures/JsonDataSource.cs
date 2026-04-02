@@ -10,9 +10,9 @@ namespace EQD2Viewer.Fixtures
     /// directory exported by SnapshotSerializer (via FixtureGenerator's "Export Snapshot" command).
     ///
     /// This enables true end-to-end testing without Eclipse:
-    ///   1. Run FixtureGenerator on a clinical workstation  ? exports snapshot directory
+    ///   1. Run FixtureGenerator on a clinical workstation  -> exports snapshot directory
     ///   2. Copy directory to any developer machine
-    ///   3. Pass it to JsonDataSource ? identical ClinicalSnapshot as EsapiDataSource would produce
+    ///   3. Pass it to JsonDataSource -> identical ClinicalSnapshot as EsapiDataSource would produce
     ///
     /// Usage:
     ///   var source = new JsonDataSource(@"C:\Fixtures\PATIENT_C1_Plan1_snapshot");
