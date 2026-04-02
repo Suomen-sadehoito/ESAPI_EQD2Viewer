@@ -1,4 +1,4 @@
-using EQD2Viewer.Core.Models;
+﻿using EQD2Viewer.Core.Models;
 using EQD2Viewer.Core.Data;
 using System;
 using System.Collections.Generic;
@@ -14,7 +14,7 @@ namespace EQD2Viewer.Services.Rendering
     /// pure domain data (from Core) with WPF rendering primitives.
     /// 
     /// All data inputs come from Core types (VolumeData, DoseVolumeData, etc.)
-    /// � this is the adapter boundary between pure domain data and WPF rendering.
+    /// -- this is the adapter boundary between pure domain data and WPF rendering.
     /// </summary>
     public interface IImageRenderingService : IDisposable
     {

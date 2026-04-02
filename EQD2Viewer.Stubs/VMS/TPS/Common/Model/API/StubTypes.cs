@@ -2,7 +2,7 @@
 {
     using VMS.TPS.Common.Model.Types;
 
-    // ── Minimal stubs: just enough to compile ──
+    // == Minimal stubs: just enough to compile ==
 
     public class Patient
     {

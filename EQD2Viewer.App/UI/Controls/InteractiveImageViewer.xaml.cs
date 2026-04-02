@@ -1,4 +1,4 @@
-using EQD2Viewer.Core.Models;
+﻿using EQD2Viewer.Core.Models;
 using EQD2Viewer.Services.Rendering;
 using System;
 using System.Collections.ObjectModel;

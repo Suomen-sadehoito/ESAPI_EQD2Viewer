@@ -1,4 +1,4 @@
-using EQD2Viewer.Core.Data;
+﻿using EQD2Viewer.Core.Data;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Media;
@@ -8,7 +8,7 @@ namespace EQD2Viewer.Services.Rendering
     /// <summary>
     /// Represents a single isodose level with dual-mode threshold support, color, and visibility.
     /// 
-    /// In <see cref="IsodoseMode.Relative"/>: threshold = <see cref="Fraction"/> � referenceDose.
+    /// In <see cref="IsodoseMode.Relative"/>: threshold = <see cref="Fraction"/> * referenceDose.
     /// In <see cref="IsodoseMode.Absolute"/>: threshold = <see cref="AbsoluteDoseGy"/> directly.
     /// 
     /// Both modes share the same color, visibility, and alpha settings.
@@ -30,7 +30,7 @@ namespace EQD2Viewer.Services.Rendering
         /// <summary>
         /// Threshold as fraction of reference dose (e.g., 1.10 = 110%, 0.50 = 50%).
         /// Used in <see cref="IsodoseMode.Relative"/> mode.
-        /// Range: typically 0.05�1.20. Values above 1.0 represent hot spots.
+        /// Range: typically 0.05-1.20. Values above 1.0 represent hot spots.
         /// </summary>
         public double Fraction
         {
@@ -41,7 +41,7 @@ namespace EQD2Viewer.Services.Rendering
         /// <summary>
         /// Threshold as absolute dose in Gy.
         /// Used in <see cref="IsodoseMode.Absolute"/> mode (EQD2 summation re-irradiation assessment).
-        /// Range: typically 5�80 Gy for clinical tolerances.
+        /// Range: typically 5-80 Gy for clinical tolerances.
         /// </summary>
         public double AbsoluteDoseGy
         {

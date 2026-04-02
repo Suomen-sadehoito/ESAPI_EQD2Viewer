@@ -1,4 +1,4 @@
-using EQD2Viewer.Core.Calculations;
+﻿using EQD2Viewer.Core.Calculations;
 using EQD2Viewer.Fixtures;
 using FluentAssertions;
 using System.Linq;
@@ -21,20 +21,20 @@ namespace EQD2Viewer.Tests.Integration
         [MemberData(nameof(FixtureLoader.AllFixtureDirectories), MemberType = typeof(FixtureLoader))]
         public void DoseScaling_RawToGy_ShouldMatchExportedValues(string fixtureName)
         {
-            // ── Arrange: load raw voxels and the Gy values Eclipse computed ──
+            // == Arrange: load raw voxels and the Gy values Eclipse computed ==
             var scaling = FixtureLoader.LoadDoseScaling(fixtureName);
             var slices = FixtureLoader.LoadDoseSlices(fixtureName);
             slices.Should().NotBeEmpty("fixture must contain at least one dose slice");
 
             foreach (var slice in slices)
             {
-                // ── Act: apply our raw→Gy conversion (same as ImageRenderingService) ──
+                // == Act: apply our raw→Gy conversion (same as ImageRenderingService) ==
                 for (int i = 0; i < slice.rawValues.Length; i++)
                 {
                     double ourGy = (slice.rawValues[i] * scaling.rawScale + scaling.rawOffset)
                                    * scaling.unitToGy;
 
-                    // ── Assert: must match the Gy value Eclipse exported ──
+                    // == Assert: must match the Gy value Eclipse exported ==
                     ourGy.Should().BeApproximately(slice.valuesGy[i], 0.001,
                         $"raw→Gy conversion mismatch at index {i} on slice {slice.sliceIndex}, " +
                         $"raw={slice.rawValues[i]}, expected={slice.valuesGy[i]:F6}, got={ourGy:F6}");

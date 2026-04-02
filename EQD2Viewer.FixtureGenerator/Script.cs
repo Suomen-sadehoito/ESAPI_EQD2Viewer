@@ -1,4 +1,4 @@
-using VMS.TPS.Common.Model.API;
+﻿using VMS.TPS.Common.Model.API;
 using EQD2Viewer.Core.Logging;
 using EQD2Viewer.Core.Data;
 using EQD2Viewer.Esapi.Adapters;
@@ -81,9 +81,9 @@ namespace VMS.TPS
             }
         }
 
-        // ────────────────────────────────────────────────────────
+        // ========================================================
         // MODE A: Full snapshot (end-to-end QA)
-        // ────────────────────────────────────────────────────────
+        // ========================================================
 
         private static void RunSnapshotExport(ScriptContext context)
         {
@@ -112,9 +112,9 @@ namespace VMS.TPS
              MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
-        // ────────────────────────────────────────────────────────
+        // ========================================================
         // MODE B: Selective test fixtures
-        // ────────────────────────────────────────────────────────
+        // ========================================================
 
         private static void RunFixtureExport(ScriptContext context,
         PlanningItem planningItem, string planType)
@@ -138,9 +138,9 @@ namespace VMS.TPS
                MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
-        // ────────────────────────────────────────────────────────
+        // ========================================================
         // HELPERS
-        // ────────────────────────────────────────────────────────
+        // ========================================================
 
         private static PlanningItem ResolvePlanningItem(ScriptContext context, out string planType)
         {

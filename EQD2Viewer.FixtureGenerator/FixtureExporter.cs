@@ -1,4 +1,4 @@
-using VMS.TPS.Common.Model.Types;
+﻿using VMS.TPS.Common.Model.Types;
 using VMS.TPS.Common.Model.API;
 using System;
 using System.Collections.Generic;
@@ -32,23 +32,23 @@ namespace EQD2Viewer.FixtureGenerator
             var image = context.Image;
             var dose = plan.Dose;
 
-            // ── 1. Metadata ──
+            // == 1. Metadata ==
             ExportMetadata(context.Patient?.Id ?? "", plan, planType, outputDir);
             sb.AppendLine("✓ metadata.json");
 
-            // ── 2. Dose scaling calibration ──
+            // == 2. Dose scaling calibration ==
             ExportDoseScaling(plan, outputDir);
             sb.AppendLine("✓ dose_scaling.json");
 
-            // ── 3. Image geometry ──
+            // == 3. Image geometry ==
             ExportImageGeometry(image, outputDir);
             sb.AppendLine("✓ image_geometry.json");
 
-            // ── 4. Dose geometry ──
+            // == 4. Dose geometry ==
             ExportDoseGeometry(dose, outputDir);
             sb.AppendLine("✓ dose_geometry.json");
 
-            // ── 5. Representative dose slices (25%, 50%, 75%) ──
+            // == 5. Representative dose slices (25%, 50%, 75%) ==
             int[] doseSlices = {
            dose.ZSize / 4,
                 dose.ZSize / 2,
@@ -60,11 +60,11 @@ namespace EQD2Viewer.FixtureGenerator
                 sb.AppendLine($"✓ dose_slice_{z:D3}.json");
             }
 
-            // ── 6. CT subsample for HU offset detection ──
+            // == 6. CT subsample for HU offset detection ==
             ExportCtSubsample(image, outputDir);
             sb.AppendLine("✓ ct_subsample.json");
 
-            // ── 7. ALL structures and DVH (no artificial limit) ──
+            // == 7. ALL structures and DVH (no artificial limit) ==
             StructureSet structureSet = GetStructureSet(plan);
             if (structureSet != null)
             {
@@ -90,11 +90,11 @@ namespace EQD2Viewer.FixtureGenerator
                 sb.AppendLine($"  → {structures.Count} rakennetta yhteensä");
             }
 
-            // ── 8. Reference dose points ──
+            // == 8. Reference dose points ==
             ExportReferenceDosePoints(image, dose, plan, outputDir);
             sb.AppendLine("✓ reference_dose_points.json");
 
-            // ── 9. All registrations ──
+            // == 9. All registrations ==
             int regCount = ExportRegistrations(context.Patient, image, outputDir);
             if (regCount > 0)
                 sb.AppendLine($"✓ registrations.json ({regCount} kpl)");

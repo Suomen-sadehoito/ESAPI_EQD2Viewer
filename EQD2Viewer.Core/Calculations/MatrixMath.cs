@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 namespace EQD2Viewer.Core.Calculations
 {

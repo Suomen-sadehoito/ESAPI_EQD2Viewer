@@ -1,4 +1,4 @@
-using EQD2Viewer.Core.Serialization;
+﻿using EQD2Viewer.Core.Serialization;
 using EQD2Viewer.Core.Data;
 using System;
 using System.Collections.Generic;
@@ -10,12 +10,12 @@ namespace EQD2Viewer.FixtureGenerator
     /// Serializes a pre-loaded ClinicalSnapshot to a directory using SnapshotSerializer.
     ///
     /// The caller (Script.cs) is responsible for loading the ClinicalSnapshot via
-    /// EsapiDataSource � this class only handles the serialization step.
+    /// EsapiDataSource -- this class only handles the serialization step.
     /// This avoids a circular project reference (FixtureGenerator ? EQD2Viewer.Esapi).
     ///
     /// Compared to the existing FixtureExporter (targeted testing tool):
     ///   FixtureExporter   ? selective fixture files for unit/integration tests (~1 MB)
-    ///   SnapshotExporter  ? full ClinicalSnapshot for end-to-end QA (~5�30 MB binary)
+    ///   SnapshotExporter  -> full ClinicalSnapshot for end-to-end QA (~5-30 MB binary)
     ///
     /// Output: Desktop\EQD2_Snapshots\{PatientId}_{CourseId}_{PlanId}_snapshot\
     /// </summary>
@@ -38,7 +38,7 @@ namespace EQD2Viewer.FixtureGenerator
         }
 
         /// <summary>
-        /// Builds RenderSettings with reference dose points sampled at a 5�5 grid of CT pixels.
+        /// Builds RenderSettings with reference dose points sampled at a 5x5 grid of CT pixels.
         /// These are Eclipse-computed dose values that the app should reproduce exactly.
         /// </summary>
         private static RenderSettings BuildRenderSettings(ClinicalSnapshot snapshot)
@@ -56,7 +56,7 @@ namespace EQD2Viewer.FixtureGenerator
 
             int midSlice = ct.ZSize / 2;
 
-            // Sample a 5�5 grid of test points across the CT image
+            // Sample a 5x5 grid of test points across the CT image
             int[] testX = { ct.XSize / 8, ct.XSize / 4, ct.XSize / 2, 3 * ct.XSize / 4, 7 * ct.XSize / 8 };
             int[] testY = { ct.YSize / 8, ct.YSize / 4, ct.YSize / 2, 3 * ct.YSize / 4, 7 * ct.YSize / 8 };
 

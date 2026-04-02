@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+ï»¿using System.Collections.Generic;
 
 namespace EQD2Viewer.Core.Data
 {
@@ -9,7 +9,7 @@ namespace EQD2Viewer.Core.Data
     /// display state so that the application's rendering can be verified to produce
     /// visually identical results.
     /// 
-    /// All fields are optional — older snapshots without these settings still load
+    /// All fields are optional -- older snapshots without these settings still load
     /// and render normally using default parameters.
     /// </summary>
     public class RenderSettings

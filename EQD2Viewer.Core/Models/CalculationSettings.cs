@@ -1,4 +1,4 @@
-namespace EQD2Viewer.Core.Models
+﻿namespace EQD2Viewer.Core.Models
 {
     /// <summary>
     /// Method for calculating EQD2 Dmean.

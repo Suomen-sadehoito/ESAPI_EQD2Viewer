@@ -1,4 +1,4 @@
-using EQD2Viewer.Core.Data;
+ï»¿using EQD2Viewer.Core.Data;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -12,26 +12,26 @@ namespace EQD2Viewer.Core.Serialization
     /// Serializes and deserializes a ClinicalSnapshot to/from a directory of JSON files.
     ///
     /// File layout (one directory per snapshot):
-    ///   snapshot_meta.json        — version, export timestamp, patient/plan IDs
-    ///   patient.json     — PatientData
-    ///   plan.json           — PlanData (active plan)
-    ///   ct_geometry.json     — VolumeGeometry for CT
-    ///   ct_voxels_{z:D4}.json     — one file per CT slice  (raw int values, RLE-compressed)
-    ///   dose_geometry.json        — VolumeGeometry for dose
-    ///   dose_scaling.json         — DoseScaling
-    ///   dose_voxels_{z:D4}.json   — one file per dose slice (raw int values, RLE-compressed)
-    ///   structures.json           — all StructureData (metadata + contours, no voxels)
-    ///   dvh_curves.json     — all DvhCurveData
-    ///   registrations.json        — all RegistrationData
-    ///   courses.json        — AllCourses (for summation dialog)
+    ///   snapshot_meta.json        -- version, export timestamp, patient/plan IDs
+    ///   patient.json              -- PatientData
+    ///   plan.json                 -- PlanData (active plan)
+    ///   ct_geometry.json          -- VolumeGeometry for CT
+    ///   ct_voxels_{z:D4}.json    -- one file per CT slice  (raw int values, RLE-compressed)
+    ///   dose_geometry.json        -- VolumeGeometry for dose
+    ///   dose_scaling.json         -- DoseScaling
+    ///   dose_voxels_{z:D4}.json  -- one file per dose slice (raw int values, RLE-compressed)
+    ///   structures.json           -- all StructureData (metadata + contours, no voxels)
+    ///   dvh_curves.json           -- all DvhCurveData
+    ///   registrations.json        -- all RegistrationData
+    ///   courses.json              -- AllCourses (for summation dialog)
     ///
     /// Design rationale:
     ///   - Splitting CT/dose voxels into per-slice files lets large datasets load slice-by-slice
     ///     and keeps individual file sizes manageable (&lt;10 MB each for typical CT).
     ///   - RLE (run-length encoding) on CT reduces file size ~50-70% (large air/background regions).
-    ///   - No external JSON library — manual formatting for .NET 4.8 / single-DLL deployment.
+    ///   - No external JSON library -- manual formatting for .NET 4.8 / single-DLL deployment.
     ///   - The same SnapshotSerializer is used by both FixtureGenerator (write) and
-    /// JsonDataSource (read), guaranteeing schema consistency.
+    ///     JsonDataSource (read), guaranteeing schema consistency.
     /// </summary>
     public static class SnapshotSerializer
     {
@@ -42,12 +42,12 @@ namespace EQD2Viewer.Core.Serialization
         private static readonly Encoding UTF8NoBom = new UTF8Encoding(false);
         private static readonly CultureInfo INV = CultureInfo.InvariantCulture;
 
-        // ????????????????????????????????????????????????????????
-        // WRITE — JSON+RLE (original, kept for backward compatibility)
-        // ????????????????????????????????????????????????????????
+        // ========================================================
+        // WRITE -- JSON+RLE (original, kept for backward compatibility)
+        // ========================================================
 
         // WRITE
-        // ????????????????????????????????????????????????????????
+        // ========================================================
 
         /// <summary>
         /// Serializes the entire snapshot to <paramref name="outputDir"/>.
@@ -61,30 +61,30 @@ namespace EQD2Viewer.Core.Serialization
 
             // 1. Meta
             WriteMeta(snap, outputDir);
-            sb.AppendLine("? snapshot_meta.json");
+            sb.AppendLine("  snapshot_meta.json");
 
             // 2. Patient
             WritePatient(snap.Patient, outputDir);
-            sb.AppendLine("? patient.json");
+            sb.AppendLine("  patient.json");
 
             // 3. Active plan
             if (snap.ActivePlan != null)
             {
                 WritePlan(snap.ActivePlan, outputDir);
-                sb.AppendLine("? plan.json");
+                sb.AppendLine("  plan.json");
             }
 
             // 4. CT geometry
             if (snap.CtImage != null)
             {
                 WriteGeometry(snap.CtImage.Geometry, Path.Combine(outputDir, "ct_geometry.json"));
-                sb.AppendLine("? ct_geometry.json");
+                sb.AppendLine("  ct_geometry.json");
 
-                // 5. CT voxels — one file per slice
+                // 5. CT voxels -- one file per slice
                 int ctSlices = WriteVoxelSlices(snap.CtImage.Voxels, "ct_voxels_", outputDir);
                 WriteJson(Path.Combine(outputDir, "ct_huoffset.json"),
                  $"{{\"huOffset\":{snap.CtImage.HuOffset}}}");
-                sb.AppendLine($"? ct_voxels_*.json ({ctSlices} leikettä, HU offset={snap.CtImage.HuOffset})");
+                sb.AppendLine($"  ct_voxels_*.json ({ctSlices} slices, HU offset={snap.CtImage.HuOffset})");
             }
 
             // 6. Dose geometry + scaling
@@ -92,41 +92,41 @@ namespace EQD2Viewer.Core.Serialization
             {
                 WriteGeometry(snap.Dose.Geometry, Path.Combine(outputDir, "dose_geometry.json"));
                 WriteScaling(snap.Dose.Scaling, outputDir);
-                sb.AppendLine("? dose_geometry.json + dose_scaling.json");
+                sb.AppendLine("  dose_geometry.json + dose_scaling.json");
 
-                // 7. Dose voxels — one file per slice
+                // 7. Dose voxels -- one file per slice
                 int doseSlices = WriteVoxelSlices(snap.Dose.Voxels, "dose_voxels_", outputDir);
-                sb.AppendLine($"? dose_voxels_*.json ({doseSlices} leikettä)");
+                sb.AppendLine($"  dose_voxels_*.json ({doseSlices} slices)");
             }
 
             // 8. Structures
             WriteStructures(snap.Structures, outputDir);
-            sb.AppendLine($"? structures.json ({snap.Structures?.Count ?? 0} rakennetta)");
+            sb.AppendLine($"  structures.json ({snap.Structures?.Count ?? 0} structures)");
 
             // 9. DVH curves
             WriteDvhCurves(snap.DvhCurves, outputDir);
-            sb.AppendLine($"? dvh_curves.json ({snap.DvhCurves?.Count ?? 0} käyrää)");
+            sb.AppendLine($"  dvh_curves.json ({snap.DvhCurves?.Count ?? 0} curves)");
 
             // 10. Registrations
             WriteRegistrations(snap.Registrations, outputDir);
-            sb.AppendLine($"? registrations.json ({snap.Registrations?.Count ?? 0} rekisteröintiä)");
+            sb.AppendLine($"  registrations.json ({snap.Registrations?.Count ?? 0} registrations)");
 
             // 11. Courses
             WriteCourses(snap.AllCourses, outputDir);
-            sb.AppendLine($"? courses.json ({snap.AllCourses?.Count ?? 0} kurssia)");
+            sb.AppendLine($"  courses.json ({snap.AllCourses?.Count ?? 0} courses)");
 
             if (snap.RenderSettings != null)
             {
                 WriteRenderSettings(snap.RenderSettings, outputDir);
-                sb.AppendLine($"? render_settings.json ({snap.RenderSettings.ReferenceDosePoints?.Count ?? 0} ref points)");
+                sb.AppendLine($"  render_settings.json ({snap.RenderSettings.ReferenceDosePoints?.Count ?? 0} ref points)");
             }
 
             return sb.ToString();
         }
 
-        // ????????????????????????????????????????????????????????
-        // READ — JSON+RLE (original v2.0 format)
-        // ????????????????????????????????????????????????????????
+        // ========================================================
+        // READ -- JSON+RLE (original v2.0 format)
+        // ========================================================
 
         /// <summary>
         /// Deserializes a ClinicalSnapshot from a directory written by <see cref="Write"/> (v2.0 format).
@@ -213,9 +213,9 @@ namespace EQD2Viewer.Core.Serialization
             return snap;
         }
 
-        // ????????????????????????????????????????????????????????
-        // WRITE — Binary GZip volumes (for full end-to-end snapshots)
-        // ????????????????????????????????????????????????????????
+        // ========================================================
+        // WRITE -- Binary GZip volumes (for full end-to-end snapshots)
+        // ========================================================
 
         /// <summary>
         /// Serializes the entire snapshot using GZip-compressed binary for volume data.
@@ -377,9 +377,9 @@ namespace EQD2Viewer.Core.Serialization
             return snap;
         }
 
-        // ????????????????????????????????????????????????????????
+        // ========================================================
         // BINARY VOLUME I/O
-        // ????????????????????????????????????????????????????????
+        // ========================================================
 
         /// <summary>
         /// Writes a 3D voxel volume as a GZip-compressed binary file.
@@ -450,9 +450,9 @@ namespace EQD2Viewer.Core.Serialization
             WriteJson(Path.Combine(dir, MetaFileName), w.Build());
         }
 
-        // ????????????????????????????????????????????????????????
+        // ========================================================
         // WRITE HELPERS
-        // ????????????????????????????????????????????????????????
+        // ========================================================
 
         private static void WriteMeta(ClinicalSnapshot snap, string dir)
         {
@@ -660,9 +660,9 @@ namespace EQD2Viewer.Core.Serialization
             WriteJson(Path.Combine(dir, "courses.json"), sb.ToString());
         }
 
-        // ????????????????????????????????????????????????????????
+        // ========================================================
         // RENDER SETTINGS I/O
-        // ????????????????????????????????????????????????????????
+        // ========================================================
 
         private static void WriteRenderSettings(RenderSettings settings, string dir)
         {
@@ -760,9 +760,9 @@ namespace EQD2Viewer.Core.Serialization
             return rs;
         }
 
-        // ????????????????????????????????????????????????????????
+        // ========================================================
         // RLE VOXEL SERIALIZATION
-        // ????????????????????????????????????????????????????????
+        // ========================================================
 
         /// <summary>
         /// Serializes a 2D voxel slice with run-length encoding.
@@ -814,9 +814,9 @@ namespace EQD2Viewer.Core.Serialization
             return sb.ToString();
         }
 
-        // ????????????????????????????????????????????????????????
+        // ========================================================
         // READ HELPERS
-        // ????????????????????????????????????????????????????????
+        // ========================================================
 
         private static PatientData ReadPatient(string json) => new PatientData
         {
@@ -1144,9 +1144,9 @@ namespace EQD2Viewer.Core.Serialization
             return result;
         }
 
-        // ????????????????????????????????????????????????????????
+        // ========================================================
         // MINI JSON PRIMITIVES
-        // ????????????????????????????????????????????????????????
+        // ========================================================
 
         private static string ExtractString(string json, string key)
         {
@@ -1260,9 +1260,9 @@ namespace EQD2Viewer.Core.Serialization
         private static string Str(string s) =>
   "\"" + (s ?? "").Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
 
-        // ????????????????????????????????????????????????????????
+        // ========================================================
         // MINIMAL JSON WRITER HELPER (for structured output)
-        // ????????????????????????????????????????????????????????
+        // ========================================================
 
         private class JW
         {

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 namespace EQD2Viewer.App.UI.ViewModels
 {
@@ -9,12 +9,12 @@ namespace EQD2Viewer.App.UI.ViewModels
     /// model. Each child ViewModel publishes domain events; others subscribe to what
     /// they need. The bus is owned by MainViewModel and injected into each child.
     ///
-    /// Events are intentionally simple � no async, no queuing. All handlers run
+    /// Events are intentionally simple -- no async, no queuing. All handlers run
     /// synchronously on the UI thread since WPF rendering requires it anyway.
     /// </summary>
     internal sealed class ViewModelEventBus
     {
-        // ── Rendering triggers ──────────────────────────────────
+        // == Rendering triggers ==================================
 
         /// <summary>Raised when any state change requires a full scene re-render.</summary>
         public event Action? RenderRequested;
@@ -22,40 +22,40 @@ namespace EQD2Viewer.App.UI.ViewModels
         /// <summary>Request a scene re-render from any child ViewModel.</summary>
         public void RequestRender() => RenderRequested?.Invoke();
 
-        // ?? EQD2 / ?/? changes ?????????????????????????????????????????
+        // == EQD2 / alpha/beta changes =============================
 
-        /// <summary>Raised when the display ?/? slider value changes.</summary>
+        /// <summary>Raised when the display alpha/beta slider value changes.</summary>
         public event Action<double>? DisplayAlphaBetaChanged;
 
         public void OnDisplayAlphaBetaChanged(double alphaBeta)
-        => DisplayAlphaBetaChanged?.Invoke(alphaBeta);
+            => DisplayAlphaBetaChanged?.Invoke(alphaBeta);
 
         /// <summary>Raised when the EQD2 enabled toggle changes.</summary>
         public event Action<bool>? EQD2EnabledChanged;
 
         public void OnEQD2EnabledChanged(bool enabled)
-    => EQD2EnabledChanged?.Invoke(enabled);
+            => EQD2EnabledChanged?.Invoke(enabled);
 
         /// <summary>Raised when number of fractions changes.</summary>
         public event Action<int>? FractionsChanged;
 
         public void OnFractionsChanged(int fractions)
-=> FractionsChanged?.Invoke(fractions);
+            => FractionsChanged?.Invoke(fractions);
 
-        // ?? DVH recalculation ???????????????????????????????????????????
+        // == DVH recalculation ======================================
 
-        /// <summary>Raised when DVH curves need full recalculation (e.g. ?/? or fx changed).</summary>
+        /// <summary>Raised when DVH curves need full recalculation (e.g. alpha/beta or fx changed).</summary>
         public event Action? DVHRecalculationRequested;
 
         public void RequestDVHRecalculation() => DVHRecalculationRequested?.Invoke();
 
-        // ?? Summation lifecycle ?????????????????????????????????????????
+        // == Summation lifecycle ====================================
 
         /// <summary>Raised when summation completes or is cleared.</summary>
         public event Action<SummationStateChangedArgs>? SummationStateChanged;
 
         public void OnSummationStateChanged(SummationStateChangedArgs args)
-     => SummationStateChanged?.Invoke(args);
+            => SummationStateChanged?.Invoke(args);
     }
 
     /// <summary>

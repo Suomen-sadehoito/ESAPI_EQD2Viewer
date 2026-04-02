@@ -1,4 +1,4 @@
-using EQD2Viewer.Core.Logging;
+﻿using EQD2Viewer.Core.Logging;
 using EQD2Viewer.Core.Calculations;
 using VMS.TPS.Common.Model.Types;
 using VMS.TPS.Common.Model.API;

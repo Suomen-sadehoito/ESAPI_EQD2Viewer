@@ -1,4 +1,4 @@
-namespace EQD2Viewer.Fixtures.Models
+﻿namespace EQD2Viewer.Fixtures.Models
 {
     /// <summary>
     /// C# models matching the JSON fixture schema produced by FixtureGenerator.

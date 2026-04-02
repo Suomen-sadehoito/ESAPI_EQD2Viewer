@@ -1,4 +1,4 @@
-using EQD2Viewer.Core.Calculations;
+﻿using EQD2Viewer.Core.Calculations;
 using EQD2Viewer.Core.Data;
 using EQD2Viewer.Core.Models;
 using OxyPlot;

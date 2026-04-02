@@ -1,4 +1,4 @@
-using EQD2Viewer.Core.Models;
+﻿using EQD2Viewer.Core.Models;
 using EQD2Viewer.Services;
 using FluentAssertions;
 using System.Linq;

@@ -1,4 +1,4 @@
-using EQD2Viewer.Services.Rendering;
+﻿using EQD2Viewer.Services.Rendering;
 using EQD2Viewer.Core.Interfaces;
 using EQD2Viewer.Core.Data;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -37,7 +37,7 @@ namespace EQD2Viewer.App.UI.ViewModels
         internal readonly IDebugExportService _debugExportService;
         internal readonly IDVHCalculation _dvhService;
 
-        // ── Clean Architecture data source ──
+        // == Clean Architecture data source ==
         internal readonly ClinicalSnapshot _snapshot;
 
         /// <summary>
@@ -52,7 +52,7 @@ namespace EQD2Viewer.App.UI.ViewModels
         /// </summary>
         internal readonly ISummationServiceFactory? _summationServiceFactory;
 
-        // ── Child ViewModels (decomposed responsibilities) ──
+        // == Child ViewModels (decomposed responsibilities) ==
         internal readonly ViewModelEventBus _eventBus = new ViewModelEventBus();
         internal readonly DoseOverlayViewModel _doseOverlay;
 
@@ -77,26 +77,26 @@ namespace EQD2Viewer.App.UI.ViewModels
             _summationDataLoader = summationDataLoader;
             _summationServiceFactory = summationServiceFactory;
 
-            // ── Initialize child ViewModels ──
+            // == Initialize child ViewModels ==
             double prescGy = snapshot.ActivePlan?.TotalDoseGy ?? 0;
             double norm = snapshot.ActivePlan?.PlanNormalization ?? 100.0;
             int fx = snapshot.ActivePlan?.NumberOfFractions ?? 1;
 
             _doseOverlay = new DoseOverlayViewModel(_eventBus, prescGy, norm, fx);
 
-            // ── Wire event bus subscriptions ──
+            // == Wire event bus subscriptions ==
             _eventBus.RenderRequested += RequestRender;
             _eventBus.EQD2EnabledChanged += _ => { if (_dvhCache.Count > 0) RecalculateAllDVH(); };
             _eventBus.FractionsChanged += _ => { if (_dvhCache.Count > 0) RecalculateAllDVH(); };
             _eventBus.DisplayAlphaBetaChanged += _ => RecomputeDisplayEQD2IfActive();
 
-            // ── Forward DoseOverlay property changes so existing XAML bindings still work ──
+            // == Forward DoseOverlay property changes so existing XAML bindings still work ==
             _doseOverlay.PropertyChanged += (s, e) => OnPropertyChanged(e.PropertyName);
 
             _contourLines = new ObservableCollection<IsodoseContourData>();
             _structureContourLines = new ObservableCollection<StructureContourData>();
 
-            // ── Legacy property sync (bridge until XAML migrates to DoseOverlay.xxx) ──
+            // == Legacy property sync (bridge until XAML migrates to DoseOverlay.xxx) ==
             _isodoseLevelArray = _doseOverlay._isodoseLevelArray;
             IsodoseLevels = _doseOverlay.IsodoseLevels;
 

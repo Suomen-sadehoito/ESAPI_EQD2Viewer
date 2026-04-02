@@ -1,4 +1,4 @@
-using EQD2Viewer.Core.Models;
+ï»¿using EQD2Viewer.Core.Models;
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -34,7 +34,7 @@ namespace EQD2Viewer.Core.Interfaces
 
         /// <summary>
         /// Recomputes the EQD2 display sum from stored per-plan physical doses.
-        /// Much faster than full re-summation — skips Phase 1 entirely.
+        /// Much faster than full re-summation -- skips Phase 1 entirely.
         /// Called when the user changes the display ?/? slider.
         /// </summary>
         Task<SummationResult> RecomputeEQD2DisplayAsync(double displayAlphaBeta,
@@ -59,7 +59,7 @@ namespace EQD2Viewer.Core.Interfaces
         /// <summary>Gets all structure IDs that have cached masks.</summary>
         IReadOnlyList<string> GetCachedStructureIds();
 
-        /// <summary>Gets the voxel volume in cm³ for the reference CT grid.</summary>
+        /// <summary>Gets the voxel volume in cm^3 for the reference CT grid.</summary>
         double GetVoxelVolumeCc();
 
         /// <summary>Gets the total number of slices.</summary>

@@ -1,4 +1,4 @@
-using EQD2Viewer.Core.Serialization;
+﻿using EQD2Viewer.Core.Serialization;
 using EQD2Viewer.Core.Interfaces;
 using EQD2Viewer.Core.Data;
 using System;

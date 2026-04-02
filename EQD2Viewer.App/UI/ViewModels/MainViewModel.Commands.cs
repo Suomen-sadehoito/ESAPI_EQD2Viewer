@@ -1,4 +1,4 @@
-using EQD2Viewer.Services.Rendering;
+﻿using EQD2Viewer.Services.Rendering;
 using CommunityToolkit.Mvvm.Input;
 using EQD2Viewer.App.Services;
 using System.Linq;

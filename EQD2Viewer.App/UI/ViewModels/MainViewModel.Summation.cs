@@ -1,4 +1,4 @@
-using CommunityToolkit.Mvvm.Input;
+﻿using CommunityToolkit.Mvvm.Input;
 using EQD2Viewer.App.UI.Views;
 using EQD2Viewer.Core.Calculations;
 using EQD2Viewer.Core.Interfaces;

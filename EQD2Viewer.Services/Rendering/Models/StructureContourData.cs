@@ -1,4 +1,4 @@
-using EQD2Viewer.Core.Models;
+﻿using EQD2Viewer.Core.Models;
 using System.Windows.Media;
 
 namespace EQD2Viewer.Services.Rendering

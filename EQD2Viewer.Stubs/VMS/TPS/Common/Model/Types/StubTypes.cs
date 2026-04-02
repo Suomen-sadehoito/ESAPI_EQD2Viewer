@@ -1,4 +1,4 @@
-// ═══════════════════════════════════════════════════════════
+﻿// ═══════════════════════════════════════════════════════════
 // ESAPI TYPE STUBS — Compilation-only, no Varian code
 //
 // These are minimal type definitions matching the public API

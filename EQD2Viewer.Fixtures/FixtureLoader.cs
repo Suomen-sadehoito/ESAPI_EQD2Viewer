@@ -1,4 +1,4 @@
-using EQD2Viewer.Fixtures.Models;
+﻿using EQD2Viewer.Fixtures.Models;
 using System;
 using System.Collections.Generic;
 using System.IO;

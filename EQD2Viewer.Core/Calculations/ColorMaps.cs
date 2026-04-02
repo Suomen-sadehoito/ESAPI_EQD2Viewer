@@ -1,4 +1,4 @@
-namespace EQD2Viewer.Core.Calculations
+﻿namespace EQD2Viewer.Core.Calculations
 {
     /// <summary>
     /// Shared color mapping functions used by both ImageRenderingService and summation rendering.

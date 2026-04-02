@@ -1,4 +1,4 @@
-using EQD2Viewer.Services.Rendering;
+﻿using EQD2Viewer.Services.Rendering;
 using EQD2Viewer.Services;
 using EQD2Viewer.Core.Interfaces;
 using EQD2Viewer.Core.Data;
@@ -14,7 +14,7 @@ namespace EQD2Viewer.App
     /// 
     /// This class owns the wiring of services ? ViewModel ? Window.
     /// Neither EQD2Viewer.Esapi nor EQD2Viewer.DevRunner need to know
-    /// about internal service types � they just provide the data and call Launch().
+    /// about internal service types -- they just provide the data and call Launch().
     /// </summary>
     public static class AppLauncher
     {
@@ -39,18 +39,18 @@ namespace EQD2Viewer.App
         {
             if (snapshot == null) throw new ArgumentNullException(nameof(snapshot));
 
-            // � Create ESAPI-free services �
+            // -- Create ESAPI-free services --
             IImageRenderingService renderingService = new ImageRenderingService();
             IDebugExportService debugService = new DebugExportService();
             IDVHCalculation dvhService = new DVHService();
 
-            // � Initialize rendering pipeline from snapshot dimensions �
+            // -- Initialize rendering pipeline from snapshot dimensions --
             int width = snapshot.CtImage.XSize;
             int height = snapshot.CtImage.YSize;
             renderingService.Initialize(width, height);
             renderingService.PreloadData(snapshot.CtImage, snapshot.Dose);
 
-            // � Build ViewModel �
+            // -- Build ViewModel --
             var viewModel = new MainViewModel(
             snapshot,
               renderingService,
@@ -59,7 +59,7 @@ namespace EQD2Viewer.App
                 summationLoader,
                         summationLoader != null ? new SummationServiceFactory() : null);
 
-            // � Launch window �
+            // -- Launch window --
             var window = new MainWindow(viewModel);
             if (!string.IsNullOrEmpty(windowTitle))
                 window.Title += $" {windowTitle}";

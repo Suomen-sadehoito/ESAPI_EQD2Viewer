@@ -1,4 +1,4 @@
-using EQD2Viewer.Core.Logging;
+﻿using EQD2Viewer.Core.Logging;
 using EQD2Viewer.Core.Calculations;
 using EQD2Viewer.Core.Models;
 using EQD2Viewer.Core.Interfaces;
@@ -14,22 +14,22 @@ namespace EQD2Viewer.Services
     /// <summary>
     /// Two-phase dose summation with per-plan physical dose retention.
     /// 
-    /// Phase 1 � PrepareData() � UI thread:
+    /// Phase 1 -- PrepareData() -- UI thread:
     ///   Loads plan data through ISummationDataLoader into plain arrays.
     ///   Rasterizes structure contours into masks for DVH.
-    ///   Zero ESAPI dependencies � all data access is via ISummationDataLoader.
+    ///   Zero ESAPI dependencies -- all data access is via ISummationDataLoader.
     /// 
-    /// Phase 2 � ComputeAsync() � background:
+    /// Phase 2 -- ComputeAsync() -- background:
     ///   Accumulates per-plan physical dose at each voxel.
-    ///   Computes an EQD2 display sum using the configured global ?/?.
+    ///   Computes an EQD2 display sum using the configured global alpha/beta.
     /// 
     /// Post-compute:
-    ///   RecomputeEQD2DisplayAsync() � recalculates display sum with a new ?/?.
-    ///   ComputeStructureEQD2DVH()   � per-structure DVH with structure-specific ?/?.
+    ///   RecomputeEQD2DisplayAsync() -- recalculates display sum with a new alpha/beta.
+    ///   ComputeStructureEQD2DVH()   -- per-structure DVH with structure-specific alpha/beta.
     /// 
-    /// Memory: Stores N � W � H � Z � 8 bytes for N plans' physical doses,
-    /// plus W � H � Z � 8 bytes for the display EQD2 sum.
-    /// Typical: 2 plans, 512�512�200 = ~1.2 GB. Acceptable on clinical workstations.
+    /// Memory: Stores N * W * H * Z * 8 bytes for N plans' physical doses,
+    /// plus W * H * Z * 8 bytes for the display EQD2 sum.
+    /// Typical: 2 plans, 512x512x200 = ~1.2 GB. Acceptable on clinical workstations.
     /// </summary>
     public class SummationService : ISummationService
     {

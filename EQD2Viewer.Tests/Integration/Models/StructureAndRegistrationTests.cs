@@ -1,4 +1,4 @@
-using EQD2Viewer.Core.Calculations;
+﻿using EQD2Viewer.Core.Calculations;
 using EQD2Viewer.Fixtures;
 using FluentAssertions;
 using System.Collections.Generic;

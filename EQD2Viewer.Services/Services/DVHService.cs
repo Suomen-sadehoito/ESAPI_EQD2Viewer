@@ -1,4 +1,4 @@
-using EQD2Viewer.Core.Calculations;
+﻿using EQD2Viewer.Core.Calculations;
 using EQD2Viewer.Core.Models;
 using EQD2Viewer.Core.Interfaces;
 using EQD2Viewer.Core.Data;

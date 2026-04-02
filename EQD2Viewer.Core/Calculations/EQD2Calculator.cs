@@ -1,4 +1,4 @@
-using EQD2Viewer.Core.Models;
+﻿using EQD2Viewer.Core.Models;
 using System.Linq;
 
 namespace EQD2Viewer.Core.Calculations

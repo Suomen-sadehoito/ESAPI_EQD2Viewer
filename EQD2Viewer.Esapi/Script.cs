@@ -1,4 +1,4 @@
-using EQD2Viewer.Core.Interfaces;
+﻿using EQD2Viewer.Core.Interfaces;
 using VMS.TPS.Common.Model.API;
 using EQD2Viewer.App;
 using EQD2Viewer.Esapi.Adapters;
@@ -43,15 +43,15 @@ namespace VMS.TPS
             {
                 SimpleLogger.EnableFileLogging();
 
-                // � Load the full clinical snapshot via the ESAPI adapter layer �
+                // -- Load the full clinical snapshot via the ESAPI adapter layer --
                 var dataSource = new EQD2Viewer.Esapi.Adapters.EsapiDataSource(context);
                 var snapshot = dataSource.LoadSnapshot();
 
-                // � Create the ESAPI summation data loader for on-demand plan loading �
+                // -- Create the ESAPI summation data loader for on-demand plan loading --
                 ISummationDataLoader summationLoader =
                 new EQD2Viewer.Esapi.Adapters.EsapiSummationDataLoader(context.Patient);
 
-                // � Launch the UI via the composition root (no direct WPF type references here) �
+                // -- Launch the UI via the composition root (no direct WPF type references here) --
                 EQD2Viewer.App.AppLauncher.Launch(
                        snapshot,
                 summationLoader,

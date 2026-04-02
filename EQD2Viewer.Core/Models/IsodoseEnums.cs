@@ -1,4 +1,4 @@
-namespace EQD2Viewer.Core.Models
+ï»¿namespace EQD2Viewer.Core.Models
 {
     /// <summary>
     /// Determines how isodose thresholds are interpreted for display.
@@ -28,7 +28,7 @@ namespace EQD2Viewer.Core.Models
     {
         /// <summary>Show as percentage of reference dose (e.g., "95%").</summary>
         Percent,
-        /// <summary>Show as absolute Gy computed from fraction × reference (e.g., "47.5 Gy").</summary>
+        /// <summary>Show as absolute Gy computed from fraction * reference (e.g., "47.5 Gy").</summary>
         Gy
     }
 }

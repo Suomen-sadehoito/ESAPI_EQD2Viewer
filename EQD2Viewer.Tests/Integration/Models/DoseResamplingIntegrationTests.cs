@@ -1,4 +1,4 @@
-using EQD2Viewer.Fixtures.Models;
+﻿using EQD2Viewer.Fixtures.Models;
 using EQD2Viewer.Core.Calculations;
 using EQD2Viewer.Fixtures;
 using FluentAssertions;
@@ -113,7 +113,7 @@ namespace EQD2Viewer.Tests.Integration
             {
                 if (!pt.isInsideDoseGrid) continue;
 
-                // ── Reproduce the CT pixel → dose voxel mapping ──
+                // == Reproduce the CT pixel → dose voxel mapping ==
                 // This is the same math as ImageRenderingService.PrepareDoseGrid
 
                 // CT pixel → world coordinate

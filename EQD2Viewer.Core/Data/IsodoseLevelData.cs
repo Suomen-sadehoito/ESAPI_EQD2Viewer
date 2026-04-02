@@ -1,8 +1,8 @@
-namespace EQD2Viewer.Core.Data
+ï»¿namespace EQD2Viewer.Core.Data
 {
     /// <summary>
     /// Pure data representation of a single isodose level.
-    /// No WPF dependencies — used by IImageRenderingService and rendering logic.
+    /// No WPF dependencies -- used by IImageRenderingService and rendering logic.
     /// 
     /// The WPF-bindable <c>IsodoseLevel</c> in the Services layer extends this
     /// with INotifyPropertyChanged and MediaColor for UI data binding.

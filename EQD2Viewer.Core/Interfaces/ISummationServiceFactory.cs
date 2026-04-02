@@ -1,4 +1,4 @@
-using EQD2Viewer.Core.Data;
+﻿using EQD2Viewer.Core.Data;
 using System.Collections.Generic;
 
 namespace EQD2Viewer.Core.Interfaces

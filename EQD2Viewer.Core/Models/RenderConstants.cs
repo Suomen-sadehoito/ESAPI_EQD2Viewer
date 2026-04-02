@@ -1,4 +1,4 @@
-namespace EQD2Viewer.Core.Models
+﻿namespace EQD2Viewer.Core.Models
 {
     /// <summary>
     /// Constants related to UI rendering and interaction logic.

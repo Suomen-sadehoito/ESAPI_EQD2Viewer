@@ -1,4 +1,4 @@
-using EQD2Viewer.Core.Models;
+﻿using EQD2Viewer.Core.Models;
 using Microsoft.Win32;
 using System;
 using System.Collections.Generic;

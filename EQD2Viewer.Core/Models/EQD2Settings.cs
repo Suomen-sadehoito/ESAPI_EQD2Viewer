@@ -1,4 +1,4 @@
-namespace EQD2Viewer.Core.Models
+﻿namespace EQD2Viewer.Core.Models
 {
     public class EQD2Settings
     {
