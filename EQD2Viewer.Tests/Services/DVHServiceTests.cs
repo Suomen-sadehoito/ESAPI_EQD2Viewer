@@ -69,7 +69,7 @@ namespace EQD2Viewer.Tests.Services
         [Fact]
         public void CalculateDVHFromSummedDose_NullInput_ShouldReturnEmpty()
         {
-            _service.CalculateDVHFromSummedDose(null, null, 1.0, 10.0).Should().BeEmpty();
+            _service.CalculateDVHFromSummedDose(null!, null!, 1.0, 10.0).Should().BeEmpty();
         }
 
         [Fact]

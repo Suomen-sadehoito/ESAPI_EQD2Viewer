@@ -17,7 +17,7 @@ namespace EQD2Viewer.App.UI.Views
         private readonly PlanData _currentPlan;
         private List<RegistrationInfo> _allRegistrations;
         public ObservableCollection<PlanRowItem> PlanRows { get; } = new ObservableCollection<PlanRowItem>();
-        public SummationConfig ResultConfig { get; private set; }
+        public SummationConfig? ResultConfig { get; private set; }
 
         public PlanSummationDialog(List<CourseData> courses, List<RegistrationData> registrations, PlanData currentPlan)
         {
@@ -193,7 +193,7 @@ namespace EQD2Viewer.App.UI.Views
                     NumberOfFractions = p.NumberOfFractions, TotalDoseGy = p.TotalDoseGy,
                     PlanNormalization = double.IsNaN(p.PlanNormalization) || p.PlanNormalization <= 0 ? 100.0 : p.PlanNormalization,
                     IsReference = p.IsReference,
-                    RegistrationId = p.IsReference ? null : p.SelectedRegistrationId,
+                    RegistrationId = p.IsReference ? "" : (p.SelectedRegistrationId ?? ""),
                     Weight = p.Weight
                 }).ToList()
             };
@@ -209,10 +209,10 @@ namespace EQD2Viewer.App.UI.Views
         private string _selectedRegistrationId = "";
         private List<RegistrationOption> _relevantRegistrations = new List<RegistrationOption>();
 
-        public string CourseId { get; set; }
-        public string PlanId { get; set; }
-        public string ImageId { get; set; }
-        public string ImageFOR { get; set; }
+        public string CourseId { get; set; } = "";
+        public string PlanId { get; set; } = "";
+        public string ImageId { get; set; } = "";
+        public string ImageFOR { get; set; } = "";
         public double TotalDoseGy { get; set; }
         public double PlanNormalization { get; set; }
 
@@ -231,10 +231,10 @@ namespace EQD2Viewer.App.UI.Views
         public double Weight { get => _weight; set { _weight = value; OnPropertyChanged(); } }
         public string SelectedRegistrationId { get => _selectedRegistrationId; set { _selectedRegistrationId = value; OnPropertyChanged(); } }
 
-        public event PropertyChangedEventHandler PropertyChanged;
-        protected void OnPropertyChanged([CallerMemberName] string name = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+        public event PropertyChangedEventHandler? PropertyChanged;
+        protected void OnPropertyChanged([CallerMemberName] string? name = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
     }
 
-    public class RegistrationOption { public string Id { get; set; } public string DisplayName { get; set; } }
-    internal class RegistrationInfo { public string Id { get; set; } public string SourceFOR { get; set; } public string RegisteredFOR { get; set; } public string DateStr { get; set; } }
+    public class RegistrationOption { public string Id { get; set; } = ""; public string DisplayName { get; set; } = ""; }
+    internal class RegistrationInfo { public string Id { get; set; } = ""; public string SourceFOR { get; set; } = ""; public string RegisteredFOR { get; set; } = ""; public string DateStr { get; set; } = ""; }
 }

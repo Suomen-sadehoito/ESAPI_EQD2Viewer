@@ -87,7 +87,7 @@ namespace EQD2Viewer.App.UI.ViewModels
                 SummaryData.Add(_dvhService.BuildEQD2SummaryFromCurve(
                     entry.DvhCurve, entry.PlanId, _doseOverlay.NumberOfFractions, alphaBeta, _meanMethod));
 
-                DoseVolumePoint[] curveInGy = null;
+                DoseVolumePoint[]? curveInGy = null;
                 if (entry.DvhCurve.Curve != null)
                     curveInGy = entry.DvhCurve.Curve.Select(p => new DoseVolumePoint(p[0], p[1])).ToArray();
 

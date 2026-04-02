@@ -20,11 +20,11 @@ namespace EQD2Viewer.App.UI.ViewModels
 {
     public partial class MainViewModel
     {
-        private ISummationService _summationService;
-        private SummationConfig _activeSummationConfig;
-        private CancellationTokenSource _summationCts;
-        private CancellationTokenSource _recomputeCts;
-        private DispatcherTimer _displayAlphaBetaDebounce;
+        private ISummationService? _summationService;
+        private SummationConfig? _activeSummationConfig;
+        private CancellationTokenSource? _summationCts;
+        private CancellationTokenSource? _recomputeCts;
+        private DispatcherTimer? _displayAlphaBetaDebounce;
 
         private bool _isSummationActive;
         public bool IsSummationActive
@@ -105,8 +105,8 @@ namespace EQD2Viewer.App.UI.ViewModels
             try
             {
                 _summationService?.Dispose();
-                _summationService = _summationServiceFactory.Create(
-                    _snapshot.CtImage, _summationDataLoader, _snapshot.Registrations);
+                _summationService = _summationServiceFactory!.Create(
+                    _snapshot.CtImage!, _summationDataLoader!, _snapshot.Registrations);
                 var prepResult = _summationService.PrepareData(config);
                 if (!prepResult.Success)
                 {
@@ -241,8 +241,8 @@ namespace EQD2Viewer.App.UI.ViewModels
                     bool[][] masks = new bool[sliceCount][];
                     for (int z = 0; z < sliceCount; z++)
                     {
-                        summedSlices[z] = _summationService.GetSummedSlice(z);
-                        masks[z] = _summationService.GetStructureMask(structureId, z);
+                        summedSlices[z] = _summationService.GetSummedSlice(z) ?? new double[0];
+                        masks[z] = _summationService.GetStructureMask(structureId, z) ?? new bool[0];
                     }
                     dvhPoints = _dvhService.CalculateDVHFromSummedDose(summedSlices, masks, voxelVolCc, maxDoseGy);
                 }
@@ -252,7 +252,7 @@ namespace EQD2Viewer.App.UI.ViewModels
                 long totalVoxels = 0;
                 for (int z = 0; z < sliceCount; z++)
                 {
-                    bool[] mask = _summationService.GetStructureMask(structureId, z);
+                    bool[]? mask = _summationService.GetStructureMask(structureId, z);
                     if (mask != null) for (int i = 0; i < mask.Length; i++) if (mask[i]) totalVoxels++;
                 }
 
@@ -288,13 +288,13 @@ namespace EQD2Viewer.App.UI.ViewModels
 
         private void RenderSummationScene()
         {
-          double[] summedSlice = _summationService.GetSummedSlice(CurrentSlice);
+          double[]? summedSlice = _summationService!.GetSummedSlice(CurrentSlice);
  if (summedSlice == null) return;
 
             double refDose = _summationService.SummedReferenceDoseGy;
     if (refDose < DomainConstants.MinReferenceDoseGy) refDose = 1.0;
 
-        int w = _snapshot.CtImage.XSize, h = _snapshot.CtImage.YSize;
+        int w = _snapshot.CtImage!.XSize, h = _snapshot.CtImage!.YSize;
 
  if (_doseOverlay.DoseDisplayMode == DoseDisplayMode.Line)
             {

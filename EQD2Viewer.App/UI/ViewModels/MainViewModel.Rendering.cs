@@ -53,7 +53,7 @@ namespace EQD2Viewer.App.UI.ViewModels
             double planTotalDoseGy = GetPrescriptionGy();
             double planNormalization = _snapshot?.ActivePlan?.PlanNormalization ?? 100.0;
 
-            EQD2Settings eqd2 = _doseOverlay.IsEQD2Enabled
+            EQD2Settings? eqd2 = _doseOverlay.IsEQD2Enabled
           ? new EQD2Settings { IsEnabled = true, AlphaBeta = _doseOverlay.DisplayAlphaBeta, NumberOfFractions = _doseOverlay.NumberOfFractions }
         : null;
 
@@ -116,7 +116,7 @@ _renderingService.RenderDoseImage(DoseImageSource, CurrentSlice,
                 return;
             }
 
-            int[] secondaryCt = _summationService.GetRegisteredCtSlice(_selectedOverlayPlanLabel, CurrentSlice);
+            int[]? secondaryCt = _summationService.GetRegisteredCtSlice(_selectedOverlayPlanLabel ?? "", CurrentSlice);
 
             bmp.Lock();
             try
@@ -178,12 +178,15 @@ _renderingService.RenderDoseImage(DoseImageSource, CurrentSlice,
             if (_snapshot?.Dose == null && !_isSummationActive)
             { DoseCursorText = ""; return; }
 
+            if (_snapshot == null)
+            { DoseCursorText = ""; return; }
+
             double doseGy;
             if (_isSummationActive && _summationService != null && _summationService.HasSummedDose)
             {
-                double[] slice = _summationService.GetSummedSlice(CurrentSlice);
-                int w = _snapshot.CtImage.XSize;
-                int h = _snapshot.CtImage.YSize;
+                double[]? slice = _summationService.GetSummedSlice(CurrentSlice);
+                int w = _snapshot!.CtImage?.XSize ?? 0;
+                int h = _snapshot!.CtImage?.YSize ?? 0;
 
                 if (slice == null || pixelX < 0 || pixelX >= w || pixelY < 0 || pixelY >= h)
                 { DoseCursorText = ""; return; }
@@ -192,9 +195,9 @@ _renderingService.RenderDoseImage(DoseImageSource, CurrentSlice,
             }
             else
             {
-                EQD2Settings eqd2 = _doseOverlay.IsEQD2Enabled
-                    ? new EQD2Settings { IsEnabled = true, AlphaBeta = _doseOverlay.DisplayAlphaBeta, NumberOfFractions = _doseOverlay.NumberOfFractions }
-                    : null;
+                EQD2Settings? eqd2 = _doseOverlay.IsEQD2Enabled
+          ? new EQD2Settings { IsEnabled = true, AlphaBeta = _doseOverlay.DisplayAlphaBeta, NumberOfFractions = _doseOverlay.NumberOfFractions }
+    : null;
 
                 doseGy = _renderingService.GetDoseAtPixel(CurrentSlice, pixelX, pixelY, eqd2);
             }

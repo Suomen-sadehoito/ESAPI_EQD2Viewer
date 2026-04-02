@@ -49,13 +49,13 @@ namespace EQD2Viewer.App.UI.ViewModels
         /// Optional summation data loader â€” null when summation is not available
         /// (e.g. in DevRunner without full ESAPI data access).
         /// </summary>
-        internal readonly ISummationDataLoader _summationDataLoader;
+        internal readonly ISummationDataLoader? _summationDataLoader;
 
         /// <summary>
         /// Factory for creating per-session summation service instances.
         /// Null when summation is not available.
         /// </summary>
-        internal readonly ISummationServiceFactory _summationServiceFactory;
+        internal readonly ISummationServiceFactory? _summationServiceFactory;
 
         // ── Child ViewModels (decomposed responsibilities) ──
         internal readonly ViewModelEventBus _eventBus = new ViewModelEventBus();
@@ -71,9 +71,9 @@ namespace EQD2Viewer.App.UI.ViewModels
         public MainViewModel(ClinicalSnapshot snapshot,
             IImageRenderingService renderingService,
             IDebugExportService debugExportService,
-            IDVHCalculation dvhService,
-            ISummationDataLoader summationDataLoader = null,
-            ISummationServiceFactory summationServiceFactory = null)
+          IDVHCalculation dvhService,
+    ISummationDataLoader? summationDataLoader = null,
+   ISummationServiceFactory? summationServiceFactory = null)
         {
             _snapshot = snapshot ?? throw new ArgumentNullException(nameof(snapshot));
             _renderingService = renderingService ?? throw new ArgumentNullException(nameof(renderingService));
@@ -226,9 +226,9 @@ namespace EQD2Viewer.App.UI.ViewModels
         /// </summary>
         internal class DVHCacheEntry
         {
-            public string PlanId { get; set; }
-            public StructureData Structure { get; set; }
-            public DvhCurveData DvhCurve { get; set; }
+            public string PlanId { get; set; } = "";
+            public StructureData Structure { get; set; } = null!;
+            public DvhCurveData DvhCurve { get; set; } = null!;
         }
     }
 
@@ -260,6 +260,6 @@ namespace EQD2Viewer.App.UI.ViewModels
             _alphaBeta = alphaBeta;
         }
 
-        public event PropertyChangedEventHandler PropertyChanged;
+        public event PropertyChangedEventHandler? PropertyChanged;
     }
 }

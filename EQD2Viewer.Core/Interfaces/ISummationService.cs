@@ -48,14 +48,14 @@ namespace EQD2Viewer.Core.Interfaces
         double structureAlphaBeta, double maxDoseGy);
 
    bool HasSummedDose { get; }
-      double[] GetSummedSlice(int sliceIndex);
-        double SummedReferenceDoseGy { get; }
+   double[]? GetSummedSlice(int sliceIndex);
+     double SummedReferenceDoseGy { get; }
 
-        /// <summary>Returns the secondary plan's CT voxels mapped onto the reference CT grid.</summary>
-        int[] GetRegisteredCtSlice(string planDisplayLabel, int sliceIndex);
+   /// <summary>Returns the secondary plan's CT voxels mapped onto the reference CT grid.</summary>
+   int[]? GetRegisteredCtSlice(string planDisplayLabel, int sliceIndex);
 
-        /// <summary>Gets the pre-rasterized structure mask for a specific structure and slice.</summary>
-        bool[] GetStructureMask(string structureId, int sliceIndex);
+      /// <summary>Gets the pre-rasterized structure mask for a specific structure and slice.</summary>
+   bool[]? GetStructureMask(string structureId, int sliceIndex);
 
         /// <summary>Gets all structure IDs that have cached masks.</summary>
         IReadOnlyList<string> GetCachedStructureIds();

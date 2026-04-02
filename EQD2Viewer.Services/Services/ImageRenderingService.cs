@@ -17,8 +17,8 @@ namespace EQD2Viewer.Services
         private int _width;
         private int _height;
 
-        private int[][,] _ctCache;
-        private int[][,] _doseCache;
+        private int[][,]? _ctCache;
+ private int[][,]? _doseCache;
 
       private double _doseRawScale;
         private double _doseRawOffset;
@@ -28,8 +28,8 @@ namespace EQD2Viewer.Services
    private int _huOffset;
       private bool _disposed;
 
-        private VolumeGeometry _ctGeo;
-  private VolumeGeometry _doseGeo;
+        private VolumeGeometry? _ctGeo;
+  private VolumeGeometry? _doseGeo;
 
         public void Initialize(int width, int height)
         {
@@ -75,7 +75,7 @@ namespace EQD2Viewer.Services
         double rxBase = g.BaseX + py * g.DxPerPy;
                 double ryBase = g.BaseY + py * g.DyPerPy;
       for (int px = 0; px < w; px++)
-       map[py * w + px] = ImageUtils.BilinearSample(g.DoseGyGrid, g.DoseWidth, g.DoseHeight,
+    map[py * w + px] = ImageUtils.BilinearSample(g.DoseGyGrid!, g.DoseWidth, g.DoseHeight,
  rxBase + px * g.DxPerPx, ryBase + px * g.DyPerPx);
       }
         return map;
@@ -83,17 +83,17 @@ namespace EQD2Viewer.Services
 
         private class DoseGridData
         {
-      public double[,] DoseGyGrid;
-     public int DoseWidth, DoseHeight, DoseSlice;
+   public double[,]? DoseGyGrid;
+ public int DoseWidth, DoseHeight, DoseSlice;
  public double ReferenceDoseGy, MaxDoseInSlice;
    public double BaseX, BaseY, DxPerPx, DxPerPy, DyPerPx, DyPerPy;
-            public bool IsEQD2;
-        public string StatusText;
-       public bool IsValid => DoseGyGrid != null;
+public bool IsEQD2;
+        public string? StatusText;
+   public bool IsValid => DoseGyGrid != null;
      }
 
         private DoseGridData PrepareDoseGrid(int currentSlice,
-     double planTotalDoseGy, double planNormalization, EQD2Settings eqd2Settings)
+     double planTotalDoseGy, double planNormalization, EQD2Settings? eqd2Settings)
      {
   var result = new DoseGridData();
 
@@ -115,11 +115,11 @@ referenceDoseGy = prescriptionGy;
     double eqd2QuadFactor = 0, eqd2LinFactor = 1.0;
   if (eqd2Active)
      {
-          referenceDoseGy = EQD2Calculator.ToEQD2(referenceDoseGy,
-      eqd2Settings.NumberOfFractions, eqd2Settings.AlphaBeta);
+referenceDoseGy = EQD2Calculator.ToEQD2(referenceDoseGy,
+      eqd2Settings!.NumberOfFractions, eqd2Settings.AlphaBeta);
 EQD2Calculator.GetVoxelScalingFactors(eqd2Settings.NumberOfFractions,
   eqd2Settings.AlphaBeta, out eqd2QuadFactor, out eqd2LinFactor);
-            }
+    }
 
    result.ReferenceDoseGy = referenceDoseGy;
 result.IsEQD2 = eqd2Active;
@@ -208,8 +208,8 @@ targetBitmap.AddDirtyRect(new Int32Rect(0, 0, _width, _height));
 
         public unsafe string RenderDoseImage(WriteableBitmap targetBitmap,
   int currentSlice, double planTotalDoseGy, double planNormalization, IsodoseLevel[] levels,
-         DoseDisplayMode displayMode, double colorwashOpacity, double colorwashMinPercent,
-       EQD2Settings eqd2Settings)
+    DoseDisplayMode displayMode, double colorwashOpacity, double colorwashMinPercent,
+       EQD2Settings? eqd2Settings)
         {
          AssertBitmapCompatible(targetBitmap, _width, _height);
 
@@ -235,7 +235,7 @@ targetBitmap.AddDirtyRect(new Int32Rect(0, 0, _width, _height));
            planTotalDoseGy, planNormalization, eqd2Settings);
 
                 if (!grid.IsValid)
-     { targetBitmap.AddDirtyRect(new Int32Rect(0, 0, _width, _height)); return grid.StatusText; }
+     { targetBitmap.AddDirtyRect(new Int32Rect(0, 0, _width, _height)); return grid.StatusText ?? ""; }
 
             double[] ctDoseMap = BuildCtResolutionDoseMap(grid);
 
@@ -259,7 +259,7 @@ targetBitmap.AddDirtyRect(new Int32Rect(0, 0, _width, _height));
 
         public ContourGenerationResult GenerateVectorContours(int currentSlice,
             double planTotalDoseGy, double planNormalization, IsodoseLevel[] levels,
-            EQD2Settings eqd2Settings)
+            EQD2Settings? eqd2Settings)
         {
      var result = new ContourGenerationResult { Contours = new List<IsodoseContourData>() };
 
@@ -372,7 +372,7 @@ var geometry = new StreamGeometry();
 }
 
         public double GetDoseAtPixel(int currentSlice, int pixelX, int pixelY,
- EQD2Settings eqd2Settings)
+ EQD2Settings? eqd2Settings)
     {
       if (_doseCache == null || !_doseScalingReady || _ctGeo == null || _doseGeo == null)
         return double.NaN;

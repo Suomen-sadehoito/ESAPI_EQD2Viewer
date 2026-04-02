@@ -33,19 +33,19 @@ namespace EQD2Viewer.Services
     /// </summary>
     public class SummationService : ISummationService
     {
-        private List<CachedPlanData> _cachedPlans;
-        private CachedRefGeometry _refGeo;
-        private SummationConfig _config;
+        private List<CachedPlanData>? _cachedPlans;
+        private CachedRefGeometry? _refGeo;
+        private SummationConfig? _config;
       private int _refW, _refH, _refZ;
-        private int _refHuOffset;
-  private string _referenceFOR;
+   private int _refHuOffset;
+  private string _referenceFOR = "";
         private double _voxelVolumeCc;
 
-        private Dictionary<string, bool[][]> _structureMasks;
-        private List<string> _cachedStructureIds;
+      private Dictionary<string, bool[][]>? _structureMasks;
+        private List<string>? _cachedStructureIds;
 
-    private double[][][] _perPlanPhysicalSlices;
-        private double[][] _summedSlices;
+    private double[][][]? _perPlanPhysicalSlices;
+        private double[][]? _summedSlices;
 
         private double _summedReferenceDoseGy;
         private double _maxDoseGy;
@@ -136,10 +136,10 @@ namespace EQD2Viewer.Services
 try
   {
       int refW = _refW, refH = _refH, refZ = _refZ;
-        int planCount = _cachedPlans.Count;
+        int planCount = _cachedPlans!.Count;
      int sliceSize = refW * refH;
 
-            _perPlanPhysicalSlices = new double[planCount][][];
+    _perPlanPhysicalSlices = new double[planCount][][];
       for (int p = 0; p < planCount; p++)
    _perPlanPhysicalSlices[p] = new double[refZ][];
 
@@ -151,23 +151,23 @@ try
     ct.ThrowIfCancellationRequested();
 
            for (int p = 0; p < planCount; p++)
-    {
+  {
  double[] planSlice = new double[sliceSize];
-    var cp = _cachedPlans[p];
+    var cp = _cachedPlans![p];
 
     if (cp.IsReference || cp.TransformMatrix == null)
-                  AccumulatePhysicalDirect(cp, z, refW, refH, planSlice);
+     AccumulatePhysicalDirect(cp, z, refW, refH, planSlice);
         else
-       AccumulatePhysicalRegistered(cp, z, refW, refH, planSlice);
+    AccumulatePhysicalRegistered(cp, z, refW, refH, planSlice);
 
    _perPlanPhysicalSlices[p][z] = planSlice;
-              }
+         }
 
-             double[] eqd2Slice = new double[sliceSize];
+  double[] eqd2Slice = new double[sliceSize];
             for (int p = 0; p < planCount; p++)
    {
-     var cp = _cachedPlans[p];
-             double[] phys = _perPlanPhysicalSlices[p][z];
+  var cp = _cachedPlans![p];
+     double[] phys = _perPlanPhysicalSlices[p][z];
          double weight = cp.Weight;
     bool useEqd2 = cp.UseEQD2;
            double eq = cp.EQD2Q, el = cp.EQD2L;
@@ -182,7 +182,7 @@ try
   }
 
          for (int i = 0; i < sliceSize; i++)
-    if (eqd2Slice[i] > globalMax) globalMax = eqd2Slice[i];
+  if (eqd2Slice[i] > globalMax) globalMax = eqd2Slice[i];
 
  _summedSlices[z] = eqd2Slice;
 
@@ -191,14 +191,14 @@ try
    }
 
         progress?.Report(100);
-              _maxDoseGy = globalMax;
-        _summedReferenceDoseGy = ComputeReferenceDose(_config, _currentDisplayAlphaBeta);
+  _maxDoseGy = globalMax;
+  _summedReferenceDoseGy = ComputeReferenceDose(_config!, _currentDisplayAlphaBeta);
         _hasSummedDose = true;
 
-            string label = _config.Method == SummationMethod.EQD2 ? "EQD2" : "Physical";
+   string label = _config!.Method == SummationMethod.EQD2 ? "EQD2" : "Physical";
      return new SummationResult
     {
-        Success = true, MaxDoseGy = globalMax, TotalReferenceDoseGy = _summedReferenceDoseGy,
+   Success = true, MaxDoseGy = globalMax, TotalReferenceDoseGy = _summedReferenceDoseGy,
   SliceCount = refZ,
 StatusMessage = $"[{label} Sum] {_config.Plans.Count} plans | Max: {globalMax:F2} Gy | Ref: {_summedReferenceDoseGy:F2} Gy"
  };
@@ -232,7 +232,7 @@ StatusMessage = $"[{label} Sum] {_config.Plans.Count} plans | Max: {globalMax:F2
                     for (int p = 0; p < _cachedPlans.Count; p++)
               {
       var cp = _cachedPlans[p];
-      bool useEqd2 = _config.Method == SummationMethod.EQD2
+      bool useEqd2 = _config!.Method == SummationMethod.EQD2
        && cp.Entry.NumberOfFractions > 0 && displayAlphaBeta > 0;
     double q = 0, l = 1.0;
     if (useEqd2)
@@ -263,16 +263,16 @@ StatusMessage = $"[{label} Sum] {_config.Plans.Count} plans | Max: {globalMax:F2
              }
         for (int i = 0; i < sliceSize; i++)
      if (eqd2Slice[i] > globalMax) globalMax = eqd2Slice[i];
-     _summedSlices[z] = eqd2Slice;
+     _summedSlices![z] = eqd2Slice;
    if (z % RenderConstants.SummationProgressInterval == 0)
  progress?.Report((int)((z + 1) * 100.0 / refZ));
     }
 
         progress?.Report(100);
        _maxDoseGy = globalMax;
-              _summedReferenceDoseGy = ComputeReferenceDose(_config, displayAlphaBeta);
+      _summedReferenceDoseGy = ComputeReferenceDose(_config!, displayAlphaBeta);
 
-       string label = _config.Method == SummationMethod.EQD2 ? "EQD2" : "Physical";
+       string label = _config!.Method == SummationMethod.EQD2 ? "EQD2" : "Physical";
          return new SummationResult
           {
      Success = true, MaxDoseGy = globalMax, TotalReferenceDoseGy = _summedReferenceDoseGy,
@@ -293,14 +293,14 @@ StatusMessage = $"[{label} Sum] {_config.Plans.Count} plans | Max: {globalMax:F2
   if (!_structureMasks.TryGetValue(structureId, out var masks))
                 return new DoseVolumePoint[0];
 
-      int planCount = _cachedPlans.Count;
+      int planCount = _cachedPlans!.Count;
             int sliceCount = Math.Min(_refZ, masks.Length);
 
-            var factors = new (double Q, double L, double Weight, bool UseEqd2)[planCount];
+ var factors = new (double Q, double L, double Weight, bool UseEqd2)[planCount];
      for (int p = 0; p < planCount; p++)
     {
-          var cp = _cachedPlans[p];
-          bool useEqd2 = _config.Method == SummationMethod.EQD2
+          var cp = _cachedPlans![p];
+          bool useEqd2 = _config!.Method == SummationMethod.EQD2
           && cp.Entry.NumberOfFractions > 0 && structureAlphaBeta > 0;
                 double q = 0, l = 1.0;
      if (useEqd2)
@@ -366,83 +366,83 @@ if (mask == null) continue;
 
         private void AccumulatePhysicalDirect(CachedPlanData cp, int sliceZ, int refW, int refH, double[] sliceData)
     {
-            var dg = cp.DoseGeo;
-            var rg = _refGeo;
+        var dg = cp.DoseGeo;
+    var rg = _refGeo!;
 
         double baseWx = rg.Ox + sliceZ * rg.Zx;
  double baseWy = rg.Oy + sliceZ * rg.Zy;
-            double baseWz = rg.Oz + sliceZ * rg.Zz;
+   double baseWz = rg.Oz + sliceZ * rg.Zz;
 
             double diffX = baseWx - dg.Ox, diffY = baseWy - dg.Oy, diffZ = baseWz - dg.Oz;
 
-            double zDose = (diffX * dg.ZDx + diffY * dg.ZDy + diffZ * dg.ZDz) / dg.ZRes;
+          double zDose = (diffX * dg.ZDx + diffY * dg.ZDy + diffZ * dg.ZDz) / dg.ZRes;
             int doseSliceZ = (int)Math.Round(zDose);
-            if (doseSliceZ < 0 || doseSliceZ >= dg.ZSize) return;
+        if (doseSliceZ < 0 || doseSliceZ >= dg.ZSize) return;
 
-            double baseDx = (diffX * dg.XDx + diffY * dg.XDy + diffZ * dg.XDz) / dg.XRes;
+double baseDx = (diffX * dg.XDx + diffY * dg.XDy + diffZ * dg.XDz) / dg.XRes;
       double baseDy = (diffX * dg.YDx + diffY * dg.YDy + diffZ * dg.YDz) / dg.YRes;
 
    double dxPerPx = (rg.Xx * dg.XDx + rg.Xy * dg.XDy + rg.Xz * dg.XDz) / dg.XRes;
     double dyPerPx = (rg.Xx * dg.YDx + rg.Xy * dg.YDy + rg.Xz * dg.YDz) / dg.YRes;
-       double dxPerPy = (rg.Yx * dg.XDx + rg.Yy * dg.XDy + rg.Yz * dg.XDz) / dg.XRes;
+   double dxPerPy = (rg.Yx * dg.XDx + rg.Yy * dg.XDy + rg.Yz * dg.XDz) / dg.XRes;
           double dyPerPy = (rg.Yx * dg.YDx + rg.Yy * dg.YDy + rg.Yz * dg.YDz) / dg.YRes;
 
      int dxSize = dg.XSize, dySize = dg.YSize;
-         int[,] doseSlice = cp.DoseVoxels[doseSliceZ];
+     int[,] doseSlice = cp.DoseVoxels[doseSliceZ];
      double rawScale = cp.RawScale, rawOffset = cp.RawOffset, unitToGy = cp.UnitToGy;
 
-            for (int py = 0; py < refH; py++)
-          {
+for (int py = 0; py < refH; py++)
+       {
       double rx = baseDx + py * dxPerPy;
-      double ry = baseDy + py * dyPerPy;
+    double ry = baseDy + py * dyPerPy;
           int ro = py * refW;
      for (int px = 0; px < refW; px++)
     {
   double fx = rx + px * dxPerPx;
   double fy = ry + px * dyPerPx;
-          double dGy = ImageUtils.BilinearSampleRaw(doseSlice, dxSize, dySize, fx, fy, rawScale, rawOffset, unitToGy);
+       double dGy = ImageUtils.BilinearSampleRaw(doseSlice, dxSize, dySize, fx, fy, rawScale, rawOffset, unitToGy);
            if (dGy > 0)
-               sliceData[ro + px] += dGy;
+       sliceData[ro + px] += dGy;
    }
             }
-        }
+}
 
         private void AccumulatePhysicalRegistered(CachedPlanData cp, int sliceZ, int refW, int refH, double[] sliceData)
   {
      var dg = cp.DoseGeo;
-            var rg = _refGeo;
-       var M = cp.TransformMatrix;
+      var rg = _refGeo!;
+       var M = cp.TransformMatrix!;
 
     double rpxX = M[0, 0] * rg.Xx + M[0, 1] * rg.Xy + M[0, 2] * rg.Xz;
  double rpxY = M[1, 0] * rg.Xx + M[1, 1] * rg.Xy + M[1, 2] * rg.Xz;
-        double rpxZ = M[2, 0] * rg.Xx + M[2, 1] * rg.Xy + M[2, 2] * rg.Xz;
+   double rpxZ = M[2, 0] * rg.Xx + M[2, 1] * rg.Xy + M[2, 2] * rg.Xz;
 
-     double rpyX = M[0, 0] * rg.Yx + M[0, 1] * rg.Yy + M[0, 2] * rg.Yz;
+   double rpyX = M[0, 0] * rg.Yx + M[0, 1] * rg.Yy + M[0, 2] * rg.Yz;
 double rpyY = M[1, 0] * rg.Yx + M[1, 1] * rg.Yy + M[1, 2] * rg.Yz;
-        double rpyZ = M[2, 0] * rg.Yx + M[2, 1] * rg.Yy + M[2, 2] * rg.Yz;
+    double rpyZ = M[2, 0] * rg.Yx + M[2, 1] * rg.Yy + M[2, 2] * rg.Yz;
 
         double bwx = rg.Ox + sliceZ * rg.Zx;
      double bwy = rg.Oy + sliceZ * rg.Zy;
   double bwz = rg.Oz + sliceZ * rg.Zz;
     double rbX = M[0, 0] * bwx + M[0, 1] * bwy + M[0, 2] * bwz + M[0, 3];
-       double rbY = M[1, 0] * bwx + M[1, 1] * bwy + M[1, 2] * bwz + M[1, 3];
+    double rbY = M[1, 0] * bwx + M[1, 1] * bwy + M[1, 2] * bwz + M[1, 3];
    double rbZ = M[2, 0] * bwx + M[2, 1] * bwy + M[2, 2] * bwz + M[2, 3];
 
-            double dOrigDotX = dg.Ox * dg.XDx + dg.Oy * dg.XDy + dg.Oz * dg.XDz;
+      double dOrigDotX = dg.Ox * dg.XDx + dg.Oy * dg.XDy + dg.Oz * dg.XDz;
          double dOrigDotY = dg.Ox * dg.YDx + dg.Oy * dg.YDy + dg.Oz * dg.YDz;
      double dOrigDotZ = dg.Ox * dg.ZDx + dg.Oy * dg.ZDy + dg.Oz * dg.ZDz;
 
-            double baseFdx = ((rbX * dg.XDx + rbY * dg.XDy + rbZ * dg.XDz) - dOrigDotX) / dg.XRes;
-     double baseFdy = ((rbX * dg.YDx + rbY * dg.YDy + rbZ * dg.YDz) - dOrigDotY) / dg.YRes;
+      double baseFdx = ((rbX * dg.XDx + rbY * dg.XDy + rbZ * dg.XDz) - dOrigDotX) / dg.XRes;
+  double baseFdy = ((rbX * dg.YDx + rbY * dg.YDy + rbZ * dg.YDz) - dOrigDotY) / dg.YRes;
       double baseFdz = ((rbX * dg.ZDx + rbY * dg.ZDy + rbZ * dg.ZDz) - dOrigDotZ) / dg.ZRes;
 
-    double fdxPerPx = (rpxX * dg.XDx + rpxY * dg.XDy + rpxZ * dg.XDz) / dg.XRes;
-            double fdyPerPx = (rpxX * dg.YDx + rpxY * dg.YDy + rpxZ * dg.YDz) / dg.YRes;
-            double fdzPerPx = (rpxX * dg.ZDx + rpxY * dg.ZDy + rpxZ * dg.ZDz) / dg.ZRes;
+ double fdxPerPx = (rpxX * dg.XDx + rpxY * dg.XDy + rpxZ * dg.XDz) / dg.XRes;
+   double fdyPerPx = (rpxX * dg.YDx + rpxY * dg.YDy + rpxZ * dg.YDz) / dg.YRes;
+  double fdzPerPx = (rpxX * dg.ZDx + rpxY * dg.ZDy + rpxZ * dg.ZDz) / dg.ZRes;
 
      double fdxPerPy = (rpyX * dg.XDx + rpyY * dg.XDy + rpyZ * dg.XDz) / dg.XRes;
    double fdyPerPy = (rpyX * dg.YDx + rpyY * dg.YDy + rpyZ * dg.YDz) / dg.YRes;
-          double fdzPerPy = (rpyX * dg.ZDx + rpyY * dg.ZDy + rpyZ * dg.ZDz) / dg.ZRes;
+     double fdzPerPy = (rpyX * dg.ZDx + rpyY * dg.ZDy + rpyZ * dg.ZDz) / dg.ZRes;
 
   int dxSize = dg.XSize, dySize = dg.YSize, dzSize = dg.ZSize;
      double rawScale = cp.RawScale, rawOffset = cp.RawOffset, unitToGy = cp.UnitToGy;
@@ -450,28 +450,28 @@ double rpyY = M[1, 0] * rg.Yx + M[1, 1] * rg.Yy + M[1, 2] * rg.Yz;
  for (int py = 0; py < refH; py++)
    {
           double rowFdx = baseFdx + py * fdxPerPy;
-        double rowFdy = baseFdy + py * fdyPerPy;
+      double rowFdy = baseFdy + py * fdyPerPy;
     double rowFdz = baseFdz + py * fdzPerPy;
        int ro = py * refW;
-                for (int px = 0; px < refW; px++)
+       for (int px = 0; px < refW; px++)
 {
-         double fz = rowFdz + px * fdzPerPx;
+double fz = rowFdz + px * fdzPerPx;
      int iz = (int)Math.Round(fz);
   if (iz < 0 || iz >= dzSize) continue;
        double fx = rowFdx + px * fdxPerPx;
   double fy = rowFdy + px * fdyPerPx;
         int[,] doseSlice = cp.DoseVoxels[iz];
            double dGy = ImageUtils.BilinearSampleRaw(doseSlice, dxSize, dySize, fx, fy, rawScale, rawOffset, unitToGy);
-               if (dGy > 0)
+    if (dGy > 0)
    sliceData[ro + px] += dGy;
-             }
-    }
         }
+    }
+   }
 
-  public bool[] GetStructureMask(string structureId, int sliceIndex)
+  public bool[]? GetStructureMask(string structureId, int sliceIndex)
      {
  if (_structureMasks == null || string.IsNullOrEmpty(structureId)) return null;
-            if (!_structureMasks.TryGetValue(structureId, out var masks)) return null;
+         if (!_structureMasks.TryGetValue(structureId, out var masks)) return null;
        if (sliceIndex < 0 || sliceIndex >= masks.Length) return null;
    return masks[sliceIndex];
         }
@@ -481,61 +481,61 @@ double rpyY = M[1, 0] * rg.Yx + M[1, 1] * rg.Yy + M[1, 2] * rg.Yz;
             return _cachedStructureIds ?? (IReadOnlyList<string>)new string[0];
         }
 
-        public double GetVoxelVolumeCc() => _voxelVolumeCc;
+     public double GetVoxelVolumeCc() => _voxelVolumeCc;
 
-        public double[] GetSummedSlice(int sliceIndex)
+        public double[]? GetSummedSlice(int sliceIndex)
  {
-       if (!_hasSummedDose || _summedSlices == null) return null;
+    if (!_hasSummedDose || _summedSlices == null) return null;
 if (sliceIndex < 0 || sliceIndex >= _summedSlices.Length) return null;
-            return _summedSlices[sliceIndex];
+ return _summedSlices[sliceIndex];
       }
 
-        public int[] GetRegisteredCtSlice(string planDisplayLabel, int sliceIndex)
-        {
+    public int[]? GetRegisteredCtSlice(string planDisplayLabel, int sliceIndex)
+   {
       if (_cachedPlans == null || string.IsNullOrEmpty(planDisplayLabel)) return null;
  var cp = _cachedPlans.FirstOrDefault(p => p.Entry.DisplayLabel == planDisplayLabel && !p.IsReference);
     if (cp == null || cp.CtVoxels == null || cp.CtGeo == null) return null;
          if (sliceIndex < 0 || sliceIndex >= _refZ) return null;
 
-         int refW = _refW, refH = _refH;
+ int refW = _refW, refH = _refH;
          int[] result = new int[refW * refH];
   var cg = cp.CtGeo;
-          var rg = _refGeo;
+   var rg = _refGeo!;
 
-          if (cp.TransformMatrix == null)
+       if (cp.TransformMatrix == null)
         {
-       double baseWx = rg.Ox + sliceIndex * rg.Zx, baseWy = rg.Oy + sliceIndex * rg.Zy, baseWz = rg.Oz + sliceIndex * rg.Zz;
+   double baseWx = rg.Ox + sliceIndex * rg.Zx, baseWy = rg.Oy + sliceIndex * rg.Zy, baseWz = rg.Oz + sliceIndex * rg.Zz;
  double diffX = baseWx - cg.Ox, diffY = baseWy - cg.Oy, diffZ = baseWz - cg.Oz;
      double zCt = (diffX * cg.ZDx + diffY * cg.ZDy + diffZ * cg.ZDz) / cg.ZRes;
          int ctSliceZ = (int)Math.Round(zCt);
     if (ctSliceZ < 0 || ctSliceZ >= cg.ZSize) return result;
      double baseCx = (diffX * cg.XDx + diffY * cg.XDy + diffZ * cg.XDz) / cg.XRes;
-                double baseCy = (diffX * cg.YDx + diffY * cg.YDy + diffZ * cg.YDz) / cg.YRes;
-    double dxPerPx = (rg.Xx * cg.XDx + rg.Xy * cg.XDy + rg.Xz * cg.XDz) / cg.XRes;
+       double baseCy = (diffX * cg.YDx + diffY * cg.YDy + diffZ * cg.YDz) / cg.YRes;
+  double dxPerPx = (rg.Xx * cg.XDx + rg.Xy * cg.XDy + rg.Xz * cg.XDz) / cg.XRes;
 double dyPerPx = (rg.Xx * cg.YDx + rg.Xy * cg.YDy + rg.Xz * cg.YDz) / cg.YRes;
-          double dxPerPy = (rg.Yx * cg.XDx + rg.Yy * cg.XDy + rg.Yz * cg.XDz) / cg.XRes;
+       double dxPerPy = (rg.Yx * cg.XDx + rg.Yy * cg.XDy + rg.Yz * cg.XDz) / cg.XRes;
   double dyPerPy = (rg.Yx * cg.YDx + rg.Yy * cg.YDy + rg.Yz * cg.YDz) / cg.YRes;
       int[,] ctSlice = cp.CtVoxels[ctSliceZ];
     int cxSize = cg.XSize, cySize = cg.YSize;
      int huOff = cp.CtHuOffset;
         for (int py = 0; py < refH; py++)
-          {
+    {
     double rx = baseCx + py * dxPerPy, ry = baseCy + py * dyPerPy;
            int ro = py * refW;
-            for (int px = 0; px < refW; px++)
+    for (int px = 0; px < refW; px++)
         {
-            int ix = (int)Math.Round(rx + px * dxPerPx), iy = (int)Math.Round(ry + px * dyPerPx);
+int ix = (int)Math.Round(rx + px * dxPerPx), iy = (int)Math.Round(ry + px * dyPerPx);
         if (ix >= 0 && ix < cxSize && iy >= 0 && iy < cySize)
         result[ro + px] = ctSlice[ix, iy] - huOff;
-              }
+  }
        }
   }
             else
      {
        var M = cp.TransformMatrix;
       double rpxX = M[0, 0] * rg.Xx + M[0, 1] * rg.Xy + M[0, 2] * rg.Xz;
-          double rpxY = M[1, 0] * rg.Xx + M[1, 1] * rg.Xy + M[1, 2] * rg.Xz;
-         double rpxZ = M[2, 0] * rg.Xx + M[2, 1] * rg.Xy + M[2, 2] * rg.Xz;
+        double rpxY = M[1, 0] * rg.Xx + M[1, 1] * rg.Xy + M[1, 2] * rg.Xz;
+   double rpxZ = M[2, 0] * rg.Xx + M[2, 1] * rg.Xy + M[2, 2] * rg.Xz;
     double rpyX = M[0, 0] * rg.Yx + M[0, 1] * rg.Yy + M[0, 2] * rg.Yz;
  double rpyY = M[1, 0] * rg.Yx + M[1, 1] * rg.Yy + M[1, 2] * rg.Yz;
    double rpyZ = M[2, 0] * rg.Yx + M[2, 1] * rg.Yy + M[2, 2] * rg.Yz;
@@ -545,15 +545,15 @@ double dyPerPx = (rg.Xx * cg.YDx + rg.Xy * cg.YDy + rg.Xz * cg.YDz) / cg.YRes;
      double rbZ = M[2, 0] * bwx + M[2, 1] * bwy + M[2, 2] * bwz + M[2, 3];
          double cOrigDotX = cg.Ox * cg.XDx + cg.Oy * cg.XDy + cg.Oz * cg.XDz;
      double cOrigDotY = cg.Ox * cg.YDx + cg.Oy * cg.YDy + cg.Oz * cg.YDz;
-       double cOrigDotZ = cg.Ox * cg.ZDx + cg.Oy * cg.ZDy + cg.Oz * cg.ZDz;
+  double cOrigDotZ = cg.Ox * cg.ZDx + cg.Oy * cg.ZDy + cg.Oz * cg.ZDz;
   double baseFcx = ((rbX * cg.XDx + rbY * cg.XDy + rbZ * cg.XDz) - cOrigDotX) / cg.XRes;
-        double baseFcy = ((rbX * cg.YDx + rbY * cg.YDy + rbZ * cg.YDz) - cOrigDotY) / cg.YRes;
+   double baseFcy = ((rbX * cg.YDx + rbY * cg.YDy + rbZ * cg.YDz) - cOrigDotY) / cg.YRes;
         double baseFcz = ((rbX * cg.ZDx + rbY * cg.ZDy + rbZ * cg.ZDz) - cOrigDotZ) / cg.ZRes;
-        double fcxPerPx = (rpxX * cg.XDx + rpxY * cg.XDy + rpxZ * cg.XDz) / cg.XRes;
+     double fcxPerPx = (rpxX * cg.XDx + rpxY * cg.XDy + rpxZ * cg.XDz) / cg.XRes;
        double fcyPerPx = (rpxX * cg.YDx + rpxY * cg.YDy + rpxZ * cg.YDz) / cg.YRes;
         double fczPerPx = (rpxX * cg.ZDx + rpxY * cg.ZDy + rpxZ * cg.ZDz) / cg.ZRes;
      double fcxPerPy = (rpyX * cg.XDx + rpyY * cg.XDy + rpyZ * cg.XDz) / cg.XRes;
-       double fcyPerPy = (rpyX * cg.YDx + rpyY * cg.YDy + rpyZ * cg.YDz) / cg.YRes;
+   double fcyPerPy = (rpyX * cg.YDx + rpyY * cg.YDy + rpyZ * cg.YDz) / cg.YRes;
           double fczPerPy = (rpyX * cg.ZDx + rpyY * cg.ZDy + rpyZ * cg.ZDz) / cg.ZRes;
    int cxSize = cg.XSize, cySize = cg.YSize, czSize = cg.ZSize;
              int huOff = cp.CtHuOffset;
@@ -564,24 +564,24 @@ double dyPerPx = (rg.Xx * cg.YDx + rg.Xy * cg.YDy + rg.Xz * cg.YDz) / cg.YRes;
 for (int px = 0; px < refW; px++)
    {
         double fz = rowFcz + px * fczPerPx;
-            int iz = (int)Math.Round(fz);
+   int iz = (int)Math.Round(fz);
    if (iz < 0 || iz >= czSize) continue;
-            int ix = (int)Math.Round(rowFcx + px * fcxPerPx), iy = (int)Math.Round(rowFcy + px * fcyPerPx);
+      int ix = (int)Math.Round(rowFcx + px * fcxPerPx), iy = (int)Math.Round(rowFcy + px * fcyPerPx);
      if (ix >= 0 && ix < cxSize && iy >= 0 && iy < cySize)
-           result[ro + px] = cp.CtVoxels[iz][ix, iy] - huOff;
+      result[ro + px] = cp.CtVoxels[iz][ix, iy] - huOff;
+    }
       }
-          }
     }
   return result;
    }
 
  private void CacheStructureMasks()
-        {
+   {
        _structureMasks = new Dictionary<string, bool[][]>();
             _cachedStructureIds = new List<string>();
-            var refEntry = _config.Plans.FirstOrDefault(p => p.IsReference);
+      var refEntry = _config!.Plans.FirstOrDefault(p => p.IsReference);
         if (refEntry == null) return;
-            var structures = _dataLoader.LoadStructureContours(refEntry.CourseId, refEntry.PlanId);
+  var structures = _dataLoader.LoadStructureContours(refEntry.CourseId, refEntry.PlanId);
      if (structures == null || structures.Count == 0) return;
 
       double imgOx = _referenceCtImage.Origin.X, imgOy = _referenceCtImage.Origin.Y, imgOz = _referenceCtImage.Origin.Z;
@@ -590,29 +590,29 @@ for (int px = 0; px < refW; px++)
             double xRes = _referenceCtImage.XRes, yRes = _referenceCtImage.YRes;
 
          foreach (var structure in structures)
-            {
+         {
    if (structure.IsEmpty) continue;
         try
  {
        bool[][] sliceMasks = new bool[_refZ][];
-         bool hasAnyContour = false;
+bool hasAnyContour = false;
        for (int z = 0; z < _refZ; z++)
   {
          if (!structure.ContoursBySlice.TryGetValue(z, out var contourList) || contourList == null || contourList.Count == 0)
-            { sliceMasks[z] = null; continue; }
+         { sliceMasks[z] = null!; continue; }
     hasAnyContour = true;
-     var masks = new List<bool[]>();
-               foreach (var contour in contourList)
+ var masks = new List<bool[]>();
+      foreach (var contour in contourList)
         {
            if (contour.Length < 3) continue;
    var pixelPoints = new Point2D[contour.Length];
         for (int i = 0; i < contour.Length; i++)
-                {
+     {
          double dx = contour[i][0] - imgOx, dy = contour[i][1] - imgOy, dz = contour[i][2] - imgOz;
-           pixelPoints[i] = new Point2D(
+   pixelPoints[i] = new Point2D(
           (dx * xDirX + dy * xDirY + dz * xDirZ) / xRes,
     (dx * yDirX + dy * yDirY + dz * yDirZ) / yRes);
-        }
+      }
      masks.Add(StructureRasterizer.RasterizePolygon(pixelPoints, _refW, _refH));
        }
           sliceMasks[z] = StructureRasterizer.CombineContourMasks(masks, _refW, _refH);
@@ -620,94 +620,94 @@ for (int px = 0; px < refW; px++)
       if (hasAnyContour)
        {
 _structureMasks[structure.Id] = sliceMasks;
-      _cachedStructureIds.Add(structure.Id);
-        }
+    _cachedStructureIds.Add(structure.Id);
+   }
         }
    catch (Exception ex) { SimpleLogger.Warning($"Could not rasterize structure '{structure.Id}': {ex.Message}"); }
-            }
+        }
    SimpleLogger.Info($"Cached {_cachedStructureIds.Count} structure masks for DVH");
         }
 
-        private CachedPlanData CachePlanData(SummationPlanEntry entry, SummationMethod method,
+        private CachedPlanData? CachePlanData(SummationPlanEntry entry, SummationMethod method,
        double alphaBeta, string referenceFOR)
-        {
-        var planDoseData = _dataLoader.LoadPlanDose(entry.CourseId, entry.PlanId, entry.TotalDoseGy);
+      {
+    var planDoseData = _dataLoader.LoadPlanDose(entry.CourseId, entry.PlanId, entry.TotalDoseGy);
   if (planDoseData == null) { SimpleLogger.Error($"Could not load plan dose: {entry.CourseId}/{entry.PlanId}"); return null; }
 
             var doseGeo = planDoseData.DoseGeometry;
-          var scaling = planDoseData.Scaling;
+     var scaling = planDoseData.Scaling;
 
  double eqd2Q = 0, eqd2L = 1.0;
          bool useEqd2 = method == SummationMethod.EQD2 && entry.NumberOfFractions > 0 && alphaBeta > 0;
-    if (useEqd2) EQD2Calculator.GetVoxelScalingFactors(entry.NumberOfFractions, alphaBeta, out eqd2Q, out eqd2L);
+if (useEqd2) EQD2Calculator.GetVoxelScalingFactors(entry.NumberOfFractions, alphaBeta, out eqd2Q, out eqd2L);
 
             var dg = new CachedDoseGeometry
-       {
+    {
     Ox = doseGeo.Origin.X, Oy = doseGeo.Origin.Y, Oz = doseGeo.Origin.Z,
-          XDx = doseGeo.XDirection.X, XDy = doseGeo.XDirection.Y, XDz = doseGeo.XDirection.Z,
-          YDx = doseGeo.YDirection.X, YDy = doseGeo.YDirection.Y, YDz = doseGeo.YDirection.Z,
+        XDx = doseGeo.XDirection.X, XDy = doseGeo.XDirection.Y, XDz = doseGeo.XDirection.Z,
+  YDx = doseGeo.YDirection.X, YDy = doseGeo.YDirection.Y, YDz = doseGeo.YDirection.Z,
        ZDx = doseGeo.ZDirection.X, ZDy = doseGeo.ZDirection.Y, ZDz = doseGeo.ZDirection.Z,
  XRes = doseGeo.XRes, YRes = doseGeo.YRes, ZRes = doseGeo.ZRes,
-                XSize = doseGeo.XSize, YSize = doseGeo.YSize, ZSize = doseGeo.ZSize
-            };
+        XSize = doseGeo.XSize, YSize = doseGeo.YSize, ZSize = doseGeo.ZSize
+      };
 
-         double[,] regMatrix = null;
+       double[,]? regMatrix = null;
     if (!entry.IsReference && !string.IsNullOrEmpty(entry.RegistrationId))
-            {
+{
      var reg = _registrations?.FirstOrDefault(r => r.Id == entry.RegistrationId);
-                if (reg != null)
+         if (reg != null)
             {
     var forwardMatrix = reg.ToMatrix4x4();
       if (forwardMatrix != null)
   {
-              string planFOR = _dataLoader.GetPlanImageFOR(entry.CourseId, entry.PlanId);
+        string planFOR = _dataLoader.GetPlanImageFOR(entry.CourseId, entry.PlanId);
       bool sourceIsRef = string.Equals(reg.SourceFOR, referenceFOR, StringComparison.OrdinalIgnoreCase);
           bool sourceIsPlan = string.Equals(reg.SourceFOR, planFOR, StringComparison.OrdinalIgnoreCase);
  if (sourceIsRef) { regMatrix = forwardMatrix; }
-        else if (sourceIsPlan)
+   else if (sourceIsPlan)
        {
-            regMatrix = MatrixMath.Invert4x4(forwardMatrix);
-                 if (regMatrix == null) SimpleLogger.Error($"Registration {reg.Id}: matrix inversion failed");
+      regMatrix = MatrixMath.Invert4x4(forwardMatrix);
+             if (regMatrix == null) SimpleLogger.Error($"Registration {reg.Id}: matrix inversion failed");
    }
-              else { regMatrix = forwardMatrix; SimpleLogger.Warning($"Registration {reg.Id}: unexpected FOR direction, using forward"); }
+          else { regMatrix = forwardMatrix; SimpleLogger.Warning($"Registration {reg.Id}: unexpected FOR direction, using forward"); }
  }
      }
          }
 
-            int[][,] ctVoxels = null;
-    CachedCtGeometry ctGeo = null;
+   int[][,]? ctVoxels = null;
+    CachedCtGeometry? ctGeo = null;
      int ctHuOffset = 0;
           if (!entry.IsReference && planDoseData.CtImage != null)
-     {
+   {
            var img = planDoseData.CtImage;
            ctVoxels = img.Voxels;
            ctHuOffset = img.HuOffset;
     ctGeo = new CachedCtGeometry
-                {
-           Ox = img.Origin.X, Oy = img.Origin.Y, Oz = img.Origin.Z,
-             XDx = img.XDirection.X, XDy = img.XDirection.Y, XDz = img.XDirection.Z,
+           {
+  Ox = img.Origin.X, Oy = img.Origin.Y, Oz = img.Origin.Z,
+    XDx = img.XDirection.X, XDy = img.XDirection.Y, XDz = img.XDirection.Z,
         YDx = img.YDirection.X, YDy = img.YDirection.Y, YDz = img.YDirection.Z,
-      ZDx = img.ZDirection.X, ZDy = img.ZDirection.Y, ZDz = img.ZDirection.Z,
+   ZDx = img.ZDirection.X, ZDy = img.ZDirection.Y, ZDz = img.ZDirection.Z,
   XRes = img.XRes, YRes = img.YRes, ZRes = img.ZRes,
  XSize = img.XSize, YSize = img.YSize, ZSize = img.ZSize
         };
             }
 
-            return new CachedPlanData
+     return new CachedPlanData
   {
-                Entry = entry, DoseVoxels = planDoseData.DoseVoxels, DoseGeo = dg,
+   Entry = entry, DoseVoxels = planDoseData.DoseVoxels, DoseGeo = dg,
             RawScale = scaling.RawScale, RawOffset = scaling.RawOffset, UnitToGy = scaling.UnitToGy,
       UseEQD2 = useEqd2, EQD2Q = eqd2Q, EQD2L = eqd2L,
-                Weight = entry.Weight, IsReference = entry.IsReference, TransformMatrix = regMatrix,
+          Weight = entry.Weight, IsReference = entry.IsReference, TransformMatrix = regMatrix,
                 CtVoxels = ctVoxels, CtGeo = ctGeo, CtHuOffset = ctHuOffset
-            };
+       };
 }
 
         public void Dispose()
-        {
+   {
        if (_disposed) return;
-            _disposed = true;
-            _summedSlices = null;
+   _disposed = true;
+          _summedSlices = null;
   _perPlanPhysicalSlices = null;
             _cachedPlans = null;
    _structureMasks = null;
@@ -718,10 +718,10 @@ _structureMasks[structure.Id] = sliceMasks;
         private class CachedCtGeometry { public double Ox, Oy, Oz, XDx, XDy, XDz, YDx, YDy, YDz, ZDx, ZDy, ZDz, XRes, YRes, ZRes; public int XSize, YSize, ZSize; }
         private class CachedPlanData
     {
-            public SummationPlanEntry Entry; public int[][,] DoseVoxels; public CachedDoseGeometry DoseGeo;
+       public SummationPlanEntry Entry = null!; public int[][,] DoseVoxels = null!; public CachedDoseGeometry DoseGeo = null!;
   public double RawScale, RawOffset, UnitToGy, Weight; public bool IsReference, UseEQD2;
-         public double EQD2Q, EQD2L; public double[,] TransformMatrix;
- public int[][,] CtVoxels; public CachedCtGeometry CtGeo; public int CtHuOffset;
+         public double EQD2Q, EQD2L; public double[,]? TransformMatrix;
+ public int[][,]? CtVoxels; public CachedCtGeometry? CtGeo; public int CtHuOffset;
         }
     }
 }

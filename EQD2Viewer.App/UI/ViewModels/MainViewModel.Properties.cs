@@ -69,10 +69,10 @@ namespace EQD2Viewer.App.UI.ViewModels
         // CT IMAGE VIEWER STATE
         // ════════════════════════════════════════════════════════
 
-        private WriteableBitmap _ctImageSource;
+        private WriteableBitmap _ctImageSource = null!;
         public WriteableBitmap CtImageSource { get => _ctImageSource; set => SetProperty(ref _ctImageSource, value); }
 
-        private WriteableBitmap _doseImageSource;
+        private WriteableBitmap _doseImageSource = null!;
         public WriteableBitmap DoseImageSource { get => _doseImageSource; set => SetProperty(ref _doseImageSource, value); }
 
         private int _currentSlice;
@@ -87,7 +87,7 @@ namespace EQD2Viewer.App.UI.ViewModels
         private double _windowWidth;
         public double WindowWidth { get => _windowWidth; set { if (SetProperty(ref _windowWidth, value)) RequestRender(); } }
 
-        private string _statusText;
+        private string _statusText = "";
         public string StatusText { get => _statusText; set => SetProperty(ref _statusText, value); }
 
         private string _doseCursorText = "";
@@ -205,12 +205,12 @@ namespace EQD2Viewer.App.UI.ViewModels
         private double _overlayOpacity = 0.5;
         public double OverlayOpacity { get => _overlayOpacity; set { if (SetProperty(ref _overlayOpacity, value)) RequestRender(); } }
 
-        private string _selectedOverlayPlanLabel;
-        public string SelectedOverlayPlanLabel { get => _selectedOverlayPlanLabel; set { if (SetProperty(ref _selectedOverlayPlanLabel, value)) RequestRender(); } }
+        private string? _selectedOverlayPlanLabel;
+        public string? SelectedOverlayPlanLabel { get => _selectedOverlayPlanLabel; set { if (SetProperty(ref _selectedOverlayPlanLabel, value)) RequestRender(); } }
 
         public ObservableCollection<string> OverlayPlanOptions { get; } = new ObservableCollection<string>();
 
-        private WriteableBitmap _overlayImageSource;
+        private WriteableBitmap _overlayImageSource = null!;
         public WriteableBitmap OverlayImageSource { get => _overlayImageSource; set => SetProperty(ref _overlayImageSource, value); }
 
         // ════════════════════════════════════════════════════════
@@ -223,7 +223,7 @@ namespace EQD2Viewer.App.UI.ViewModels
         private bool _showEQD2DVH = true;
         public bool ShowEQD2DVH { get => _showEQD2DVH; set { if (SetProperty(ref _showEQD2DVH, value)) UpdatePlotVisibility(); } }
 
-        public PlotModel PlotModel { get; private set; }
+        public PlotModel PlotModel { get; private set; } = null!;
         public ObservableCollection<DVHSummary> SummaryData { get; } = new ObservableCollection<DVHSummary>();
         public ObservableCollection<StructureAlphaBetaItem> StructureSettings { get; } = new ObservableCollection<StructureAlphaBetaItem>();
     }

@@ -7,7 +7,7 @@ namespace EQD2Viewer.App.UI.Views
 {
     public partial class StructureSelectionDialog : Window
     {
-        public IEnumerable<StructureData> SelectedStructures { get; private set; }
+        public IEnumerable<StructureData> SelectedStructures { get; private set; } = Enumerable.Empty<StructureData>();
 
         public StructureSelectionDialog(IEnumerable<StructureData> structures)
         {

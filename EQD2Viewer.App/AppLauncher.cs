@@ -35,8 +35,8 @@ namespace EQD2Viewer.App
    /// </param>
     public static void Launch(
       ClinicalSnapshot snapshot,
-     ISummationDataLoader summationLoader = null,
- string windowTitle = null,
+     ISummationDataLoader? summationLoader = null,
+ string? windowTitle = null,
             bool useShowDialog = true)
         {
 if (snapshot == null) throw new ArgumentNullException(nameof(snapshot));

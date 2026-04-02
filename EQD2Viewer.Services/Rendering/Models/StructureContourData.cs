@@ -13,12 +13,12 @@ namespace EQD2Viewer.Services.Rendering
         /// All contour polylines for this structure on the current slice,
         /// compiled into a single frozen StreamGeometry.
   /// </summary>
-        public StreamGeometry Geometry { get; set; }
+        public StreamGeometry Geometry { get; set; } = null!;
 
         /// <summary>
   /// Stroke color (matches the structure's ESAPI color).
       /// </summary>
-        public SolidColorBrush Stroke { get; set; }
+        public SolidColorBrush Stroke { get; set; } = null!;
 
         /// <summary>
   /// Line thickness in CT pixel units.
@@ -28,12 +28,12 @@ namespace EQD2Viewer.Services.Rendering
         /// <summary>
    /// Structure ID for legend display.
         /// </summary>
-        public string StructureId { get; set; }
+        public string StructureId { get; set; } = "";
 
       /// <summary>
 /// Optional dashed pattern for specific structure types (e.g. support structures).
         /// Null = solid line.
         /// </summary>
-      public DoubleCollection StrokeDashArray { get; set; }
+      public DoubleCollection? StrokeDashArray { get; set; }
   }
 }

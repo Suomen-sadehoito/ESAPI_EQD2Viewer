@@ -250,11 +250,12 @@ new IsodoseLevel(0, 35, "35 Gy", 0xFFFF8800, 140),
     0xFF4400FF, 0xFF8800FF, 0xFFFF00FF, 0xFFFF0088,
    };
 
-      public event PropertyChangedEventHandler PropertyChanged;
+      public event PropertyChangedEventHandler? PropertyChanged;
 
-protected void OnPropertyChanged([CallerMemberName] string name = null)
+      protected void OnPropertyChanged([CallerMemberName] string? name = null)
       {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
-        }
+ PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+  }
+
     }
 }
