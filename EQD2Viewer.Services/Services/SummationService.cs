@@ -281,7 +281,7 @@ namespace EQD2Viewer.Services
                MaxDoseGy = globalMax,
                TotalReferenceDoseGy = _summedReferenceDoseGy,
                SliceCount = refZ,
-               a/b={displayAlphaBeta:F1}
+               StatusMessage = $"[{label} Sum] {_config.Plans.Count} plans | Max: {globalMax:F2} Gy | Ref: {_summedReferenceDoseGy:F2} Gy | a/b={displayAlphaBeta:F1}"
            };
        }
        catch (OperationCanceledException) { return new SummationResult { Success = false, StatusMessage = "Recomputation cancelled." }; }
@@ -443,7 +443,6 @@ namespace EQD2Viewer.Services
             double fdxPerPx = (rpxX * dg.XDx + rpxY * dg.XDy + rpxZ * dg.XDz) / dg.XRes;
             double fdyPerPx = (rpxX * dg.YDx + rpxY * dg.YDy + rpxZ * dg.YDz) / dg.YRes;
             double fdzPerPx = (rpxX * dg.ZDx + rpxY * dg.ZDy + rpxZ * dg.ZDz) / dg.ZRes;
-
             double fdxPerPy = (rpyX * dg.XDx + rpyY * dg.XDy + rpyZ * dg.XDz) / dg.XRes;
             double fdyPerPy = (rpyX * dg.YDx + rpyY * dg.YDy + rpyZ * dg.YDz) / dg.YRes;
             double fdzPerPy = (rpyX * dg.ZDx + rpyY * dg.ZDy + rpyZ * dg.ZDz) / dg.ZRes;
