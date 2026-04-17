@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <ResolveAssemblyWarnOrErrorOnTargetArchitectureMismatch>None</ResolveAssemblyWarnOrErrorOnTargetArchitectureMismatch>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">x64</Platform>
+    <ProjectGuid>{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>EQD2Viewer.Esapi</RootNamespace>
+    <AssemblyName>EQD2Viewer.App.esapi</AssemblyName>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <Deterministic>true</Deterministic>
+    <LangVersion>latest</LangVersion>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DebugType>full</DebugType>
+    <PlatformTarget>x64</PlatformTarget>
+    <LangVersion>latest</LangVersion>
+    <ErrorReport>prompt</ErrorReport>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <Optimize>true</Optimize>
+    <DebugType>pdbonly</DebugType>
+    <PlatformTarget>x64</PlatformTarget>
+    <LangVersion>latest</LangVersion>
+    <ErrorReport>prompt</ErrorReport>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <!-- HasRealEsapi detection -->
+  <PropertyGroup>
+    <RealEsapiLibPath>$(MSBuildThisFileDirectory)..\lib\</RealEsapiLibPath>
+    <HasRealEsapi>false</HasRealEsapi>
+    <HasRealEsapi Condition="Exists('$(RealEsapiLibPath)VMS.TPS.Common.Model.API.dll')">true</HasRealEsapi>
+    <HasRealEsapi Condition="'$(CI)' == 'true'">false</HasRealEsapi>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="PresentationCore" />
+    <Reference Include="PresentationFramework" />
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xaml" />
+    <Reference Include="WindowsBase" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Adapters\EsapiDataSource.cs" />
+    <Compile Include="Adapters\EsapiSummationDataLoader.cs" />
+    <Compile Include="Script.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="FodyWeavers.xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Costura.Fody" Version="6.0.0">
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Fody" Version="6.8.2">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+  <!-- Project references: Core + main WPF project (ESAPI-free) -->
+  <ItemGroup>
+    <ProjectReference Include="..\EQD2Viewer.Core\EQD2Viewer.Core.csproj">
+      <Project>{4AECD0F8-4BDA-4450-A70F-0782C2BC3D3C}</Project>
+      <Name>EQD2Viewer.Core</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\EQD2Viewer.Services\EQD2Viewer.Services.csproj">
+      <Project>{B2C3D4E5-F6A7-8901-BCDE-F12345678901}</Project>
+      <Name>EQD2Viewer.Services</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\EQD2Viewer.App\EQD2Viewer.App.csproj">
+      <Project>{CB47C100-C47F-436D-8596-8005AB5B13A8}</Project>
+      <Name>EQD2Viewer.App</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <!-- Local: use real ESAPI DLLs from lib/ -->
+  <ItemGroup Condition="'$(HasRealEsapi)' == 'true'">
+    <Reference Include="VMS.TPS.Common.Model.API">
+      <HintPath>$(RealEsapiLibPath)VMS.TPS.Common.Model.API.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="VMS.TPS.Common.Model.Types">
+      <HintPath>$(RealEsapiLibPath)VMS.TPS.Common.Model.Types.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+  </ItemGroup>
+  <!-- CI: use Stubs for compilation -->
+  <ItemGroup Condition="'$(HasRealEsapi)' == 'false'">
+    <ProjectReference Include="..\EQD2Viewer.Stubs\EQD2Viewer.Stubs.csproj">
+      <Project>{89142CBA-C27C-4C2D-BC54-22EFCFACFCD9}</Project>
+      <Name>EQD2Viewer.Stubs</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- Safety: remove stale Stubs if real ESAPI DLLs are available -->
+  <Target Name="RemoveStaleStubs" AfterTargets="ResolveAssemblyReferences" Condition="'$(HasRealEsapi)' == 'true'">
+    <ItemGroup>
+      <ReferencePath Remove="@(ReferencePath)" Condition="'%(FileName)' == 'EQD2Viewer.Stubs'" />
+      <ReferenceDependencyPaths Remove="@(ReferenceDependencyPaths)" Condition="'%(FileName)' == 'EQD2Viewer.Stubs'" />
+    </ItemGroup>
+    <Message Text="[ESAPI Build] Removed stale Stubs reference - using real ESAPI DLLs" Importance="high" />
+  </Target>
+</Project>

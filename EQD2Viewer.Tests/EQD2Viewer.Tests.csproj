@@ -1,0 +1,54 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<TargetFramework>net48</TargetFramework>
+		<LangVersion>latest</LangVersion>
+		<Nullable>enable</Nullable>
+		<IsPackable>false</IsPackable>
+		<IsTestProject>true</IsTestProject>
+		<PlatformTarget>x64</PlatformTarget>
+		<MSBuildWarningsAsMessages>MSB3277</MSBuildWarningsAsMessages>
+	</PropertyGroup>
+
+
+	<ItemGroup>
+		<PackageReference Include="coverlet.collector" Version="6.0.0" />
+		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
+		<PackageReference Include="xunit" Version="2.5.3" />
+		<PackageReference Include="xunit.runner.visualstudio" Version="2.5.3" />
+		<PackageReference Include="FluentAssertions" Version="6.12.0" />
+		<PackageReference Include="Moq" Version="4.20.70" />
+		<PackageReference Include="System.Text.Json" Version="10.0.5" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\EQD2Viewer.Core\EQD2Viewer.Core.csproj" />
+		<ProjectReference Include="..\EQD2Viewer.Fixtures\EQD2Viewer.Fixtures.csproj" />
+		<ProjectReference Include="..\EQD2Viewer.Services\EQD2Viewer.Services.csproj" />
+		<ProjectReference Include="..\EQD2Viewer.App\EQD2Viewer.App.csproj">
+			<PrivateAssets>all</PrivateAssets>
+		</ProjectReference>
+	</ItemGroup>
+
+	<ItemGroup>
+		<Reference Include="WindowsBase" />
+		<Reference Include="PresentationCore" />
+		<Reference Include="PresentationFramework" />
+	</ItemGroup>
+
+
+	<ItemGroup>
+		<Using Include="System" />
+		<Using Include="Xunit" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Content Include="TestFixtures\**\*.json">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Folder Include="Properties\" />
+	</ItemGroup>
+
+</Project>

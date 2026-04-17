@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <ProjectGuid>{89142CBA-C27C-4C2D-BC54-22EFCFACFCD9}</ProjectGuid>
+    <TargetFramework>net48</TargetFramework>
+    <OutputType>Library</OutputType>
+    <RootNamespace>EQD2Viewer.Stubs</RootNamespace>
+    <AssemblyName>EQD2Viewer.Stubs</AssemblyName>
+    <UseWPF>true</UseWPF>
+    <LangVersion>7.3</LangVersion>
+    <PlatformTarget>x64</PlatformTarget>
+ <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+  </PropertyGroup>
+
+</Project>
