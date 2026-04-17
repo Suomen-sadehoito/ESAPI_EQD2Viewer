@@ -10,11 +10,12 @@ using System.Text.Json;
 namespace EQD2Viewer.DevRunner
 {
     /// <summary>
-    /// IClinicalDataSource that reads the test-fixture format (metadata.json + dose slices).
-    /// 
-    /// This format is produced by FixtureExporter and contains selective data for testing.
-    /// For full snapshot data (from SnapshotSerializer), use EQD2Viewer.Fixtures.JsonDataSource.
+    /// Provides an <see cref="IClinicalDataSource"/> implementation that reads the test-fixture format (metadata.json and dose slices).
     /// </summary>
+    /// <remarks>
+    /// This format is produced by the FixtureExporter and contains selective, lightweight data specifically for testing purposes.
+    /// For loading full snapshot data (produced by SnapshotSerializer), utilize EQD2Viewer.Fixtures.JsonDataSource.
+    /// </remarks>
     public class FixtureFormatDataSource : IClinicalDataSource
     {
         private readonly string _fixtureDir;
@@ -26,6 +27,11 @@ namespace EQD2Viewer.DevRunner
             AllowTrailingCommas = true
         };
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="FixtureFormatDataSource"/> class.
+        /// </summary>
+        /// <param name="fixtureDirectory">The directory path containing the JSON fixture files.</param>
+        /// <exception cref="DirectoryNotFoundException">Thrown if the specified directory does not exist.</exception>
         public FixtureFormatDataSource(string fixtureDirectory)
         {
             if (!Directory.Exists(fixtureDirectory))
@@ -34,6 +40,10 @@ namespace EQD2Viewer.DevRunner
             _fixtureDir = fixtureDirectory;
         }
 
+        /// <summary>
+        /// Loads and constructs a complete clinical snapshot from the underlying JSON fixtures.
+        /// </summary>
+        /// <returns>A fully populated <see cref="ClinicalSnapshot"/> instance.</returns>
         public ClinicalSnapshot LoadSnapshot()
         {
             var snapshot = new ClinicalSnapshot();
@@ -90,9 +100,9 @@ namespace EQD2Viewer.DevRunner
             return snapshot;
         }
 
-        // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-        // CT IMAGE
-        // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+        /// <summary>
+        /// Builds the CT image volume representation from geometry and subsample data.
+        /// </summary>
         private VolumeData BuildCtImage(GeometryJson geo)
         {
             int xSize = geo.xSize, ySize = geo.ySize, zSize = geo.zSize;
@@ -104,7 +114,7 @@ namespace EQD2Viewer.DevRunner
             var ctSub = LoadJsonOptional<CtSubsampleJson>("ct_subsample.json");
             if (ctSub != null)
             {
-                // Paikallinen non-nullable-viittaus â†’ ei enÃ¤Ã¤ CS8602-varoitusta
+                // Local non-nullable reference to prevent CS8602 warnings.
                 CtSubsampleJson sub = ctSub;
 
                 int huOffset = sub.detectedHuOffset;
@@ -140,6 +150,9 @@ namespace EQD2Viewer.DevRunner
             };
         }
 
+        /// <summary>
+        /// Reconstructs the 3D dose grid by loading individual dose slice JSON files and applying scaling.
+        /// </summary>
         private DoseVolumeData BuildDoseVolume(GeometryJson doseGeo, DoseScalingJson scaling)
         {
             int xSize = doseGeo.xSize, ySize = doseGeo.ySize, zSize = doseGeo.zSize;
@@ -180,6 +193,9 @@ namespace EQD2Viewer.DevRunner
             };
         }
 
+        /// <summary>
+        /// Interpolates missing dose slices to ensure a continuous 3D volume across the Z-axis.
+        /// </summary>
         private static void InterpolateMissingDoseSlices(int[][,] voxels, int xSize, int ySize, int zSize, int availableSliceCount)
         {
             if (availableSliceCount <= 1) return;
@@ -205,6 +221,9 @@ namespace EQD2Viewer.DevRunner
             }
         }
 
+        /// <summary>
+        /// Loads anatomical structures and their planar contours.
+        /// </summary>
         private List<StructureData> LoadStructures(int imageZSize)
         {
             var result = new List<StructureData>();
@@ -251,6 +270,9 @@ namespace EQD2Viewer.DevRunner
             return result;
         }
 
+        /// <summary>
+        /// Loads pre-calculated Dose-Volume Histogram (DVH) curve data.
+        /// </summary>
         private List<DvhCurveData> LoadDvhCurves()
         {
             var result = new List<DvhCurveData>();
@@ -279,6 +301,9 @@ namespace EQD2Viewer.DevRunner
             return result;
         }
 
+        /// <summary>
+        /// Loads spatial registration matrices for cross-frame-of-reference transformations.
+        /// </summary>
         private List<RegistrationData> LoadRegistrations()
         {
             var result = new List<RegistrationData>();
@@ -299,6 +324,9 @@ namespace EQD2Viewer.DevRunner
             return result;
         }
 
+        /// <summary>
+        /// Converts a lightweight geometry DTO into the domain-specific VolumeGeometry model.
+        /// </summary>
         private static VolumeGeometry ToVolumeGeometry(GeometryJson g) => new()
         {
             XSize = g.xSize,
@@ -314,6 +342,10 @@ namespace EQD2Viewer.DevRunner
             FrameOfReference = g.frameOfReference ?? ""
         };
 
+        /// <summary>
+        /// Deserializes a required JSON file from the fixture directory.
+        /// </summary>
+        /// <exception cref="FileNotFoundException">Thrown when the required file is missing.</exception>
         private T LoadJson<T>(string fileName)
         {
             string path = Path.Combine(_fixtureDir, fileName);
@@ -323,6 +355,9 @@ namespace EQD2Viewer.DevRunner
             return JsonSerializer.Deserialize<T>(ReadJson(path), JsonOpts)!;
         }
 
+        /// <summary>
+        /// Deserializes an optional JSON file from the fixture directory. Returns null if the file is missing or invalid.
+        /// </summary>
         private T? LoadJsonOptional<T>(string fileName) where T : class
         {
             string path = Path.Combine(_fixtureDir, fileName);
@@ -338,6 +373,9 @@ namespace EQD2Viewer.DevRunner
             }
         }
 
+        /// <summary>
+        /// Reads file text with UTF-8 encoding and strips the Byte Order Mark (BOM) if present.
+        /// </summary>
         private static string ReadJson(string path)
         {
             string text = File.ReadAllText(path, Encoding.UTF8);
@@ -346,7 +384,7 @@ namespace EQD2Viewer.DevRunner
             return text;
         }
 
-        // JSON MODELS (nullable)
+        // Internal Data Transfer Objects (DTOs) for JSON deserialization. Properties are nullable to handle incomplete fixture data.
         private class MetadataJson { public string? patientId { get; set; } public string? courseId { get; set; } public string? planId { get; set; } public double totalDoseGy { get; set; } public int numberOfFractions { get; set; } public double planNormalization { get; set; } }
         private class DoseScalingJson { public double rawScale { get; set; } public double rawOffset { get; set; } public string? doseUnit { get; set; } public double unitToGy { get; set; } }
         private class GeometryJson { public int xSize { get; set; } public int ySize { get; set; } public int zSize { get; set; } public double xRes { get; set; } public double yRes { get; set; } public double zRes { get; set; } public double[]? origin { get; set; } public double[]? xDirection { get; set; } public double[]? yDirection { get; set; } public double[]? zDirection { get; set; } public string? frameOfReference { get; set; } }

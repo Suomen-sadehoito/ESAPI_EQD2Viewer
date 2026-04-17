@@ -3,53 +3,67 @@ using System.Collections.Generic;
 
 namespace EQD2Viewer.Core.Data
 {
-    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-    // CLINICAL SNAPSHOT â€” Complete data package for a session.
-    // Loaded once at startup, then the app operates on this only.
-    // No ESAPI calls after loading. Any machine can run the app.
-    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     /// <summary>
-    /// Immutable snapshot of all clinical data needed to run the application.
-    /// Populated by IClinicalDataSource (either from Eclipse or from JSON fixtures).
-    /// After construction, the entire app runs on this data â€” zero ESAPI dependencies.
+    /// Represents an immutable snapshot of all clinical data required to run the application.
     /// </summary>
+    /// <remarks>
+    /// Populated by an IClinicalDataSource (e.g., Eclipse API or JSON fixtures).
+    /// Once instantiated, the application operates entirely on this data, eliminating direct ESAPI dependencies.
+    /// </remarks>
     public class ClinicalSnapshot
     {
-        // â”€â”€ Patient â”€â”€
+        /// <summary>
+        /// Gets or sets the associated patient data.
+        /// </summary>
         public PatientData Patient { get; set; } = null!;
 
-        // â”€â”€ Active plan â”€â”€
+        /// <summary>
+        /// Gets or sets the currently active plan data.
+        /// </summary>
         public PlanData ActivePlan { get; set; } = null!;
 
-        // â”€â”€ CT image â”€â”€
+        /// <summary>
+        /// Gets or sets the primary CT image volume.
+        /// </summary>
         public VolumeData CtImage { get; set; } = null!;
 
-        // â”€â”€ Dose grid â”€â”€
+        /// <summary>
+        /// Gets or sets the calculated dose grid data.
+        /// </summary>
         public DoseVolumeData Dose { get; set; } = null!;
 
-        // â”€â”€ Structures (from active plan's structure set) â”€â”€
+        /// <summary>
+        /// Gets or sets the collection of structures associated with the active plan's structure set.
+        /// </summary>
         public List<StructureData> Structures { get; set; } = new List<StructureData>();
 
-        // â”€â”€ Pre-computed DVH curves (from Eclipse or fixtures) â”€â”€
+        /// <summary>
+        /// Gets or sets pre-computed Dose-Volume Histogram (DVH) curves.
+        /// </summary>
         public List<DvhCurveData> DvhCurves { get; set; } = new List<DvhCurveData>();
 
-        // â”€â”€ Registrations (for summation) â”€â”€
+        /// <summary>
+        /// Gets or sets spatial registrations used for dose summation.
+        /// </summary>
         public List<RegistrationData> Registrations { get; set; } = new List<RegistrationData>();
 
-        // â”€â”€ All courses/plans for summation dialog â”€â”€
+        /// <summary>
+        /// Gets or sets the collection of all available courses and plans, primarily used for the summation dialog.
+        /// </summary>
         public List<CourseData> AllCourses { get; set; } = new List<CourseData>();
 
-        // â”€â”€ Optional rendering settings captured at export time â”€â”€
         /// <summary>
-        /// Display parameters from Eclipse at export time (W/L, isodose levels, reference dose points).
-        /// Null for older snapshots or synthetic test data. Used for end-to-end verification.
+        /// Gets or sets optional display parameters captured at export time, such as window/level, isodose levels, and reference points.
         /// </summary>
+        /// <remarks>
+        /// May be null for older snapshots or synthetic test data. Primarily used for end-to-end verification.
+        /// </remarks>
         public RenderSettings? RenderSettings { get; set; }
     }
 
-    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-    // PATIENT
-    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+    /// <summary>
+    /// Contains essential demographic and identification data for a patient.
+    /// </summary>
     public class PatientData
     {
         public string Id { get; set; } = "";
@@ -57,9 +71,9 @@ namespace EQD2Viewer.Core.Data
         public string FirstName { get; set; } = "";
     }
 
-    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-    // PLAN
-    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+    /// <summary>
+    /// Contains core dosimetric and fractionation details for a treatment plan.
+    /// </summary>
     public class PlanData
     {
         public string Id { get; set; } = "";
@@ -69,12 +83,9 @@ namespace EQD2Viewer.Core.Data
         public double PlanNormalization { get; set; } = 100.0;
     }
 
-    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-    // VOLUME GEOMETRY â€” shared by CT image and dose grid
-    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     /// <summary>
-    /// 3D grid geometry: dimensions, resolution, spatial orientation.
-    /// Used for both CT images and dose grids.
+    /// Defines the 3D spatial geometry, including dimensions, resolution, and orientation.
+    /// Applied to both CT images and dose grids.
     /// </summary>
     public class VolumeGeometry
     {
@@ -92,30 +103,29 @@ namespace EQD2Viewer.Core.Data
         public string Id { get; set; } = "";
     }
 
-    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-    // CT IMAGE VOLUME â€” geometry + voxel data + HU offset
-    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     /// <summary>
-    /// Complete CT image: geometry, voxel data, and HU offset.
-    /// Voxels are pre-loaded into memory for fast rendering.
+    /// Represents a complete CT image volume, encapsulating geometry, voxel data, and Hounsfield Unit (HU) offsets.
     /// </summary>
+    /// <remarks>
+    /// Voxel data is pre-loaded into memory to facilitate highly performant rendering.
+    /// </remarks>
     public class VolumeData
     {
         public VolumeGeometry Geometry { get; set; } = new VolumeGeometry();
 
         /// <summary>
-        /// CT voxel data indexed by [sliceZ][x, y].
-        /// Values are raw DICOM stored values (may need HuOffset subtraction).
+        /// 3D array of CT voxel data, indexed by [sliceZ][x, y].
+        /// Contains raw DICOM stored values; HU offset subtraction may be required depending on storage format.
         /// </summary>
         public int[][,] Voxels { get; set; } = null!;
 
         /// <summary>
-        /// HU offset detected from voxel data.
-        /// 0 for signed storage, 32768 for unsigned storage.
+        /// The Hounsfield Unit (HU) offset detected from the underlying voxel data.
+        /// Typically 0 for signed storage and 32768 for unsigned storage.
         /// </summary>
         public int HuOffset { get; set; }
 
-        // â”€â”€ Convenience accessors matching the shape of ESAPI Image â”€â”€
+        // ESAPI-compatible convenience accessors mapping to the underlying geometry.
         public int XSize => Geometry.XSize;
         public int YSize => Geometry.YSize;
         public int ZSize => Geometry.ZSize;
@@ -129,44 +139,57 @@ namespace EQD2Viewer.Core.Data
         public string FOR => Geometry.FrameOfReference;
     }
 
-    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-    // DOSE VOLUME â€” geometry + voxel data + scaling calibration
-    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+    /// <summary>
+    /// Defines the calibration factors required to convert raw dose voxel values into Gray (Gy).
+    /// </summary>
     public class DoseScaling
     {
-        /// <summary>Linear scale: doseUnit = rawVoxel * RawScale + RawOffset</summary>
+        /// <summary>
+        /// The linear scaling factor applied to raw voxel values.
+        /// Calculation: doseUnit = (rawVoxel * RawScale) + RawOffset
+        /// </summary>
         public double RawScale { get; set; }
 
-        /// <summary>Constant offset in dose unit space</summary>
+        /// <summary>
+        /// The constant offset applied in the original dose unit space.
+        /// </summary>
         public double RawOffset { get; set; }
 
-        /// <summary>Conversion factor from dose unit to Gy (e.g., 0.01 for cGy, 1.0 for Gy)</summary>
+        /// <summary>
+        /// The multiplier used to convert from the original dose unit to Gray (Gy).
+        /// Examples: 0.01 for cGy, 1.0 for Gy.
+        /// </summary>
         public double UnitToGy { get; set; } = 1.0;
 
-        /// <summary>Original dose unit name from Eclipse (Gy, cGy, Percent)</summary>
+        /// <summary>
+        /// The original nomenclature of the dose unit as defined in the source system (e.g., Gy, cGy, Percent).
+        /// </summary>
         public string DoseUnit { get; set; } = "Gy";
     }
 
     /// <summary>
-    /// Complete dose grid: geometry, raw voxel data, and calibration.
-    /// Dose in Gy at voxel [x,y]: (Voxels[z][x,y] * Scaling.RawScale + Scaling.RawOffset) * Scaling.UnitToGy
+    /// Represents a complete dose grid, including spatial geometry, raw voxel matrices, and calibration data.
     /// </summary>
+    /// <remarks>
+    /// To calculate the absolute dose in Gy at a specific voxel [z][x, y]:
+    /// (Voxels[z][x,y] * Scaling.RawScale + Scaling.RawOffset) * Scaling.UnitToGy
+    /// </remarks>
     public class DoseVolumeData
     {
         public VolumeGeometry Geometry { get; set; } = new VolumeGeometry();
 
         /// <summary>
-        /// Raw dose voxels indexed by [sliceZ][x, y].
-        /// Apply DoseScaling to convert to Gy.
+        /// 3D array of raw dose voxels, indexed by [sliceZ][x, y].
+        /// Must be calibrated using the associated <see cref="Scaling"/> property.
         /// </summary>
         public int[][,] Voxels { get; set; } = null!;
 
         /// <summary>
-        /// Calibration factors for raw â†’ Gy conversion.
+        /// The scaling parameters necessary for converting raw voxel data into absolute dose values (Gy).
         /// </summary>
         public DoseScaling Scaling { get; set; } = new DoseScaling();
 
-        // â”€â”€ Convenience accessors â”€â”€
+        // Convenience accessors mapping to the underlying geometry.
         public int XSize => Geometry.XSize;
         public int YSize => Geometry.YSize;
         public int ZSize => Geometry.ZSize;
@@ -179,11 +202,8 @@ namespace EQD2Viewer.Core.Data
         public Vec3 ZDirection => Geometry.ZDirection;
     }
 
-    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-    // STRUCTURE â€” anatomy contours
-    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     /// <summary>
-    /// Anatomical structure: metadata, color, and contour polygons per slice.
+    /// Defines an anatomical structure or region of interest, including its contour polygons and visual properties.
     /// </summary>
     public class StructureData
     {
@@ -196,23 +216,21 @@ namespace EQD2Viewer.Core.Data
         public byte ColorA { get; set; } = 255;
 
         /// <summary>
-        /// Whether this structure has 3D mesh geometry (used for existence check only).
+        /// Indicates whether the structure contains valid 3D mesh geometry.
+        /// Primarily utilized for preliminary validation checks.
         /// </summary>
         public bool HasMesh { get; set; }
 
         /// <summary>
-        /// Contour polygons per CT slice.
-        /// Key: slice index.  Value: list of polygons (each polygon is array of [x,y,z] points in mm).
+        /// A collection of planar contour polygons mapped by CT slice index.
+        /// Each polygon is defined as an array of 3D spatial coordinates [x, y, z] measured in millimeters.
         /// </summary>
         public Dictionary<int, List<double[][]>> ContoursBySlice { get; set; }
             = new Dictionary<int, List<double[][]>>();
     }
 
-    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•Â¬â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-    // DVH CURVE DATA
-    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     /// <summary>
-    /// Pre-computed cumulative DVH curve for one structure.
+    /// Represents a pre-computed cumulative Dose-Volume Histogram (DVH) for a specific structure.
     /// </summary>
     public class DvhCurveData
     {
@@ -223,15 +241,14 @@ namespace EQD2Viewer.Core.Data
         public double DMinGy { get; set; }
         public double VolumeCc { get; set; }
 
-        /// <summary>Curve points: each [doseGy, volumePercent]</summary>
+        /// <summary>
+        /// The data points comprising the DVH curve. Each array element is a coordinate pair: [doseGy, volumePercent].
+        /// </summary>
         public double[][] Curve { get; set; } = null!;
     }
 
-    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-    // REGISTRATION
-    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     /// <summary>
-    /// Spatial registration between two frames of reference.
+    /// Defines a spatial registration transform between two disparate frames of reference.
     /// </summary>
     public class RegistrationData
     {
@@ -240,10 +257,15 @@ namespace EQD2Viewer.Core.Data
         public string RegisteredFOR { get; set; } = "";
         public DateTime? CreationDateTime { get; set; }
 
-        /// <summary>4Ã—4 affine transform matrix in row-major order (16 elements).</summary>
+        /// <summary>
+        /// A 16-element array representing a 4x4 affine transformation matrix in row-major order.
+        /// </summary>
         public double[] Matrix { get; set; } = null!;
 
-        /// <summary>Converts the flat matrix to a 4Ã—4 array for MatrixMath.</summary>
+        /// <summary>
+        /// Projects the flat matrix array into a two-dimensional 4x4 matrix, suitable for matrix mathematics operations.
+        /// </summary>
+        /// <returns>A 4x4 multidimensional array, or null if the source matrix is invalid.</returns>
         public double[,]? ToMatrix4x4()
         {
             if (Matrix == null || Matrix.Length != 16) return null;
@@ -255,11 +277,8 @@ namespace EQD2Viewer.Core.Data
         }
     }
 
-    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-    // COURSE / PLAN DATA (for summation dialog)
-    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     /// <summary>
-    /// Course with its plan list â€” for the summation dialog plan picker.
+    /// Represents a course of treatment containing multiple plans, utilized within the summation dialog's plan selection hierarchy.
     /// </summary>
     public class CourseData
     {
@@ -268,8 +287,8 @@ namespace EQD2Viewer.Core.Data
     }
 
     /// <summary>
-    /// Lightweight plan summary for the summation dialog grid.
-    /// Full voxel data is loaded only when the plan is selected for summation.
+    /// Provides a lightweight data transfer object for plan summation interfaces.
+    /// Defers loading of intensive voxel data until the plan is explicitly selected for operation.
     /// </summary>
     public class PlanSummaryData
     {

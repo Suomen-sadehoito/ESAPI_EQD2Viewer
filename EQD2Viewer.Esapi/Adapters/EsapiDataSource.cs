@@ -11,26 +11,35 @@ using System.Collections.Generic;
 namespace EQD2Viewer.Esapi.Adapters
 {
     /// <summary>
-    /// Production IClinicalDataSource: reads live data from Varian Eclipse via ESAPI.
-    /// 
-    /// MUST be called on the Eclipse UI thread (ESAPI threading constraint).
-    /// All ESAPI access is concentrated in this single class â€” the rest of the app
-    /// never touches VMS.TPS namespaces.
-    /// 
-    /// Usage (in Script.cs):
-    ///   var source = new EsapiDataSource(context);
-    ///   var snapshot = source.LoadSnapshot();
+    /// Provides a production implementation of <see cref="IClinicalDataSource"/> that reads live data from Varian Eclipse via ESAPI.
     /// </summary>
+    /// <remarks>
+    /// This class MUST be instantiated and called on the Eclipse UI thread due to strict ESAPI threading constraints.
+    /// All ESAPI access is encapsulated within this class to ensure the remainder of the application remains entirely decoupled from VMS.TPS namespaces.
+    /// 
+    /// Example usage:
+    /// var source = new EsapiDataSource(context);
+    /// var snapshot = source.LoadSnapshot();
+    /// </remarks>
     public class EsapiDataSource : IClinicalDataSource
     {
         private readonly ScriptContext _context;
         private const int DOSE_CAL_RAW = 10000;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="EsapiDataSource"/> class.
+        /// </summary>
+        /// <param name="context">The ESAPI script context providing access to live clinical data.</param>
+        /// <exception cref="ArgumentNullException">Thrown if the provided context is null.</exception>
         public EsapiDataSource(ScriptContext context)
         {
             _context = context ?? throw new ArgumentNullException(nameof(context));
         }
 
+        /// <summary>
+        /// Loads and constructs a complete clinical data snapshot from the current ESAPI context.
+        /// </summary>
+        /// <returns>A fully populated <see cref="ClinicalSnapshot"/> instance ready for domain processing.</returns>
         public ClinicalSnapshot LoadSnapshot()
         {
             var snapshot = new ClinicalSnapshot();
@@ -38,7 +47,7 @@ namespace EQD2Viewer.Esapi.Adapters
             var plan = _context.ExternalPlanSetup;
             var image = _context.Image;
 
-            // â”€â”€ Patient â”€â”€
+            // Populate patient demographics.
             snapshot.Patient = new PatientData
             {
                 Id = patient?.Id ?? "",
@@ -46,7 +55,7 @@ namespace EQD2Viewer.Esapi.Adapters
                 FirstName = patient?.FirstName ?? ""
             };
 
-            // â”€â”€ Active plan â”€â”€
+            // Populate active plan details.
             if (plan != null)
             {
                 snapshot.ActivePlan = new PlanData
@@ -59,37 +68,37 @@ namespace EQD2Viewer.Esapi.Adapters
                 };
             }
 
-            // â”€â”€ CT Image â”€â”€
+            // Load the primary CT image volume.
             if (image != null)
             {
                 snapshot.CtImage = LoadImageVolume(image);
             }
 
-            // â”€â”€ Dose â”€â”€
+            // Load the primary calculated dose grid.
             if (plan?.Dose != null)
             {
                 snapshot.Dose = LoadDoseVolume(plan.Dose, plan);
             }
 
-            // â”€â”€ Structures â”€â”€
+            // Load anatomical structures and their contours.
             if (plan?.StructureSet != null && image != null)
             {
                 snapshot.Structures = LoadStructures(plan.StructureSet, image.ZSize);
             }
 
-            // â”€â”€ DVH curves â”€â”€
+            // Load pre-calculated Dose-Volume Histogram (DVH) curves.
             if (plan?.StructureSet != null)
             {
                 snapshot.DvhCurves = LoadDvhCurves(plan);
             }
 
-            // â”€â”€ Registrations â”€â”€
+            // Load available spatial registrations.
             if (patient?.Registrations != null)
             {
                 snapshot.Registrations = LoadRegistrations(patient);
             }
 
-            // â”€â”€ All courses/plans (for summation dialog) â”€â”€
+            // Load all available courses and plans for the summation dialog interface.
             if (patient?.Courses != null)
             {
                 snapshot.AllCourses = LoadAllCourses(patient);
@@ -102,17 +111,16 @@ namespace EQD2Viewer.Esapi.Adapters
             return snapshot;
         }
 
-        // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-        // PRIVATE LOADERS
-        // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-
+        /// <summary>
+        /// Extracts and processes the CT image volume data.
+        /// </summary>
         private VolumeData LoadImageVolume(Image image)
         {
             int zSize = image.ZSize;
             int xSize = image.XSize;
             int ySize = image.YSize;
 
-            // Pre-load all CT voxels
+            // Pre-load all CT voxels into memory to facilitate rapid rendering.
             var voxels = new int[zSize][,];
             for (int z = 0; z < zSize; z++)
             {
@@ -120,7 +128,7 @@ namespace EQD2Viewer.Esapi.Adapters
                 image.GetVoxels(z, voxels[z]);
             }
 
-            // Detect HU offset
+            // Dynamically detect the Hounsfield Unit (HU) offset required for DICOM conversion.
             int midSlice = zSize / 2;
             int huOffset = ImageUtils.DetermineHuOffset(voxels[midSlice], xSize, ySize);
 
@@ -132,13 +140,16 @@ namespace EQD2Viewer.Esapi.Adapters
             };
         }
 
+        /// <summary>
+        /// Extracts and calibrates the 3D dose volume data.
+        /// </summary>
         private DoseVolumeData LoadDoseVolume(Dose dose, PlanSetup plan)
         {
             int zSize = dose.ZSize;
             int xSize = dose.XSize;
             int ySize = dose.YSize;
 
-            // Pre-load all dose voxels
+            // Pre-load all dose voxels into memory.
             var voxels = new int[zSize][,];
             for (int z = 0; z < zSize; z++)
             {
@@ -146,7 +157,7 @@ namespace EQD2Viewer.Esapi.Adapters
                 dose.GetVoxels(z, voxels[z]);
             }
 
-            // Compute dose scaling calibration
+            // Compute scaling calibration factors to map raw voxel integers to absolute dose values.
             DoseValue dv0 = dose.VoxelToDoseValue(0);
             DoseValue dvRef = dose.VoxelToDoseValue(DOSE_CAL_RAW);
             double rawScale = (dvRef.Dose - dv0.Dose) / (double)DOSE_CAL_RAW;
@@ -154,6 +165,7 @@ namespace EQD2Viewer.Esapi.Adapters
 
             double unitToGy;
             string unitName = dvRef.Unit.ToString();
+
             if (dvRef.Unit == DoseValue.DoseUnit.Percent)
                 unitToGy = ToGy(plan.TotalDose) / 100.0;
             else if (dvRef.Unit == DoseValue.DoseUnit.cGy)
@@ -175,6 +187,9 @@ namespace EQD2Viewer.Esapi.Adapters
             };
         }
 
+        /// <summary>
+        /// Extracts anatomical structures and their planar contour data.
+        /// </summary>
         private List<StructureData> LoadStructures(StructureSet structureSet, int imageZSize)
         {
             var result = new List<StructureData>();
@@ -198,7 +213,7 @@ namespace EQD2Viewer.Esapi.Adapters
                         HasMesh = structure.MeshGeometry != null
                     };
 
-                    // Load contours for all slices
+                    // Iterate through all slices to retrieve available contour polygons.
                     for (int z = 0; z < imageZSize; z++)
                     {
                         try
@@ -211,15 +226,17 @@ namespace EQD2Viewer.Esapi.Adapters
                             {
                                 if (contour.Length < 3) continue;
                                 var points = new double[contour.Length][];
+
                                 for (int i = 0; i < contour.Length; i++)
                                     points[i] = new double[] { contour[i].x, contour[i].y, contour[i].z };
+
                                 sliceContours.Add(points);
                             }
 
                             if (sliceContours.Count > 0)
                                 sd.ContoursBySlice[z] = sliceContours;
                         }
-                        catch { /* Some structures may not have contours on all slices */ }
+                        catch { /* Intentionally ignored: Structures may legitimately lack contours on specific slices. */ }
                     }
 
                     result.Add(sd);
@@ -233,6 +250,9 @@ namespace EQD2Viewer.Esapi.Adapters
             return result;
         }
 
+        /// <summary>
+        /// Retrieves pre-calculated cumulative DVH data for all eligible structures within the plan.
+        /// </summary>
         private List<DvhCurveData> LoadDvhCurves(PlanSetup plan)
         {
             var result = new List<DvhCurveData>();
@@ -271,12 +291,15 @@ namespace EQD2Viewer.Esapi.Adapters
                         Curve = curve
                     });
                 }
-                catch { /* DVH not available for all structures */ }
+                catch { /* Intentionally ignored: DVH metrics may not be calculable for all structures. */ }
             }
 
             return result;
         }
 
+        /// <summary>
+        /// Retrieves spatial registration matrices required for cross-frame-of-reference summation operations.
+        /// </summary>
         private List<RegistrationData> LoadRegistrations(Patient patient)
         {
             var result = new List<RegistrationData>();
@@ -286,7 +309,7 @@ namespace EQD2Viewer.Esapi.Adapters
             {
                 try
                 {
-                    // Extract 4Ã—4 matrix by transforming basis vectors
+                    // Extract the 4x4 affine transformation matrix by transforming the spatial basis vectors.
                     VVector o = reg.TransformPoint(new VVector(0, 0, 0));
                     VVector x = reg.TransformPoint(new VVector(1, 0, 0));
                     VVector y = reg.TransformPoint(new VVector(0, 1, 0));
@@ -316,6 +339,9 @@ namespace EQD2Viewer.Esapi.Adapters
             return result;
         }
 
+        /// <summary>
+        /// Iterates through the patient's clinical history to construct a lightweight summary of available courses and plans.
+        /// </summary>
         private List<CourseData> LoadAllCourses(Patient patient)
         {
             var result = new List<CourseData>();
@@ -334,7 +360,7 @@ namespace EQD2Viewer.Esapi.Adapters
                         var img = plan.StructureSet?.Image;
                         if (img != null) { imageId = img.Id ?? ""; imageFOR = img.FOR ?? ""; }
                     }
-                    catch { }
+                    catch { /* Image association may be missing or inaccessible. */ }
 
                     cd.Plans.Add(new PlanSummaryData
                     {
@@ -354,10 +380,9 @@ namespace EQD2Viewer.Esapi.Adapters
             return result;
         }
 
-        // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-        // GEOMETRY CONVERTERS
-        // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-
+        /// <summary>
+        /// Converts ESAPI image geometry into the decoupled domain format.
+        /// </summary>
         private static VolumeGeometry ToGeometry(Image img) => new VolumeGeometry
         {
             XSize = img.XSize,
@@ -374,6 +399,9 @@ namespace EQD2Viewer.Esapi.Adapters
             Id = img.Id ?? ""
         };
 
+        /// <summary>
+        /// Converts ESAPI dose grid geometry into the decoupled domain format.
+        /// </summary>
         private static VolumeGeometry ToDoseGeometry(Dose dose) => new VolumeGeometry
         {
             XSize = dose.XSize,
@@ -388,8 +416,14 @@ namespace EQD2Viewer.Esapi.Adapters
             ZDirection = ToVec3(dose.ZDirection)
         };
 
+        /// <summary>
+        /// Converts an ESAPI <see cref="VVector"/> into a domain-specific <see cref="Vec3"/>.
+        /// </summary>
         private static Vec3 ToVec3(VVector v) => new Vec3(v.x, v.y, v.z);
 
+        /// <summary>
+        /// Normalizes an ESAPI <see cref="DoseValue"/> into an absolute dose measured in Gray (Gy).
+        /// </summary>
         private static double ToGy(DoseValue dv) =>
             dv.Unit == DoseValue.DoseUnit.cGy ? dv.Dose / 100.0 : dv.Dose;
     }

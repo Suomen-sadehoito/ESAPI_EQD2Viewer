@@ -12,22 +12,34 @@ using System.Linq;
 namespace EQD2Viewer.Esapi.Adapters
 {
     /// <summary>
-    /// Production ISummationDataLoader: loads plan dose/structure data from live Eclipse via ESAPI.
-    /// 
-    /// MUST be called on the Eclipse UI thread (ESAPI threading constraint).
-    /// All ESAPI access for summation is concentrated here â€” SummationService itself
-    /// never touches VMS.TPS namespaces.
+    /// Provides a production implementation of <see cref="ISummationDataLoader"/> that loads plan dose and structure data from a live Eclipse environment via ESAPI.
     /// </summary>
+    /// <remarks>
+    /// This class MUST be instantiated and executed on the Eclipse UI thread due to strict ESAPI threading constraints.
+    /// All ESAPI access for summation operations is encapsulated within this class, ensuring the domain-level summation services remain decoupled from VMS.TPS namespaces.
+    /// </remarks>
     public class EsapiSummationDataLoader : ISummationDataLoader
     {
         private readonly Patient _patient;
         private const int DOSE_CAL_RAW = 10000;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="EsapiSummationDataLoader"/> class.
+        /// </summary>
+        /// <param name="patient">The ESAPI patient context providing access to clinical data.</param>
+        /// <exception cref="ArgumentNullException">Thrown if the provided patient context is null.</exception>
         public EsapiSummationDataLoader(Patient patient)
         {
             _patient = patient ?? throw new ArgumentNullException(nameof(patient));
         }
 
+        /// <summary>
+        /// Retrieves the dose grid data and its associated primary CT image for a specific treatment plan.
+        /// </summary>
+        /// <param name="courseId">The unique identifier of the course containing the plan.</param>
+        /// <param name="planId">The unique identifier of the target treatment plan.</param>
+        /// <param name="totalDoseGy">The total prescribed dose in Gray (Gy), utilized for relative percentage conversions.</param>
+        /// <returns>A <see cref="SummationPlanDoseData"/> instance containing the loaded dose and image volumes, or null if the data cannot be found.</returns>
         public SummationPlanDoseData LoadPlanDose(string courseId, string planId, double totalDoseGy)
         {
             var course = _patient.Courses?.FirstOrDefault(c => c.Id == courseId);
@@ -39,7 +51,7 @@ namespace EQD2Viewer.Esapi.Adapters
             var dose = plan.Dose;
             int dx = dose.XSize, dy = dose.YSize, dz = dose.ZSize;
 
-            // Load dose voxels
+            // Pre-load all dose voxels into memory to optimize subsequent processing.
             int[][,] doseVoxels = new int[dz][,];
             for (int z = 0; z < dz; z++)
             {
@@ -47,7 +59,7 @@ namespace EQD2Viewer.Esapi.Adapters
                 dose.GetVoxels(z, doseVoxels[z]);
             }
 
-            // Compute dose scaling calibration
+            // Compute scaling calibration factors to map raw voxel values to absolute dose units.
             DoseValue dv0 = dose.VoxelToDoseValue(0);
             DoseValue dvRef = dose.VoxelToDoseValue(DOSE_CAL_RAW);
             double rawScale = (dvRef.Dose - dv0.Dose) / (double)DOSE_CAL_RAW;
@@ -55,6 +67,7 @@ namespace EQD2Viewer.Esapi.Adapters
 
             double unitToGy;
             string unitName = dvRef.Unit.ToString();
+
             if (dvRef.Unit == DoseValue.DoseUnit.Percent)
                 unitToGy = totalDoseGy / 100.0;
             else if (dvRef.Unit == DoseValue.DoseUnit.cGy)
@@ -62,7 +75,7 @@ namespace EQD2Viewer.Esapi.Adapters
             else
                 unitToGy = 1.0;
 
-            // Load secondary CT for overlay
+            // Attempt to load the primary CT image associated with the plan's structure set for overlay visualization.
             VolumeData ctImage = null;
             try
             {
@@ -76,6 +89,7 @@ namespace EQD2Viewer.Esapi.Adapters
                         ctVoxels[z] = new int[cx, cy];
                         img.GetVoxels(z, ctVoxels[z]);
                     }
+
                     int midZ = cz / 2;
                     int huOffset = ImageUtils.DetermineHuOffset(ctVoxels[midZ], cx, cy);
 
@@ -107,6 +121,12 @@ namespace EQD2Viewer.Esapi.Adapters
             };
         }
 
+        /// <summary>
+        /// Extracts anatomical structures and their corresponding 3D planar contours for a specified plan.
+        /// </summary>
+        /// <param name="courseId">The unique identifier of the course.</param>
+        /// <param name="planId">The unique identifier of the treatment plan.</param>
+        /// <returns>A collection of <see cref="StructureData"/> representing the parsed structures and their spatial geometries.</returns>
         public List<StructureData> LoadStructureContours(string courseId, string planId)
         {
             var result = new List<StructureData>();
@@ -136,6 +156,7 @@ namespace EQD2Viewer.Esapi.Adapters
                         HasMesh = structure.MeshGeometry != null
                     };
 
+                    // Traverse image slices to gather available contour polygons.
                     for (int z = 0; z < imageZSize; z++)
                     {
                         try
@@ -156,7 +177,7 @@ namespace EQD2Viewer.Esapi.Adapters
                             if (sliceContours.Count > 0)
                                 sd.ContoursBySlice[z] = sliceContours;
                         }
-                        catch { /* Some structures may not have contours on all slices */ }
+                        catch { /* Intentionally ignored: Expected behavior when structures do not intersect specific slices. */ }
                     }
 
                     result.Add(sd);
@@ -170,6 +191,11 @@ namespace EQD2Viewer.Esapi.Adapters
             return result;
         }
 
+        /// <summary>
+        /// Retrieves and computes the 4x4 affine transformation matrix for a specified spatial registration between coordinate frames.
+        /// </summary>
+        /// <param name="registrationId">The identifier of the spatial registration to retrieve.</param>
+        /// <returns>A <see cref="RegistrationData"/> object detailing the transformation, or null if not found or invalid.</returns>
         public RegistrationData FindRegistration(string registrationId)
         {
             if (string.IsNullOrEmpty(registrationId) || _patient.Registrations == null)
@@ -180,6 +206,7 @@ namespace EQD2Viewer.Esapi.Adapters
 
             try
             {
+                // Derive the full affine transformation matrix by transforming standard basis vectors.
                 VVector o = reg.TransformPoint(new VVector(0, 0, 0));
                 VVector x = reg.TransformPoint(new VVector(1, 0, 0));
                 VVector y = reg.TransformPoint(new VVector(0, 1, 0));
@@ -207,6 +234,12 @@ namespace EQD2Viewer.Esapi.Adapters
             }
         }
 
+        /// <summary>
+        /// Retrieves the Frame of Reference (FOR) UID for the primary image associated with a specific treatment plan.
+        /// </summary>
+        /// <param name="courseId">The identifier of the course.</param>
+        /// <param name="planId">The identifier of the treatment plan.</param>
+        /// <returns>The string representation of the Frame of Reference UID, or an empty string if it cannot be determined.</returns>
         public string GetPlanImageFOR(string courseId, string planId)
         {
             try
@@ -222,10 +255,9 @@ namespace EQD2Viewer.Esapi.Adapters
             }
         }
 
-        // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-        // GEOMETRY CONVERTERS
-        // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-
+        /// <summary>
+        /// Converts the native ESAPI <see cref="Image"/> spatial geometry into the decoupled domain format.
+        /// </summary>
         private static VolumeGeometry ToGeometry(Image img) => new VolumeGeometry
         {
             XSize = img.XSize,
@@ -242,6 +274,9 @@ namespace EQD2Viewer.Esapi.Adapters
             Id = img.Id ?? ""
         };
 
+        /// <summary>
+        /// Converts the native ESAPI <see cref="Dose"/> grid spatial geometry into the decoupled domain format.
+        /// </summary>
         private static VolumeGeometry ToDoseGeometry(Dose dose) => new VolumeGeometry
         {
             XSize = dose.XSize,
@@ -256,6 +291,9 @@ namespace EQD2Viewer.Esapi.Adapters
             ZDirection = ToVec3(dose.ZDirection)
         };
 
+        /// <summary>
+        /// Converts an ESAPI <see cref="VVector"/> to the domain-specific <see cref="Vec3"/> structure.
+        /// </summary>
         private static Vec3 ToVec3(VVector v) => new Vec3(v.x, v.y, v.z);
     }
 }

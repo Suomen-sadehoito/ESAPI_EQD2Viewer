@@ -10,12 +10,13 @@ using System.Text;
 namespace EQD2Viewer.FixtureGenerator
 {
     /// <summary>
-    /// Extracts ESAPI data and writes JSON fixture files for integration testing.
-    /// Supports both PlanSetup and PlanSum via the PlanningItem interface.
-    ///
-    /// No external JSON library — uses manual formatting for .NET 4.8 compatibility
-    /// and single-DLL deployment (no additional dependencies needed).
+    /// Extracts clinical data from the ESAPI environment and serializes it into JSON fixture files for integration testing.
     /// </summary>
+    /// <remarks>
+    /// This exporter supports both <see cref="PlanSetup"/> and <see cref="PlanSum"/> via the <see cref="PlanningItem"/> interface.
+    /// To maintain strict .NET 4.8 compatibility and enable single-DLL deployment without external dependencies, 
+    /// this class utilizes a custom, lightweight JSON formatter rather than third-party serialization libraries.
+    /// </remarks>
     public class FixtureExporter
     {
         private static readonly CultureInfo INV = CultureInfo.InvariantCulture;
@@ -23,32 +24,36 @@ namespace EQD2Viewer.FixtureGenerator
         private static readonly Encoding UTF8NoBom = new UTF8Encoding(false);
 
         /// <summary>
-        /// Exports all fixture data for the given PlanningItem (PlanSetup or PlanSum).
-        /// Returns a summary string of what was exported.
+        /// Exports all necessary fixture data for the specified planning item into the target directory.
         /// </summary>
+        /// <param name="context">The active ESAPI script context providing access to patient and image data.</param>
+        /// <param name="plan">The planning item (either a PlanSetup or PlanSum) to export.</param>
+        /// <param name="planType">A string identifier specifying the type of the plan.</param>
+        /// <param name="outputDir">The directory path where the JSON fixture files will be saved.</param>
+        /// <returns>A summary string detailing the files and data points that were successfully exported.</returns>
         public string ExportAll(ScriptContext context, PlanningItem plan, string planType, string outputDir)
         {
             var sb = new StringBuilder();
             var image = context.Image;
             var dose = plan.Dose;
 
-            // == 1. Metadata ==
+            // 1. Export core metadata.
             ExportMetadata(context.Patient?.Id ?? "", plan, planType, outputDir);
             sb.AppendLine("✓ metadata.json");
 
-            // == 2. Dose scaling calibration ==
+            // 2. Export dose scaling calibration factors.
             ExportDoseScaling(plan, outputDir);
             sb.AppendLine("✓ dose_scaling.json");
 
-            // == 3. Image geometry ==
+            // 3. Export spatial geometry of the primary image.
             ExportImageGeometry(image, outputDir);
             sb.AppendLine("✓ image_geometry.json");
 
-            // == 4. Dose geometry ==
+            // 4. Export spatial geometry of the dose grid.
             ExportDoseGeometry(dose, outputDir);
             sb.AppendLine("✓ dose_geometry.json");
 
-            // == 5. Representative dose slices (25%, 50%, 75%) ==
+            // 5. Export representative dose slices (25%, 50%, 75% depth) to limit file size.
             int[] doseSlices = {
                 dose.ZSize / 4,
                 dose.ZSize / 2,
@@ -60,18 +65,18 @@ namespace EQD2Viewer.FixtureGenerator
                 sb.AppendLine($"✓ dose_slice_{z:D3}.json");
             }
 
-            // == 6. CT subsample for HU offset detection ==
+            // 6. Export a subsampled CT slice for Hounsfield Unit offset detection.
             ExportCtSubsample(image, outputDir);
             sb.AppendLine("✓ ct_subsample.json");
 
-            // == 7. ALL structures and DVH (no artificial limit) ==
+            // 7. Export all structures and their cumulative DVH data without artificial limitations.
             StructureSet structureSet = GetStructureSet(plan);
             if (structureSet != null)
             {
                 var structures = structureSet.Structures
                     .Where(s => !s.IsEmpty && s.DicomType != "SUPPORT")
                     .OrderBy(s => s.Id)
-                    .ToList();  // No Take() limit -- export everything
+                    .ToList();
 
                 int[] ctSlicesForContours = doseSlices
                     .Select(dz => MapDoseSliceToCt(image, dose, dz))
@@ -90,11 +95,11 @@ namespace EQD2Viewer.FixtureGenerator
                 sb.AppendLine($"  {structures.Count} structures total");
             }
 
-            // == 8. Reference dose points ==
+            // 8. Export reference dose points for accurate verification testing.
             ExportReferenceDosePoints(image, dose, plan, outputDir);
             sb.AppendLine("✓ reference_dose_points.json");
 
-            // == 9. All registrations ==
+            // 9. Export all available spatial registrations.
             int regCount = ExportRegistrations(context.Patient, image, outputDir);
             if (regCount > 0)
                 sb.AppendLine($"✓ registrations.json ({regCount} registrations)");
@@ -104,10 +109,9 @@ namespace EQD2Viewer.FixtureGenerator
             return sb.ToString();
         }
 
-        // ════════════════════════════════════════════════════════
-        // INDIVIDUAL EXPORTERS
-        // ════════════════════════════════════════════════════════
-
+        /// <summary>
+        /// Exports basic plan metadata including dose totals and fractionation.
+        /// </summary>
         private void ExportMetadata(string patientId, PlanningItem plan, string planType, string dir)
         {
             double totalGy = ToGyFromPlanningItem(plan);
@@ -130,6 +134,9 @@ namespace EQD2Viewer.FixtureGenerator
             File.WriteAllText(Path.Combine(dir, "metadata.json"), w.ToString(), UTF8NoBom);
         }
 
+        /// <summary>
+        /// Computes and exports the calibration scaling factors required to convert raw ESAPI dose voxels into Gray.
+        /// </summary>
         private void ExportDoseScaling(PlanningItem plan, string dir)
         {
             var dose = plan.Dose;
@@ -162,6 +169,9 @@ namespace EQD2Viewer.FixtureGenerator
             File.WriteAllText(Path.Combine(dir, "dose_scaling.json"), w.ToString(), UTF8NoBom);
         }
 
+        /// <summary>
+        /// Exports the 3D spatial properties and frame of reference for the image volume.
+        /// </summary>
         private void ExportImageGeometry(Image image, string dir)
         {
             var w = new JsonBuilder();
@@ -181,6 +191,9 @@ namespace EQD2Viewer.FixtureGenerator
             File.WriteAllText(Path.Combine(dir, "image_geometry.json"), w.ToString(), UTF8NoBom);
         }
 
+        /// <summary>
+        /// Exports the 3D spatial properties for the dose grid volume.
+        /// </summary>
         private void ExportDoseGeometry(Dose dose, string dir)
         {
             var w = new JsonBuilder();
@@ -199,6 +212,9 @@ namespace EQD2Viewer.FixtureGenerator
             File.WriteAllText(Path.Combine(dir, "dose_geometry.json"), w.ToString(), UTF8NoBom);
         }
 
+        /// <summary>
+        /// Exports a 2D slice of the dose matrix, converting raw values to absolute Gray measurements.
+        /// </summary>
         private void ExportDoseSlice(Dose dose, PlanningItem plan, int sliceZ, string dir)
         {
             int dx = dose.XSize, dy = dose.YSize;
@@ -211,6 +227,7 @@ namespace EQD2Viewer.FixtureGenerator
             double rawOffset = dv0.Dose;
             double unitToGy;
             double totalGy = ToGyFromPlanningItem(plan);
+
             if (dvRef.Unit == DoseValue.DoseUnit.Percent)
                 unitToGy = totalGy / 100.0;
             else if (dvRef.Unit == DoseValue.DoseUnit.cGy)
@@ -247,6 +264,9 @@ namespace EQD2Viewer.FixtureGenerator
              w.ToString(), UTF8NoBom);
         }
 
+        /// <summary>
+        /// Exports a down-sampled slice of the CT image used heuristically to detect baseline Hounsfield Unit offsets.
+        /// </summary>
         private void ExportCtSubsample(Image image, string dir)
         {
             int midSlice = image.ZSize / 2;
@@ -278,8 +298,10 @@ namespace EQD2Viewer.FixtureGenerator
             File.WriteAllText(Path.Combine(dir, "ct_subsample.json"), w.ToString(), UTF8NoBom);
         }
 
-        private void ExportStructure(Structure structure, Image image,
-         int[] sliceIndices, string dir)
+        /// <summary>
+        /// Exports the metadata and 2D contour polygons for a single anatomical structure across specified slices.
+        /// </summary>
+        private void ExportStructure(Structure structure, Image image, int[] sliceIndices, string dir)
         {
             var w = new JsonBuilder();
             w.BeginObject();
@@ -321,17 +343,18 @@ namespace EQD2Viewer.FixtureGenerator
             }
             w.Raw("]");
             w.EndObject();
-            File.WriteAllText(Path.Combine(dir, $"structure_{SanitizeName(structure.Id)}.json"),
-  w.ToString(), UTF8NoBom);
+            File.WriteAllText(Path.Combine(dir, $"structure_{SanitizeName(structure.Id)}.json"), w.ToString(), UTF8NoBom);
         }
 
+        /// <summary>
+        /// Exports the calculated cumulative Dose-Volume Histogram (DVH) curve for a specified structure.
+        /// </summary>
         private void ExportDVH(PlanningItem plan, Structure structure, string dir)
         {
             DVHData dvh = null;
             try
             {
-                dvh = plan.GetDVHCumulativeData(structure,
-           DoseValuePresentation.Absolute, VolumePresentation.Relative, 0.01);
+                dvh = plan.GetDVHCumulativeData(structure, DoseValuePresentation.Absolute, VolumePresentation.Relative, 0.01);
             }
             catch { return; }
             if (dvh == null || dvh.CurveData == null) return;
@@ -346,6 +369,7 @@ namespace EQD2Viewer.FixtureGenerator
             w.Number("volumeCc", dvh.Volume);
             w.Number("curvePointCount", dvh.CurveData.Length);
 
+            // Subsample curve points to reduce file bloat if the data array is excessively large.
             int step = dvh.CurveData.Length > 2000 ? dvh.CurveData.Length / 1000 : 1;
             w.Raw("\"curve\": [");
             bool first = true;
@@ -364,12 +388,13 @@ namespace EQD2Viewer.FixtureGenerator
             }
             w.Raw("]");
             w.EndObject();
-            File.WriteAllText(Path.Combine(dir, $"dvh_{SanitizeName(structure.Id)}.json"),
-                w.ToString(), UTF8NoBom);
+            File.WriteAllText(Path.Combine(dir, $"dvh_{SanitizeName(structure.Id)}.json"), w.ToString(), UTF8NoBom);
         }
 
-        private void ExportReferenceDosePoints(Image image, Dose dose,
-            PlanningItem plan, string dir)
+        /// <summary>
+        /// Extracts point-based reference dose data across spatial cross-sections, used for end-to-end testing validation.
+        /// </summary>
+        private void ExportReferenceDosePoints(Image image, Dose dose, PlanningItem plan, string dir)
         {
             var points = new List<DoseTestPoint>();
 
@@ -393,9 +418,9 @@ namespace EQD2Viewer.FixtureGenerator
                 foreach (int py in testPixelsY)
                 {
                     VVector worldPos = image.Origin
-               + image.XDirection * (px * image.XRes)
-                + image.YDirection * (py * image.YRes)
-                           + image.ZDirection * (midSlice * image.ZRes);
+                        + image.XDirection * (px * image.XRes)
+                        + image.YDirection * (py * image.YRes)
+                        + image.ZDirection * (midSlice * image.ZRes);
 
                     VVector diff = worldPos - dose.Origin;
                     double fdx = Dot(diff, dose.XDirection) / dose.XRes;
@@ -449,6 +474,9 @@ namespace EQD2Viewer.FixtureGenerator
              w.ToString(), UTF8NoBom);
         }
 
+        /// <summary>
+        /// Exports patient registration matrices required for cross-image mapping and summation operations.
+        /// </summary>
         private int ExportRegistrations(Patient patient, Image refImage, string dir)
         {
             if (patient.Registrations == null) return 0;
@@ -460,8 +488,7 @@ namespace EQD2Viewer.FixtureGenerator
             {
                 try
                 {
-                    // Try to transform 4 basis points to extract the 4×4 matrix.
-                    // TransformPoint may throw for certain registration types — skip those.
+                    // Transform spatial basis points to extract the row-major 4x4 transformation matrix.
                     VVector o = reg.TransformPoint(new VVector(0, 0, 0));
                     VVector ex = reg.TransformPoint(new VVector(1, 0, 0));
                     VVector ey = reg.TransformPoint(new VVector(0, 1, 0));
@@ -473,18 +500,17 @@ namespace EQD2Viewer.FixtureGenerator
                         SourceFOR = reg.SourceFOR ?? "",
                         RegisteredFOR = reg.RegisteredFOR ?? "",
                         Date = reg.CreationDateTime?.ToString("o") ?? "",
-                        // Row-major 4×4: columns are the transformed basis vectors
                         Matrix = new double[] {
-    ex.x - o.x, ey.x - o.x, ez.x - o.x, o.x,
-    ex.y - o.y, ey.y - o.y, ez.y - o.y, o.y,
-      ex.z - o.z, ey.z - o.z, ez.z - o.z, o.z,
-         0, 0, 0, 1
-             }
+                            ex.x - o.x, ey.x - o.x, ez.x - o.x, o.x,
+                            ex.y - o.y, ey.y - o.y, ez.y - o.y, o.y,
+                            ex.z - o.z, ey.z - o.z, ez.z - o.z, o.z,
+                            0, 0, 0, 1
+                        }
                     });
                 }
                 catch
                 {
-                    // Non-rigid or unsupported registration — record with identity matrix
+                    // Record an identity matrix as fallback for non-rigid or unsupported registration entities.
                     regs.Add(new RegData
                     {
                         Id = reg.Id,
@@ -492,8 +518,8 @@ namespace EQD2Viewer.FixtureGenerator
                         RegisteredFOR = reg.RegisteredFOR ?? "",
                         Date = reg.CreationDateTime?.ToString("o") ?? "",
                         Matrix = new double[] {
-     1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1
-     },
+                            1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1
+                        },
                         IsUnsupported = true
                     });
                 }
@@ -529,16 +555,14 @@ namespace EQD2Viewer.FixtureGenerator
             return regs.Count;
         }
 
-        // ════════════════════════════════════════════════════════
-        // PLANNINGITEM HELPERS
-        // ════════════════════════════════════════════════════════
-
+        /// <summary>
+        /// Derives the aggregate total dose measured in Gray from the active planning item.
+        /// </summary>
         private static double ToGyFromPlanningItem(PlanningItem item)
         {
             if (item is PlanSetup ps) return ToGy(ps.TotalDose);
             if (item is PlanSum sum)
             {
-                // PlanSum.TotalDose is not available — sum component plan total doses
                 double total = 0;
                 foreach (var component in sum.PlanSetups)
                     total += ToGy(component.TotalDose);
@@ -547,12 +571,14 @@ namespace EQD2Viewer.FixtureGenerator
             return 0;
         }
 
+        /// <summary>
+        /// Extracts the total number of delivered fractions associated with the planning item.
+        /// </summary>
         private static int GetNumberOfFractions(PlanningItem item)
         {
             if (item is PlanSetup ps) return ps.NumberOfFractions ?? 0;
             if (item is PlanSum sum)
             {
-                // Sum fractions across component plans
                 int total = 0;
                 foreach (var component in sum.PlanSetups)
                     total += component.NumberOfFractions ?? 0;
@@ -561,12 +587,18 @@ namespace EQD2Viewer.FixtureGenerator
             return 0;
         }
 
+        /// <summary>
+        /// Retrieves the plan normalization factor. Returns NaN for aggregated sums where a single factor is undefined.
+        /// </summary>
         private static double GetPlanNormalization(PlanningItem item)
         {
             if (item is PlanSetup ps) return ps.PlanNormalizationValue;
-            return double.NaN; // PlanSum has no single normalization value
+            return double.NaN;
         }
 
+        /// <summary>
+        /// Resolves the parent course identifier corresponding to the given planning item.
+        /// </summary>
         private static string GetCourseId(PlanningItem item)
         {
             if (item is PlanSetup ps) return ps.Course?.Id ?? "";
@@ -574,21 +606,22 @@ namespace EQD2Viewer.FixtureGenerator
             return "";
         }
 
+        /// <summary>
+        /// Extracts the primary <see cref="StructureSet"/> related to the planning item.
+        /// </summary>
         private static StructureSet GetStructureSet(PlanningItem item)
         {
             if (item is PlanSetup ps) return ps.StructureSet;
             if (item is PlanSum sum)
             {
-                // PlanSum does not directly expose StructureSet — use the first component plan
                 return sum.PlanSetups.FirstOrDefault()?.StructureSet;
             }
             return null;
         }
 
-        // ════════════════════════════════════════════════════════
-        // HELPERS
-        // ════════════════════════════════════════════════════════
-
+        /// <summary>
+        /// Computes the corresponding CT slice index for a specified spatial dose slice plane.
+        /// </summary>
         private static int MapDoseSliceToCt(Image image, Dose dose, int doseSliceZ)
         {
             VVector doseSliceWorld = dose.Origin + dose.ZDirection * (doseSliceZ * dose.ZRes);
@@ -601,8 +634,14 @@ namespace EQD2Viewer.FixtureGenerator
             a.x * b.x + a.y * b.y + a.z * b.z;
 
         private static double[] V(VVector v) => new double[] { v.x, v.y, v.z };
+
         private static string F(double v) => v.ToString("G10", INV);
+
         private static string Esc(string s) => s?.Replace("\\", "\\\\").Replace("\"", "\\\"") ?? "";
+
+        /// <summary>
+        /// Cleans identifiers, replacing invalid characters with underscores to ensure file system compatibility.
+        /// </summary>
         private static string SanitizeName(string s)
         {
             var sb = new StringBuilder();
@@ -611,9 +650,15 @@ namespace EQD2Viewer.FixtureGenerator
             return sb.ToString();
         }
 
+        /// <summary>
+        /// Converts the given ESAPI dose presentation value into absolute Gray format.
+        /// </summary>
         private static double ToGy(DoseValue dv) =>
-       dv.Unit == DoseValue.DoseUnit.cGy ? dv.Dose / 100.0 : dv.Dose;
+            dv.Unit == DoseValue.DoseUnit.cGy ? dv.Dose / 100.0 : dv.Dose;
 
+        /// <summary>
+        /// Evaluates a representative CT data slice to determine the implicit DICOM Hounsfield Unit offset.
+        /// </summary>
         private static int DetectHuOffset(int[,] slice, int xSize, int ySize)
         {
             int step = 8, above = 0, total = 0;
@@ -626,6 +671,9 @@ namespace EQD2Viewer.FixtureGenerator
             return (total > 0 && above > total / 2) ? 32768 : 0;
         }
 
+        /// <summary>
+        /// Provides a DTO struct used internally to store validation points exported for unit testing.
+        /// </summary>
         private struct DoseTestPoint
         {
             public int CtPixelX, CtPixelY, CtSlice;
@@ -634,6 +682,9 @@ namespace EQD2Viewer.FixtureGenerator
             public bool IsInsideDoseGrid;
         }
 
+        /// <summary>
+        /// Provides a DTO struct mapping an extracted spatial registration matrix to its identifying properties.
+        /// </summary>
         private struct RegData
         {
             public string Id, SourceFOR, RegisteredFOR, Date;
@@ -643,8 +694,8 @@ namespace EQD2Viewer.FixtureGenerator
     }
 
     /// <summary>
-    /// Minimal JSON writer for .NET 4.8 with no external dependencies.
-    /// Produces readable, indented JSON for fixture files.
+    /// A minimal JSON stream builder ensuring readable output and robust formatting for .NET 4.8 compatibility.
+    /// Eliminates the need for external framework dependencies such as Newtonsoft.Json within the Eclipse script runtime.
     /// </summary>
     internal class JsonBuilder
     {
@@ -653,17 +704,26 @@ namespace EQD2Viewer.FixtureGenerator
         private bool _needComma = false;
         private static readonly CultureInfo INV = CultureInfo.InvariantCulture;
 
+        /// <summary>
+        /// Starts a new JSON object scope, appropriately incrementing the formatting indent level.
+        /// </summary>
         public void BeginObject()
         {
             _sb.AppendLine("{"); _depth++; _needComma = false;
         }
 
+        /// <summary>
+        /// Terminates the current JSON object scope and finalizes indentation.
+        /// </summary>
         public void EndObject()
         {
             _sb.AppendLine(); _depth--;
             Indent(); _sb.Append("}"); _needComma = true;
         }
 
+        /// <summary>
+        /// Emits a key-value pair where the value is serialized as a JSON string.
+        /// </summary>
         public void String(string key, string value)
         {
             Comma(); Indent();
@@ -671,6 +731,9 @@ namespace EQD2Viewer.FixtureGenerator
             _needComma = true;
         }
 
+        /// <summary>
+        /// Emits a key-value pair where the value is serialized as a double-precision JSON number.
+        /// </summary>
         public void Number(string key, double value)
         {
             Comma(); Indent();
@@ -678,6 +741,9 @@ namespace EQD2Viewer.FixtureGenerator
             _needComma = true;
         }
 
+        /// <summary>
+        /// Emits a key-value pair where the value is serialized as a discrete JSON integer.
+        /// </summary>
         public void Number(string key, int value)
         {
             Comma(); Indent();
@@ -685,6 +751,9 @@ namespace EQD2Viewer.FixtureGenerator
             _needComma = true;
         }
 
+        /// <summary>
+        /// Appends a one-dimensional array of double values associated with the specified key.
+        /// </summary>
         public void NumberArray(string key, double[] values)
         {
             Comma(); Indent();
@@ -698,6 +767,9 @@ namespace EQD2Viewer.FixtureGenerator
             _needComma = true;
         }
 
+        /// <summary>
+        /// Appends a one-dimensional array of integer values associated with the specified key.
+        /// </summary>
         public void IntArray(string key, int[] values)
         {
             Comma(); Indent();
@@ -711,6 +783,9 @@ namespace EQD2Viewer.FixtureGenerator
             _needComma = true;
         }
 
+        /// <summary>
+        /// Injects pre-formatted or complex JSON content directly into the builder's stream output.
+        /// </summary>
         public void Raw(string json)
         {
             if (_needComma && json.StartsWith("\"")) { _sb.Append(",\n"); Indent(); }
@@ -721,6 +796,10 @@ namespace EQD2Viewer.FixtureGenerator
         private void Comma() { if (_needComma) _sb.AppendLine(","); }
         private void Indent() { _sb.Append(new string(' ', _depth * 2)); }
         private static string Esc(string s) => s?.Replace("\\", "\\\\").Replace("\"", "\\\"") ?? "";
+
+        /// <summary>
+        /// Compiles and returns the finalized JSON document string.
+        /// </summary>
         public override string ToString() => _sb.ToString();
     }
 }
