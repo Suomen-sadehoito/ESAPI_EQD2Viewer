@@ -1,0 +1,25 @@
+<Project>
+	<Target Name="OrganizeDeliverables" AfterTargets="Build" Condition="'$(Configuration)' == 'Release'">
+
+		<PropertyGroup Condition="$(AssemblyName.EndsWith('.esapi'))">
+			<DeployDir>$(MSBuildThisFileDirectory)BuildOutput\01_Eclipse_ESAPI_Plugins\</DeployDir>
+		</PropertyGroup>
+
+		<MakeDir Directories="$(DeployDir)" Condition="$(AssemblyName.EndsWith('.esapi'))" />
+		<Copy SourceFiles="$(OutputPath)$(TargetFileName)" DestinationFolder="$(DeployDir)" Condition="$(AssemblyName.EndsWith('.esapi'))" />
+
+		<PropertyGroup Condition="'$(AssemblyName)' == 'EQD2Viewer.DevRunner'">
+			<AppDir>$(MSBuildThisFileDirectory)BuildOutput\02_Standalone_Runner\</AppDir>
+		</PropertyGroup>
+
+		<MakeDir Directories="$(AppDir)" Condition="'$(AssemblyName)' == 'EQD2Viewer.DevRunner'" />
+		<Copy SourceFiles="$(OutputPath)$(TargetFileName)" DestinationFolder="$(AppDir)" Condition="'$(AssemblyName)' == 'EQD2Viewer.DevRunner'" />
+		<Copy SourceFiles="$(OutputPath)$(TargetFileName).config" DestinationFolder="$(AppDir)" Condition="'$(AssemblyName)' == 'EQD2Viewer.DevRunner' And Exists('$(OutputPath)$(TargetFileName).config')" />
+
+		<ItemGroup Condition="'$(AssemblyName)' == 'EQD2Viewer.DevRunner'">
+			<FixturesToCopy Include="$(OutputPath)TestFixtures\**\*.*" />
+		</ItemGroup>
+		<Copy SourceFiles="@(FixturesToCopy)" DestinationFiles="@(FixturesToCopy->'$(AppDir)TestFixtures\%(RecursiveDir)%(Filename)%(Extension)')" Condition="'$(AssemblyName)' == 'EQD2Viewer.DevRunner'" />
+
+	</Target>
+</Project>
