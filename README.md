@@ -17,10 +17,14 @@ Tämä mahdollistaa sovelluksen joustavan kehittämisen ja testaamisen paikallis
 - .NET Framework 4.8
 
 ## Kääntäminen ja asennus
-1. Avaa `EQD2Viewer.sln` Visual Studiossa.
-2. Varmista yläpalkista, että valittuna on **Release** ja **x64**.
-3. Valitse **Build -> Build Solution**.
-4. Käännöksen jälkeen projektin juureen ilmestyy `BuildOutput`-kansio, josta löytyvät valmiit asennustiedostot:
+
+Varianin suljetun lähdekoodin ESAPI-kirjastoja ei jaeta versionhallinnassa tekijänoikeussyistä. Ennen ensimmäistä kääntämistä:
+
+1. Kopioi tiedostot `VMS.TPS.Common.Model.API.dll` ja `VMS.TPS.Common.Model.Types.dll` Eclipsen asennuskansiosta (tai sairaalan työasemalta) projektin juuresta löytyvään `lib`-kansioon.
+2. Avaa `EQD2Viewer.sln` Visual Studiossa.
+3. Varmista yläpalkista, että valittuna on **Release** ja **x64**.
+4. Valitse **Build -> Build Solution**.
+5. Käännöksen jälkeen projektin juureen ilmestyy `BuildOutput`-kansio, josta löytyvät valmiit asennustiedostot:
    - **01_Eclipse_ESAPI_Plugins:** Kopioi täältä löytyvät `.esapi.dll`-tiedostot suoraan sairaalan Eclipsen skriptikansioon. Costura.Fody on pakannut kaikki tarvittavat riippuvuudet näiden tiedostojen sisään.
    - **02_Standalone_Runner:** Sisältää `DevRunner.exe`:n ja testidatan paikallista käyttöä ja kehitystä varten.
 
