@@ -1,4 +1,19 @@
 <Project>
+	<!-- Copy Registration.ITK and its native SimpleITK DLLs to a dedicated dir in Release-WithITK -->
+	<Target Name="DeployItkAssembly" AfterTargets="Build"
+	        Condition="'$(AssemblyName)' == 'EQD2Viewer.Registration.ITK' And '$(Configuration)' == 'Release-WithITK'">
+		<PropertyGroup>
+			<ItkDir>$(MSBuildThisFileDirectory)BuildOutput\$(Configuration)\03_ITK_Registration\</ItkDir>
+		</PropertyGroup>
+		<MakeDir Directories="$(ItkDir)" />
+		<Copy SourceFiles="$(OutputPath)$(TargetFileName)" DestinationFolder="$(ItkDir)" />
+		<!-- Copy native SimpleITK support DLLs (all non-EQD2Viewer DLLs) -->
+		<ItemGroup>
+			<NativeDlls Include="$(OutputPath)*.dll" Exclude="$(OutputPath)EQD2Viewer.*.dll" />
+		</ItemGroup>
+		<Copy SourceFiles="@(NativeDlls)" DestinationFolder="$(ItkDir)" Condition="@(NativeDlls->Count()) > 0" />
+	</Target>
+
 	<Target Name="OrganizeDeliverables" AfterTargets="Build" Condition="'$(Configuration)' == 'Release'">
 
 		<PropertyGroup Condition="$(AssemblyName.EndsWith('.esapi'))">

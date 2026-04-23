@@ -3,6 +3,7 @@ using EQD2Viewer.Core.Calculations;
 using EQD2Viewer.Core.Models;
 using EQD2Viewer.Core.Interfaces;
 using EQD2Viewer.Core.Data;
+using System.IO;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -56,17 +57,20 @@ namespace EQD2Viewer.Services
         private readonly VolumeData _referenceCtImage;
         private readonly ISummationDataLoader _dataLoader;
         private readonly List<RegistrationData> _registrations;
+        private readonly IDeformationFieldLoader? _dfLoader;
 
         public bool HasSummedDose => _hasSummedDose;
         public double SummedReferenceDoseGy => _summedReferenceDoseGy;
         public double MaxDoseGy => _maxDoseGy;
         public int SliceCount => _refZ;
 
-        public SummationService(VolumeData referenceCtImage, ISummationDataLoader dataLoader, List<RegistrationData> registrations)
+        public SummationService(VolumeData referenceCtImage, ISummationDataLoader dataLoader,
+            List<RegistrationData> registrations, IDeformationFieldLoader? dfLoader = null)
         {
             _referenceCtImage = referenceCtImage ?? throw new ArgumentNullException(nameof(referenceCtImage));
             _dataLoader = dataLoader ?? throw new ArgumentNullException(nameof(dataLoader));
             _registrations = registrations ?? new List<RegistrationData>();
+            _dfLoader = dfLoader;
         }
 
         public SummationResult PrepareData(SummationConfig config)
@@ -155,10 +159,14 @@ namespace EQD2Viewer.Services
                         double[] planSlice = new double[sliceSize];
                         var cp = _cachedPlans![p];
 
-                        if (cp.IsReference || cp.TransformMatrix == null)
+                        if (cp.IsReference)
                             AccumulatePhysicalDirect(cp, z, refW, refH, planSlice);
-                        else
+                        else if (cp.DeformationField != null)
+                            AccumulatePhysicalDeformable(cp, z, refW, refH, planSlice);
+                        else if (cp.TransformMatrix != null)
                             AccumulatePhysicalRegistered(cp, z, refW, refH, planSlice);
+                        else
+                            AccumulatePhysicalDirect(cp, z, refW, refH, planSlice);
 
                         _perPlanPhysicalSlices[p][z] = planSlice;
                     }
@@ -405,6 +413,49 @@ namespace EQD2Viewer.Services
                     double fx = rx + px * dxPerPx;
                     double fy = ry + px * dyPerPx;
                     double dGy = ImageUtils.BilinearSampleRaw(doseSlice, dxSize, dySize, fx, fy, rawScale, rawOffset, unitToGy);
+                    if (dGy > 0)
+                        sliceData[ro + px] += dGy;
+                }
+            }
+        }
+
+        private void AccumulatePhysicalDeformable(CachedPlanData cp, int sliceZ, int refW, int refH, double[] sliceData)
+        {
+            var dg = cp.DoseGeo;
+            var rg = _refGeo!;
+            var dvf = cp.DeformationField!;
+
+            for (int py = 0; py < refH; py++)
+            {
+                int ro = py * refW;
+                for (int px = 0; px < refW; px++)
+                {
+                    // World position of this reference voxel
+                    double wx = rg.Ox + sliceZ * rg.Zx + py * rg.Yx + px * rg.Xx;
+                    double wy = rg.Oy + sliceZ * rg.Zy + py * rg.Yy + px * rg.Xy;
+                    double wz = rg.Oz + sliceZ * rg.Zz + py * rg.Yz + px * rg.Xz;
+
+                    // Forward-mapped displacement (reference → moving)
+                    double dx = 0, dy = 0, dz = 0;
+                    if (px < dvf.XSize && py < dvf.YSize && sliceZ < dvf.ZSize)
+                    {
+                        var v = dvf.Vectors[sliceZ][px, py];
+                        dx = v.X; dy = v.Y; dz = v.Z;
+                    }
+
+                    double mwx = wx + dx, mwy = wy + dy, mwz = wz + dz;
+
+                    double diffX = mwx - dg.Ox, diffY = mwy - dg.Oy, diffZ = mwz - dg.Oz;
+                    double fz = (diffX * dg.ZDx + diffY * dg.ZDy + diffZ * dg.ZDz) / dg.ZRes;
+                    int iz = (int)Math.Round(fz);
+                    if (iz < 0 || iz >= dg.ZSize) continue;
+
+                    double fx = (diffX * dg.XDx + diffY * dg.XDy + diffZ * dg.XDz) / dg.XRes;
+                    double fy = (diffX * dg.YDx + diffY * dg.YDy + diffZ * dg.YDz) / dg.YRes;
+
+                    double dGy = ImageUtils.BilinearSampleRaw(
+                        cp.DoseVoxels[iz], dg.XSize, dg.YSize, fx, fy,
+                        cp.RawScale, cp.RawOffset, cp.UnitToGy);
                     if (dGy > 0)
                         sliceData[ro + px] += dGy;
                 }
@@ -720,6 +771,20 @@ namespace EQD2Viewer.Services
                 };
             }
 
+            // DIR deformation field — preferred over affine when available
+            DeformationField? deformationField = null;
+            if (!entry.IsReference
+                && !string.IsNullOrEmpty(entry.DeformationFieldPath)
+                && _dfLoader != null
+                && File.Exists(entry.DeformationFieldPath))
+            {
+                deformationField = _dfLoader.Load(entry.DeformationFieldPath);
+                if (deformationField != null)
+                    SimpleLogger.Info($"Loaded DVF for {entry.DisplayLabel}: {entry.DeformationFieldPath}");
+                else
+                    SimpleLogger.Warning($"DVF load failed for {entry.DisplayLabel}, falling back to affine");
+            }
+
             return new CachedPlanData
             {
                 Entry = entry,
@@ -733,10 +798,11 @@ namespace EQD2Viewer.Services
                 EQD2L = eqd2L,
                 Weight = entry.Weight,
                 IsReference = entry.IsReference,
-                TransformMatrix = regMatrix,
+                TransformMatrix = deformationField == null ? regMatrix : null,
                 CtVoxels = ctVoxels,
                 CtGeo = ctGeo,
-                CtHuOffset = ctHuOffset
+                CtHuOffset = ctHuOffset,
+                DeformationField = deformationField
             };
         }
 
@@ -759,6 +825,7 @@ namespace EQD2Viewer.Services
             public double RawScale, RawOffset, UnitToGy, Weight; public bool IsReference, UseEQD2;
             public double EQD2Q, EQD2L; public double[,]? TransformMatrix;
             public int[][,]? CtVoxels; public CachedCtGeometry? CtGeo; public int CtHuOffset;
+            public DeformationField? DeformationField;
         }
     }
 }

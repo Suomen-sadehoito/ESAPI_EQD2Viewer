@@ -2,7 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Dose Summation — Re-irradiation Assessment"
-        Height="700" Width="820"
+        Height="700" Width="1050"
         WindowStartupLocation="CenterOwner"
         Background="#0C0E12" Foreground="#F0F2F5" FontFamily="Segoe UI">
 
@@ -104,7 +104,7 @@
                             <DataGridTextColumn.ElementStyle><Style TargetType="TextBlock"><Setter Property="Foreground" Value="#F0F2F5"/></Style></DataGridTextColumn.ElementStyle>
                             <DataGridTextColumn.EditingElementStyle><Style TargetType="TextBox"><Setter Property="Background" Value="#222830"/><Setter Property="Foreground" Value="#F0F2F5"/></Style></DataGridTextColumn.EditingElementStyle>
                         </DataGridTextColumn>
-                        <DataGridTemplateColumn Header="Registration" Width="*" MinWidth="180">
+                        <DataGridTemplateColumn Header="Registration" Width="170" MinWidth="140">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <Grid>
@@ -118,6 +118,42 @@
                                                 <Style.Triggers><DataTrigger Binding="{Binding IsReference}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers>
                                             </Style></ComboBox.Style>
                                         </ComboBox>
+                                    </Grid>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTemplateColumn Header="DIR Field (.mha)" Width="*" MinWidth="160">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Grid>
+                                        <!-- Reference row: no DIR field -->
+                                        <TextBlock Text="—" Foreground="#3A4050" FontSize="10" VerticalAlignment="Center" Padding="6,0">
+                                            <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers><DataTrigger Binding="{Binding IsReference}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers>
+                                            </Style></TextBlock.Style>
+                                        </TextBlock>
+                                        <!-- Non-reference row: path TextBox + browse button -->
+                                        <Grid>
+                                            <Grid.Style><Style TargetType="Grid"><Setter Property="Visibility" Value="Visible"/>
+                                                <Style.Triggers><DataTrigger Binding="{Binding IsReference}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers>
+                                            </Style></Grid.Style>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBox Grid.Column="0"
+                                                     Text="{Binding DeformationFieldPath, UpdateSourceTrigger=PropertyChanged}"
+                                                     Background="#181C22" Foreground="#9BA3B0" BorderBrush="#2A3040"
+                                                     FontSize="9.5" FontFamily="Consolas" Padding="4,2"
+                                                     VerticalContentAlignment="Center"
+                                                     ToolTip="{Binding DeformationFieldPath}"/>
+                                            <Button Grid.Column="1" Content="…"
+                                                    Click="BrowseDirField_Click"
+                                                    Width="22" Margin="2,0,0,0" Padding="2,0"
+                                                    Background="#1A2A3A" Foreground="#4C9EEB"
+                                                    BorderBrush="#2A3A5A" FontSize="11" Cursor="Hand"
+                                                    ToolTip="Browse for .mha deformation field file"/>
+                                        </Grid>
                                     </Grid>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>

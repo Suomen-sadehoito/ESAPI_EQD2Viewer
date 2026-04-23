@@ -109,6 +109,17 @@
       <Project>{CB47C100-C47F-436D-8596-8005AB5B13A8}</Project>
       <Name>EQD2Viewer.App</Name>
     </ProjectReference>
+    <ProjectReference Include="..\EQD2Viewer.Registration\EQD2Viewer.Registration.csproj">
+      <Project>{A2B3C4D5-E6F7-8901-ABCD-EF0123456789}</Project>
+      <Name>EQD2Viewer.Registration</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <!-- Include ITK registration only when building Release-WithITK -->
+  <ItemGroup Condition="'$(Configuration)' == 'Release-WithITK'">
+    <ProjectReference Include="..\EQD2Viewer.Registration.ITK\EQD2Viewer.Registration.ITK.csproj">
+      <Project>{B3C4D5E6-F7A8-9012-BCDE-F01234567890}</Project>
+      <Name>EQD2Viewer.Registration.ITK</Name>
+    </ProjectReference>
   </ItemGroup>
   <!-- Local: use real ESAPI DLLs from lib/ -->
   <ItemGroup Condition="'$(HasRealEsapi)' == 'true'">

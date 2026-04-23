@@ -7,6 +7,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows;
+using Microsoft.Win32;
 
 namespace EQD2Viewer.App.UI.Views
 {
@@ -121,6 +122,22 @@ namespace EQD2Viewer.App.UI.Views
             }
         }
 
+        private void BrowseDirField_Click(object sender, RoutedEventArgs e)
+        {
+            if ((sender as FrameworkElement)?.DataContext is not PlanRowItem row) return;
+            var dlg = new OpenFileDialog
+            {
+                Title = "Select deformation vector field",
+                Filter = "MetaImage files (*.mha;*.mhd)|*.mha;*.mhd|All files (*.*)|*.*",
+                CheckFileExists = true
+            };
+            if (!string.IsNullOrEmpty(row.DeformationFieldPath))
+                try { dlg.InitialDirectory = System.IO.Path.GetDirectoryName(row.DeformationFieldPath) ?? ""; } catch { }
+
+            if (dlg.ShowDialog() == true)
+                row.DeformationFieldPath = dlg.FileName;
+        }
+
         private void PopulatePlans()
         {
             foreach (var course in _courses)
@@ -202,7 +219,8 @@ namespace EQD2Viewer.App.UI.Views
                     PlanNormalization = double.IsNaN(p.PlanNormalization) || p.PlanNormalization <= 0 ? 100.0 : p.PlanNormalization,
                     IsReference = p.IsReference,
                     RegistrationId = p.IsReference ? "" : (p.SelectedRegistrationId ?? ""),
-                    Weight = p.Weight
+                    Weight = p.Weight,
+                    DeformationFieldPath = p.IsReference ? "" : (p.DeformationFieldPath ?? "")
                 }).ToList()
             };
             DialogResult = true;
@@ -215,6 +233,7 @@ namespace EQD2Viewer.App.UI.Views
         private int _numberOfFractions;
         private double _weight = 1.0;
         private string _selectedRegistrationId = "";
+        private string _deformationFieldPath = "";
         private List<RegistrationOption> _relevantRegistrations = new List<RegistrationOption>();
 
         public string CourseId { get; set; } = "";
@@ -238,6 +257,7 @@ namespace EQD2Viewer.App.UI.Views
         public int NumberOfFractions { get => _numberOfFractions; set { _numberOfFractions = value; OnPropertyChanged(); } }
         public double Weight { get => _weight; set { _weight = value; OnPropertyChanged(); } }
         public string SelectedRegistrationId { get => _selectedRegistrationId; set { _selectedRegistrationId = value; OnPropertyChanged(); } }
+        public string DeformationFieldPath { get => _deformationFieldPath; set { _deformationFieldPath = value; OnPropertyChanged(); } }
 
         public event PropertyChangedEventHandler? PropertyChanged;
         protected void OnPropertyChanged([CallerMemberName] string? name = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));

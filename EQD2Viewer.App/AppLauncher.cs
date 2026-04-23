@@ -1,36 +1,27 @@
-﻿using EQD2Viewer.Services.Rendering;
+using EQD2Viewer.Services.Rendering;
 using EQD2Viewer.Services;
 using EQD2Viewer.Core.Interfaces;
 using EQD2Viewer.Core.Data;
+using EQD2Viewer.Core.Logging;
 using EQD2Viewer.App.UI.ViewModels;
 using EQD2Viewer.App.UI.Views;
+using EQD2Viewer.Registration.Services;
 using System;
+using System.IO;
+using System.Reflection;
 
 namespace EQD2Viewer.App
 {
     /// <summary>
     /// Composition root for launching the EQD2 Viewer UI.
     /// Called from both the ESAPI Script.cs and the DevRunner.
-    /// 
-    /// This class owns the wiring of services -> ViewModel -> Window.
-    /// Neither EQD2Viewer.Esapi nor EQD2Viewer.DevRunner need to know
-    /// about internal service types -- they just provide the data and call Launch().
+    ///
+    /// Tries to load EQD2Viewer.Registration.ITK.dll via reflection at startup.
+    /// If found, an IRegistrationService is available for on-the-fly DIR computation.
+    /// If not found, only pre-computed MHA deformation fields are supported.
     /// </summary>
     public static class AppLauncher
     {
-        /// <summary>
-        /// Creates all services, initializes rendering, builds the ViewModel, and shows the window.
-        /// </summary>
-        /// <param name="snapshot">Fully loaded clinical data (from ESAPI or JSON fixtures).</param>
-        /// <param name="summationLoader">
-        /// Optional: provides on-demand plan loading for multi-plan summation.
-        /// Null when summation is not available (e.g., DevRunner without full data).
-        /// </param>
-        /// <param name="windowTitle">Optional title suffix (e.g., "[DEV MODE]").</param>
-        /// <param name="useShowDialog">
-        /// True to call ShowDialog() (ESAPI scripts must block the calling thread).
-        /// False to call Show() (standalone WPF apps manage their own message loop).
-        /// </param>
         public static void Launch(
             ClinicalSnapshot snapshot,
             ISummationDataLoader? summationLoader = null,
@@ -39,27 +30,38 @@ namespace EQD2Viewer.App
         {
             if (snapshot == null) throw new ArgumentNullException(nameof(snapshot));
 
-            // -- Create ESAPI-free services --
+            // MhaReader is always available (EQD2Viewer.Registration is always built).
+            var dfLoader = new MhaReader();
+
+            // Try to load ITK registration service via reflection (Release-WithITK only).
+            var itkService = TryLoadItkService();
+
             IImageRenderingService renderingService = new ImageRenderingService();
             IDebugExportService debugService = new DebugExportService();
             IDVHCalculation dvhService = new DVHService();
 
-            // -- Initialize rendering pipeline from snapshot dimensions --
-            int width = snapshot.CtImage.XSize;
+            int width  = snapshot.CtImage.XSize;
             int height = snapshot.CtImage.YSize;
             renderingService.Initialize(width, height);
             renderingService.PreloadData(snapshot.CtImage, snapshot.Dose);
 
-            // -- Build ViewModel --
+            if (itkService != null)
+                SimpleLogger.Info("ITK registration service loaded — on-the-fly DIR available.");
+            else
+                SimpleLogger.Info("ITK registration service not loaded — MHA-only DIR mode.");
+
+            var factory = summationLoader != null
+                ? new SummationServiceFactory(dfLoader)
+                : null;
+
             var viewModel = new MainViewModel(
                 snapshot,
                 renderingService,
                 debugService,
                 dvhService,
                 summationLoader,
-                summationLoader != null ? new SummationServiceFactory() : null);
+                factory);
 
-            // -- Launch window --
             var window = new MainWindow(viewModel);
             if (!string.IsNullOrEmpty(windowTitle))
                 window.Title += $" {windowTitle}";
@@ -68,6 +70,33 @@ namespace EQD2Viewer.App
                 window.ShowDialog();
             else
                 window.Show();
+        }
+
+        /// <summary>
+        /// Probes the application directory for EQD2Viewer.Registration.ITK.dll and
+        /// attempts to instantiate ItkRegistrationService via reflection.
+        /// Returns null silently if the assembly is absent (standard Release build).
+        /// </summary>
+        private static Registration.Interfaces.IRegistrationService? TryLoadItkService()
+        {
+            try
+            {
+                string dir  = AppDomain.CurrentDomain.BaseDirectory;
+                string path = Path.Combine(dir, "EQD2Viewer.Registration.ITK.dll");
+                if (!File.Exists(path)) return null;
+
+                var asm  = Assembly.LoadFrom(path);
+                var type = asm.GetType("EQD2Viewer.Registration.ITK.Services.ItkRegistrationService");
+                if (type == null) return null;
+
+                var instance = Activator.CreateInstance(type);
+                return instance as Registration.Interfaces.IRegistrationService;
+            }
+            catch (Exception ex)
+            {
+                SimpleLogger.Warning($"ITK registration service not loaded: {ex.Message}");
+                return null;
+            }
         }
     }
 }
