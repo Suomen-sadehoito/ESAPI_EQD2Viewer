@@ -14,4 +14,12 @@
 		<DebugSymbols>false</DebugSymbols>
 	</PropertyGroup>
 
+	<!-- Inject shared version/company attributes into every SDK-style project except Core,
+	     which owns the file. Old-style projects (Esapi, FixtureGenerator) include it via
+	     an explicit <Compile> entry in their own .csproj. -->
+	<ItemGroup Condition="'$(UsingMicrosoftNETSdk)' == 'true' and '$(MSBuildProjectName)' != 'EQD2Viewer.Core'">
+		<Compile Include="$(MSBuildThisFileDirectory)EQD2Viewer.Core\Properties\GlobalAssemblyInfo.cs"
+		         Link="Properties\GlobalAssemblyInfo.cs" />
+	</ItemGroup>
+
 </Project>
