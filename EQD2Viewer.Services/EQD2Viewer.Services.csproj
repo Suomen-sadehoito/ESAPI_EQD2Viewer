@@ -6,12 +6,12 @@
     <OutputType>Library</OutputType>
     <RootNamespace>EQD2Viewer.Services</RootNamespace>
     <AssemblyName>EQD2Viewer.Services</AssemblyName>
-    <UseWPF>true</UseWPF>
+    <!-- Services has no UI types. UseWPF was required only for the now-removed ImageRenderingService
+         and IsodoseLevel (both moved to EQD2Viewer.App.UI.Rendering). -->
     <Nullable>enable</Nullable>
     <ImplicitUsings>disable</ImplicitUsings>
     <LangVersion>latest</LangVersion>
     <PlatformTarget>x64</PlatformTarget>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
   </PropertyGroup>
 

@@ -51,17 +51,22 @@ namespace EQD2Viewer.Core.Calculations
                 double scanY = y + 0.5; // Center of pixel row
                 xIntersections.Clear();
 
-                // Find all X-intersections of scan line with polygon edges
+                // Canonical scan-line rule (half-open interval): an edge contributes an
+                // intersection at scanY iff min(y1, y2) <= scanY < max(y1, y2). This:
+                //   * excludes horizontal edges naturally (min == max, no y satisfies it)
+                //   * avoids double-counting shared vertices (each vertex belongs to exactly
+                //     one of the two adjacent edges)
+                //   * correctly fills polygons whose edges fall exactly on integer scan lines
+                // The previous rule "(y1 >= scanY && y2 >= scanY)" skipped ALL edges of a
+                // rectangle whose bottom sat on scanY, producing under-filled rows.
                 for (int i = 0; i < n; i++)
                 {
                     int j = (i + 1) % n;
                     double y1 = polygonPoints[i].Y, y2 = polygonPoints[j].Y;
+                    double yMin = y1 < y2 ? y1 : y2;
+                    double yMax = y1 < y2 ? y2 : y1;
 
-                    // Skip horizontal edges and edges that don't cross scanY
-                    if ((y1 < scanY && y2 < scanY) || (y1 >= scanY && y2 >= scanY))
-                        continue;
-                    if (Math.Abs(y2 - y1) < 1e-10)
-                        continue;
+                    if (scanY < yMin || scanY >= yMax) continue;
 
                     double x1 = polygonPoints[i].X, x2 = polygonPoints[j].X;
                     double t = (scanY - y1) / (y2 - y1);

@@ -173,5 +173,43 @@ namespace EQD2Viewer.Tests.Calculations
             var action = () => ImageUtils.DetermineHuOffset(slice, 1, 1);
             action.Should().NotThrow();
         }
+
+        // ════════════════════════════════════════════════════════
+        // HU OFFSET — any-negative shortcut regression
+        // ════════════════════════════════════════════════════════
+
+        [Fact]
+        public void DetermineHuOffset_MetalDominatedSignedSlice_ReturnsZero()
+        {
+            // Pathological case: a signed CT slice whose centre is dominated by metal artifacts
+            // (HU ~30500) but the periphery has negative-HU air (HU ~-500). The old threshold-only
+            // heuristic would see >50% samples above 30000 and incorrectly classify this as
+            // unsigned storage. The any-negative shortcut catches the single negative voxel
+            // and returns offset=0 (correct for signed storage).
+            int xSize = 32, ySize = 32;
+            var slice = new int[xSize, ySize];
+            for (int x = 0; x < xSize; x++)
+                for (int y = 0; y < ySize; y++)
+                    slice[x, y] = 30500; // metal-dominant centre
+            slice[0, 0] = -500;  // single air voxel — enough to prove signed storage
+
+            int offset = ImageUtils.DetermineHuOffset(slice, xSize, ySize);
+            offset.Should().Be(0, "presence of any negative voxel proves signed storage regardless of metal dominance");
+        }
+
+        [Fact]
+        public void DetermineHuOffset_PureUnsignedAirBackground_StillDetectsOffset()
+        {
+            // Ensures the any-negative shortcut doesn't misfire on genuinely unsigned slices.
+            // Air in unsigned storage is ~31768 (not negative) so the shortcut must not trigger.
+            int xSize = 32, ySize = 32;
+            var slice = new int[xSize, ySize];
+            for (int x = 0; x < xSize; x++)
+                for (int y = 0; y < ySize; y++)
+                    slice[x, y] = 31768; // unsigned-air voxels, no negatives anywhere
+
+            int offset = ImageUtils.DetermineHuOffset(slice, xSize, ySize);
+            offset.Should().Be(32768, "genuine unsigned slices (no negatives) still trigger offset detection");
+        }
     }
 }

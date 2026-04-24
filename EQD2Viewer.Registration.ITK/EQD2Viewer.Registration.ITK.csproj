@@ -36,10 +36,25 @@
     </None>
   </ItemGroup>
 
+  <!-- Graceful fallback when SimpleITK isn't deployed: strip the ITK-dependent source files
+       so the project still produces a (small, empty) assembly. AppLauncher probes for the
+       DLL's type and gracefully disables DIR when the type is missing — this way Debug/Release
+       builds never fail just because the dev forgot to install SimpleITK. -->
+  <ItemGroup Condition="'$(HasSimpleITK)' != 'true'">
+    <Compile Remove="**/*.cs" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\EQD2Viewer.Core\EQD2Viewer.Core.csproj" />
     <ProjectReference Include="..\EQD2Viewer.Registration\EQD2Viewer.Registration.csproj" />
   </ItemGroup>
+
+  <!-- Emit a build-time message so the dev sees the state rather than guessing. -->
+  <Target Name="LogSimpleITKState" BeforeTargets="BeforeBuild">
+    <Message Importance="high" Text="[Registration.ITK] HasSimpleITK=$(HasSimpleITK) — path: $(SimpleItkLibPath)" />
+    <Message Importance="high" Condition="'$(HasSimpleITK)' != 'true'"
+             Text="[Registration.ITK] SimpleITK DLLs not found; building empty stub. DIR feature will be disabled at runtime." />
+  </Target>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release-WithITK|x64'">
     <Optimize>true</Optimize>

@@ -1,4 +1,4 @@
-using EQD2Viewer.Services.Rendering;
+using EQD2Viewer.App.UI.Rendering;
 using EQD2Viewer.App.UI.ViewModels;
 using System;
 using System.Linq;

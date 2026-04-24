@@ -483,5 +483,200 @@ namespace EQD2Viewer.Tests.Services
             svc.PrepareData(MakeConfig(null));
             svc.GetSummedSlice(0).Should().BeNull("no compute → no data");
         }
+
+        // ── α/β edge cases ───────────────────────────────────────────────
+
+        [Fact]
+        public async Task RecomputeEQD2DisplayAsync_AlphaBetaZero_FallsBackToPhysicalDose()
+        {
+            // α/β = 0 is a hypo-fractionation edge case that must not produce NaN/Inf.
+            // EQD2Calculator treats α/β ≤ 0 as "no EQD2 transform" and returns identity
+            // factors (Q=0, L=1 → eqd2 = 0·D² + 1·D = D). Verify this propagates through
+            // the recompute path without crashing.
+            var loader = MakeLoader(refDoseGy: 5, movingDoseGy: 3, movingDvf: MakeDvf(new Vec3(0, 0, 0)));
+            var svc = new SummationService(MakeReferenceCt(), loader.Object, new List<RegistrationData>());
+            svc.PrepareData(MakeConfig(MakeDvf(new Vec3(0, 0, 0)))).Success.Should().BeTrue();
+            var first = await svc.ComputeAsync(null, CancellationToken.None);
+            first.Success.Should().BeTrue();
+
+            // Recompute with α/β = 0: must not crash, must return finite values.
+            var r = await svc.RecomputeEQD2DisplayAsync(0.0, null, CancellationToken.None);
+            r.Success.Should().BeTrue("α/β = 0 path must fall back gracefully, not throw");
+            double.IsNaN(r.MaxDoseGy).Should().BeFalse();
+            double.IsInfinity(r.MaxDoseGy).Should().BeFalse();
+        }
+
+        [Fact]
+        public async Task RecomputeEQD2DisplayAsync_VeryHighAlphaBeta_StaysFinite()
+        {
+            // α/β = 1e6 → EQD2 formula → (d + 1e6) / (2 + 1e6) ≈ 1. Essentially physical dose.
+            var loader = MakeLoader(refDoseGy: 2, movingDoseGy: 2, movingDvf: MakeDvf(new Vec3(0, 0, 0)));
+            var svc = new SummationService(MakeReferenceCt(), loader.Object, new List<RegistrationData>());
+            svc.PrepareData(MakeConfig(MakeDvf(new Vec3(0, 0, 0)))).Success.Should().BeTrue();
+            await svc.ComputeAsync(null, CancellationToken.None);
+            var r = await svc.RecomputeEQD2DisplayAsync(1e6, null, CancellationToken.None);
+            r.Success.Should().BeTrue();
+            double.IsNaN(r.MaxDoseGy).Should().BeFalse();
+            double.IsInfinity(r.MaxDoseGy).Should().BeFalse();
+        }
+
+        // ── Affine path: FOR-flip (inversion branch) ─────────────────────
+
+        /// <summary>
+        /// When the registration is stored as plan→ref (SourceFOR == planFOR), CachePlanData
+        /// must invert the matrix to get ref→plan. This exercises MatrixMath.Invert4x4 through
+        /// the affine summation path. Uses translation-by-one-in-X so the effect is observable
+        /// in the sampled dose row.
+        /// </summary>
+        [Fact]
+        public async Task ComputeAsync_AffineSourceIsPlan_InvertsMatrix()
+        {
+            // Moving dose gradient: dose at (x, y, z) = x * 10
+            var movingDose = new int[RefZ][,];
+            for (int z = 0; z < RefZ; z++)
+            {
+                movingDose[z] = new int[RefX, RefY];
+                for (int y = 0; y < RefY; y++)
+                    for (int x = 0; x < RefX; x++)
+                        movingDose[z][x, y] = x * 10;
+            }
+
+            var loader = new Mock<ISummationDataLoader>(MockBehavior.Strict);
+            loader.Setup(l => l.LoadPlanDose("C1", "PlanRef", It.IsAny<double>())).Returns(MakeDoseData(FillDose(0)));
+            loader.Setup(l => l.LoadPlanDose("C1", "PlanMov", It.IsAny<double>())).Returns(MakeDoseData(movingDose));
+            loader.Setup(l => l.LoadStructureContours(It.IsAny<string>(), It.IsAny<string>()))
+                  .Returns(new List<StructureData>());
+            loader.Setup(l => l.GetPlanImageFOR("C1", "PlanRef")).Returns("FOR_REF");
+            loader.Setup(l => l.GetPlanImageFOR("C1", "PlanMov")).Returns("FOR_MOV");
+
+            // Plan→ref translation: shift +1 in X. Matrix is SourceFOR=FOR_MOV (the plan).
+            // CachePlanData must invert → ref→plan = shift -1 in X.
+            // Effect on sampling: ref voxel (x, 0, 0) samples plan at (x - 1, 0, 0) → dose (x-1)*10.
+            var reg = new RegistrationData
+            {
+                Id = "REG_PLAN_TO_REF",
+                SourceFOR = "FOR_MOV",   // plan side — triggers inversion branch
+                RegisteredFOR = "FOR_REF",
+                Matrix = new double[]
+                {
+                    1, 0, 0, 1,  // translate +1 in X (plan → ref)
+                    0, 1, 0, 0,
+                    0, 0, 1, 0,
+                    0, 0, 0, 1
+                }
+            };
+
+            var svc = new SummationService(MakeReferenceCt(), loader.Object, new List<RegistrationData> { reg });
+            var config = new SummationConfig
+            {
+                Method = SummationMethod.Physical,
+                GlobalAlphaBeta = 3.0,
+                Plans = new List<SummationPlanEntry>
+                {
+                    new SummationPlanEntry { CourseId = "C1", PlanId = "PlanRef", DisplayLabel = "Ref",
+                        NumberOfFractions = 25, TotalDoseGy = 50, Weight = 1.0, IsReference = true },
+                    new SummationPlanEntry { CourseId = "C1", PlanId = "PlanMov", DisplayLabel = "Mov",
+                        NumberOfFractions = 25, TotalDoseGy = 50, Weight = 1.0, IsReference = false,
+                        RegistrationId = "REG_PLAN_TO_REF" }
+                }
+            };
+            svc.PrepareData(config).Success.Should().BeTrue();
+            var r = await svc.ComputeAsync(null, CancellationToken.None);
+            r.Success.Should().BeTrue();
+
+            var slice = svc.GetSummedSlice(0);
+            slice.Should().NotBeNull();
+            // ref (1, 0, 0) → inverted transform → plan (0, 0, 0) → dose 0
+            slice![1 + 0 * RefX].Should().BeApproximately(0, 1e-4);
+            // ref (2, 0, 0) → plan (1, 0, 0) → dose 10
+            slice[2 + 0 * RefX].Should().BeApproximately(10, 1e-4);
+            // ref (3, 0, 0) → plan (2, 0, 0) → dose 20
+            slice[3 + 0 * RefX].Should().BeApproximately(20, 1e-4);
+        }
+
+        // ── Structure-specific EQD2 DVH ──────────────────────────────────
+
+        /// <summary>
+        /// Constructs a minimal structure mask around the known-hot region, computes the DVH,
+        /// and verifies monotonic cumulative volume. Covers the successful-path of
+        /// ComputeStructureEQD2DVH which was previously only tested for negative cases.
+        /// </summary>
+        [Fact]
+        public async Task ComputeStructureEQD2DVH_NonEmptyStructure_ProducesMonotonicCurve()
+        {
+            // Build a simple moving dose: 10 Gy everywhere. Reference: 0.
+            // Structure: the whole volume → all voxels covered.
+            var loader = new Mock<ISummationDataLoader>(MockBehavior.Strict);
+            loader.Setup(l => l.LoadPlanDose("C1", "PlanRef", It.IsAny<double>())).Returns(MakeDoseData(FillDose(0)));
+            loader.Setup(l => l.LoadPlanDose("C1", "PlanMov", It.IsAny<double>())).Returns(MakeDoseData(FillDose(10)));
+            loader.Setup(l => l.GetPlanImageFOR("C1", "PlanRef")).Returns("FOR_REF");
+            loader.Setup(l => l.GetPlanImageFOR("C1", "PlanMov")).Returns("FOR_REF");
+            loader.Setup(l => l.LoadStructureContours(It.IsAny<string>(), It.IsAny<string>()))
+                  .Returns(new List<StructureData>
+                  {
+                      new StructureData
+                      {
+                          Id = "BODY",
+                          DicomType = "EXTERNAL",
+                          // Polygon that covers the entire slice for all Z
+                          ContoursBySlice = BuildWholeVolumeStructure()
+                      }
+                  });
+
+            var svc = new SummationService(MakeReferenceCt(), loader.Object, new List<RegistrationData>());
+            svc.PrepareData(MakeConfig(MakeDvf(new Vec3(0, 0, 0)))).Success.Should().BeTrue();
+            await svc.ComputeAsync(null, CancellationToken.None);
+
+            var dvh = svc.ComputeStructureEQD2DVH("BODY", structureAlphaBeta: 3.0, maxDoseGy: 15);
+
+            dvh.Should().NotBeEmpty();
+            // Cumulative DVH must be monotonically non-increasing.
+            for (int i = 1; i < dvh.Length; i++)
+                dvh[i].VolumePercent.Should().BeLessOrEqualTo(dvh[i - 1].VolumePercent + 0.01,
+                    $"cumulative DVH must not grow at bin {i}");
+            // First bin (dose 0) should be ~100% volume.
+            dvh[0].VolumePercent.Should().BeApproximately(100.0, 1.0);
+        }
+
+        [Fact]
+        public async Task ComputeStructureEQD2DVH_StructureWithNoMaskedVoxels_ReturnsEmpty()
+        {
+            var loader = new Mock<ISummationDataLoader>(MockBehavior.Strict);
+            loader.Setup(l => l.LoadPlanDose("C1", "PlanRef", It.IsAny<double>())).Returns(MakeDoseData(FillDose(5)));
+            loader.Setup(l => l.LoadPlanDose("C1", "PlanMov", It.IsAny<double>())).Returns(MakeDoseData(FillDose(0)));
+            loader.Setup(l => l.GetPlanImageFOR("C1", "PlanRef")).Returns("FOR_REF");
+            loader.Setup(l => l.GetPlanImageFOR("C1", "PlanMov")).Returns("FOR_REF");
+            // Empty structures list
+            loader.Setup(l => l.LoadStructureContours(It.IsAny<string>(), It.IsAny<string>()))
+                  .Returns(new List<StructureData>());
+
+            var svc = new SummationService(MakeReferenceCt(), loader.Object, new List<RegistrationData>());
+            svc.PrepareData(MakeConfig(null)).Success.Should().BeTrue();
+            await svc.ComputeAsync(null, CancellationToken.None);
+
+            svc.ComputeStructureEQD2DVH("Nonexistent", structureAlphaBeta: 3.0, maxDoseGy: 10)
+                .Should().BeEmpty();
+        }
+
+        /// <summary>Builds a single polygon covering the entire reference slice, repeated for all Z.</summary>
+        private static Dictionary<int, List<double[][]>> BuildWholeVolumeStructure()
+        {
+            var dict = new Dictionary<int, List<double[][]>>();
+            // Reference CT origin at (0,0,0), spacing 1×1×1, size 4×4×2 → slice extent 0..3 in x,y.
+            // Build a closed square polygon that covers the full slice. Contour points are world mm.
+            for (int z = 0; z < RefZ; z++)
+            {
+                double zMm = z; // identity direction → z index == z mm
+                var polygon = new double[][]
+                {
+                    new double[] { -0.5, -0.5, zMm },
+                    new double[] {  3.5, -0.5, zMm },
+                    new double[] {  3.5,  3.5, zMm },
+                    new double[] { -0.5,  3.5, zMm },
+                };
+                dict[z] = new List<double[][]> { polygon };
+            }
+            return dict;
+        }
     }
 }

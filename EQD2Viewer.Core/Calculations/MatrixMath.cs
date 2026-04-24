@@ -100,6 +100,17 @@ namespace EQD2Viewer.Core.Calculations
                 aug[r, r + 4] = 1.0;
             }
 
+            // Scale-relative singularity tolerance: 1e-12 absolute would mis-classify any
+            // matrix with consistently small magnitudes (e.g. cm-scale transforms instead of mm).
+            double matrixNorm = 0;
+            for (int r = 0; r < 4; r++)
+                for (int c = 0; c < 4; c++)
+                {
+                    double a = Math.Abs(M[r, c]);
+                    if (a > matrixNorm) matrixNorm = a;
+                }
+            double singTol = Math.Max(1e-15, matrixNorm * 1e-12);
+
             // Forward elimination with partial pivoting
             for (int col = 0; col < 4; col++)
             {
@@ -117,7 +128,7 @@ namespace EQD2Viewer.Core.Calculations
                 }
 
                 // Check for singularity
-                if (maxVal < 1e-12)
+                if (maxVal < singTol)
                     return null;
 
                 // Swap rows if needed

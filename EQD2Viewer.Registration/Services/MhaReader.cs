@@ -36,6 +36,12 @@ namespace EQD2Viewer.Registration.Services
             if (!File.Exists(path)) { SimpleLogger.Warning($"MhaReader: not found: {path}"); return null; }
             var (header, dataOffset) = ParseHeader(path);
             if (header == null) return null;
+            if (header.CompressedData)
+            {
+                SimpleLogger.Warning($"MhaReader: '{path}' uses CompressedData=true (DEFLATE stream) which this reader does not decode. " +
+                    "Re-export the MHA uncompressed (ITK: SetUseCompression(false)).");
+                return null;
+            }
             try
             {
                 using var data = OpenDataStream(path, header, dataOffset);
@@ -49,6 +55,12 @@ namespace EQD2Viewer.Registration.Services
             if (!File.Exists(path)) { SimpleLogger.Warning($"MhaReader: not found: {path}"); return null; }
             var (header, dataOffset) = ParseHeader(path);
             if (header == null) return null;
+            if (header.CompressedData)
+            {
+                SimpleLogger.Warning($"MhaReader: '{path}' uses CompressedData=true (DEFLATE stream) which this reader does not decode. " +
+                    "Re-export the MHA uncompressed (ITK: SetUseCompression(false)).");
+                return null;
+            }
             try
             {
                 using var data = OpenDataStream(path, header, dataOffset);

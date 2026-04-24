@@ -1,10 +1,10 @@
-﻿using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Input;
 using EQD2Viewer.App.UI.Views;
 using EQD2Viewer.Core.Calculations;
 using EQD2Viewer.Core.Interfaces;
 using EQD2Viewer.Core.Logging;
 using EQD2Viewer.Core.Models;
-using EQD2Viewer.Services.Rendering;
+using EQD2Viewer.App.UI.Rendering;
 using OxyPlot;
 using OxyPlot.Series;
 using System;
@@ -183,9 +183,10 @@ namespace EQD2Viewer.App.UI.ViewModels
 
             double displayAb = _doseOverlay.DisplayAlphaBeta;
             double summationAb = _activeSummationConfig.GlobalAlphaBeta;
-            _doseOverlay.SummationAlphaBetaLabel = Math.Abs(displayAb - summationAb) < 0.05
-                ? $"Isodose & summation α/β = {summationAb:F1} Gy"
-                : $"Isodose α/β = {displayAb:F1} Gy   (summation was α/β = {summationAb:F1})";
+            _doseOverlay.SummationAlphaBetaLabel =
+                Math.Abs(displayAb - summationAb) < EQD2Viewer.Core.Models.DomainConstants.AlphaBetaMatchTolerance
+                    ? $"Isodose & summation α/β = {summationAb:F1} Gy"
+                    : $"Isodose α/β = {displayAb:F1} Gy   (summation was α/β = {summationAb:F1})";
         }
 
         internal void RecomputeDisplayEQD2IfActive()

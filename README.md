@@ -48,6 +48,16 @@ SimpleITK **ei** ole NuGet.orgissa — binäärit täytyy ladata erikseen, samaa
 
 > **Huom.** Deformable-rekisteröinti on laskennallisesti raskas operaatio. Se sopii jälkikäteiseen arviointiin, ei reaaliaikaiseen kliiniseen käyttöön. Tulos on aina tarkistettava kliinisesti ennen hyödyntämistä hoitopäätöksissä.
 
+#### DIR paikallisessa kehityksessä (Debug + DevRunner)
+
+DIR-moduuli kääntyy automaattisesti myös **Debug**-konfiguraatiossa kun SimpleITK-DLL:t ovat paikoillaan `lib\SimpleITK\`:ssa. Tämä mahdollistaa DIR-laskennan kokeilun DevRunnerissa ilman Release-WithITK-vaihtoa.
+
+Jos SimpleITK-DLL:iä ei ole paikoillaan, `EQD2Viewer.Registration.ITK`-projekti rakentuu tyhjänä stubina — muut projektit rakentuvat normaalisti, ja DIR-nappi näyttää kliinisesti *"DIR module not loaded"* -tilan. Käyttäjä ei saa hämmentäviä käännösvirheitä.
+
+**Vianjäljitys** jos DIR-nappi sanoo "not loaded":
+- Tarkista loki `EQD2Viewer_Dev.log` — `[DIR-probe]`-rivit kertovat tarkalleen mistä kansiosta `Registration.ITK.dll`:ää etsittiin ja mikä puuttui
+- Kokeile rakentaa *Release-WithITK* ja kopioida kaikki 5 DLL:ää `BuildOutput\02_Eclipse_With_ITK\`:stä skriptikansioon
+
 ## Käyttö
 
 **Kliininen käyttö (Eclipse):**

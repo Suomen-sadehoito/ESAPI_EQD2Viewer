@@ -1,4 +1,4 @@
-﻿using EQD2Viewer.Services.Rendering;
+using EQD2Viewer.App.UI.Rendering;
 using EQD2Viewer.Core.Interfaces;
 using EQD2Viewer.Core.Data;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -68,6 +68,12 @@ namespace EQD2Viewer.App.UI.ViewModels
         internal readonly List<DVHCacheEntry> _dvhCache = new List<DVHCacheEntry>();
         internal readonly List<string> _visibleStructureIds = new List<string>();
 
+        // Handler references held so Dispose() can cleanly detach from the event bus + overlay.
+        private readonly Action<bool> _eqd2EnabledHandler;
+        private readonly Action<int> _fractionsHandler;
+        private readonly Action<double> _displayAlphaBetaHandler;
+        private readonly PropertyChangedEventHandler _doseOverlayForwarder;
+
         public MainViewModel(ClinicalSnapshot snapshot,
             IImageRenderingService renderingService,
             IDebugExportService debugExportService,
@@ -92,13 +98,21 @@ namespace EQD2Viewer.App.UI.ViewModels
             _doseOverlay = new DoseOverlayViewModel(_eventBus, prescGy, norm, fx);
 
             // == Wire event bus subscriptions ==
+            // Store handler references as fields so Dispose() can unsubscribe. Without this,
+            // if the bus ever outlives the ViewModel (unit tests, future shared-bus design),
+            // MainViewModel would leak via its closure references.
+            _eqd2EnabledHandler = _ => { if (_dvhCache.Count > 0) RecalculateAllDVH(); };
+            _fractionsHandler = _ => { if (_dvhCache.Count > 0) RecalculateAllDVH(); };
+            _displayAlphaBetaHandler = _ => RecomputeDisplayEQD2IfActive();
+            _doseOverlayForwarder = (s, e) => OnPropertyChanged(e.PropertyName);
+
             _eventBus.RenderRequested += RequestRender;
-            _eventBus.EQD2EnabledChanged += _ => { if (_dvhCache.Count > 0) RecalculateAllDVH(); };
-            _eventBus.FractionsChanged += _ => { if (_dvhCache.Count > 0) RecalculateAllDVH(); };
-            _eventBus.DisplayAlphaBetaChanged += _ => RecomputeDisplayEQD2IfActive();
+            _eventBus.EQD2EnabledChanged += _eqd2EnabledHandler;
+            _eventBus.FractionsChanged += _fractionsHandler;
+            _eventBus.DisplayAlphaBetaChanged += _displayAlphaBetaHandler;
 
             // == Forward DoseOverlay property changes so existing XAML bindings still work ==
-            _doseOverlay.PropertyChanged += (s, e) => OnPropertyChanged(e.PropertyName);
+            _doseOverlay.PropertyChanged += _doseOverlayForwarder;
 
             _contourLines = new ObservableCollection<IsodoseContourData>();
             _structureContourLines = new ObservableCollection<StructureContourData>();
@@ -122,7 +136,17 @@ namespace EQD2Viewer.App.UI.ViewModels
             InitializePlotModel();
             _doseOverlay.LoadPreset("Eclipse");
             AutoPreset();
-            ComputeSinglePlanHotspot();
+
+            // Hotspot scanning walks the entire dose volume (up to ~50 M voxels for a full-body
+            // CT). Defer it off the ctor so the window paints immediately; the Dmax label
+            // populates 100–400 ms later at ContextIdle priority. Falls back to inline for
+            // unit tests / headless launches where no Dispatcher is available.
+            var dispatcher = System.Windows.Application.Current?.Dispatcher;
+            if (dispatcher != null)
+                dispatcher.BeginInvoke(new Action(ComputeSinglePlanHotspot),
+                    System.Windows.Threading.DispatcherPriority.ContextIdle);
+            else
+                ComputeSinglePlanHotspot();
         }
 
         private void WireIsodoseLevelEvents()
@@ -221,6 +245,18 @@ namespace EQD2Viewer.App.UI.ViewModels
             _summationCts?.Cancel();
             _recomputeCts?.Cancel();
             _displayAlphaBetaDebounce?.Stop();
+
+            // Detach from the event bus + overlay — defensive, avoids leaks if bus is ever shared.
+            if (_eventBus != null)
+            {
+                _eventBus.RenderRequested -= RequestRender;
+                _eventBus.EQD2EnabledChanged -= _eqd2EnabledHandler;
+                _eventBus.FractionsChanged -= _fractionsHandler;
+                _eventBus.DisplayAlphaBetaChanged -= _displayAlphaBetaHandler;
+            }
+            if (_doseOverlay != null)
+                _doseOverlay.PropertyChanged -= _doseOverlayForwarder;
+
             _renderingService?.Dispose();
             _summationService?.Dispose();
         }

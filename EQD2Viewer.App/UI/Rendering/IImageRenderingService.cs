@@ -1,10 +1,10 @@
-﻿using EQD2Viewer.Core.Models;
+using EQD2Viewer.Core.Models;
 using EQD2Viewer.Core.Data;
 using System;
 using System.Collections.Generic;
 using System.Windows.Media.Imaging;
 
-namespace EQD2Viewer.Services.Rendering
+namespace EQD2Viewer.App.UI.Rendering
 {
     /// <summary>
     /// WPF-specific rendering service interface.

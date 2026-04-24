@@ -923,7 +923,19 @@ namespace EQD2Viewer.Services
                 && GeometriesMatch(deformationField, _referenceCtImage);
 
             if (deformationField != null && !dvfMatchesRef)
+            {
                 SimpleLogger.Warning($"DVF for {entry.DisplayLabel}: grid differs from reference CT, using world-coordinate lookup.");
+                // The slow path projects world coordinates onto DVF direction vectors assuming
+                // those vectors form an orthonormal basis (DICOM standard). MHA-loaded DVFs
+                // could in principle carry non-orthonormal orientations; warn if so, because
+                // the index lookup will be subtly wrong.
+                if (!DirectionsAreOrthonormal(deformationField))
+                {
+                    SimpleLogger.Warning($"DVF for {entry.DisplayLabel}: direction vectors are NOT orthonormal. " +
+                        "World→voxel projection will be inaccurate. Use SimpleITK-generated DVFs or MHA files " +
+                        "with DICOM-conformant direction cosines.");
+                }
+            }
 
             return new CachedPlanData
             {
@@ -949,7 +961,7 @@ namespace EQD2Viewer.Services
 
         private static bool GeometriesMatch(DeformationField dvf, VolumeData refVol)
         {
-            const double tol = 1e-4;
+            const double tol = DomainConstants.GeometryMatchTolerance;
             return Math.Abs(dvf.XRes - refVol.XRes) < tol
                 && Math.Abs(dvf.YRes - refVol.YRes) < tol
                 && Math.Abs(dvf.ZRes - refVol.ZRes) < tol
@@ -961,6 +973,25 @@ namespace EQD2Viewer.Services
 
         private static bool Vec3Near(Vec3 a, Vec3 b, double tol)
             => Math.Abs(a.X - b.X) < tol && Math.Abs(a.Y - b.Y) < tol && Math.Abs(a.Z - b.Z) < tol;
+
+        /// <summary>
+        /// Verifies that the DVF's direction vectors form an orthonormal basis (unit length,
+        /// mutually orthogonal). Required for the world→voxel-index projection shortcut used in
+        /// the slow path of AccumulatePhysicalDeformable. DICOM-conformant images always satisfy
+        /// this; MHA files authored outside ITK might not.
+        /// </summary>
+        private static bool DirectionsAreOrthonormal(DeformationField dvf)
+        {
+            const double tol = DomainConstants.OrthonormalityTolerance;
+            double xx = dvf.XDirection.Dot(dvf.XDirection);
+            double yy = dvf.YDirection.Dot(dvf.YDirection);
+            double zz = dvf.ZDirection.Dot(dvf.ZDirection);
+            if (Math.Abs(xx - 1) > tol || Math.Abs(yy - 1) > tol || Math.Abs(zz - 1) > tol) return false;
+            double xy = dvf.XDirection.Dot(dvf.YDirection);
+            double xz = dvf.XDirection.Dot(dvf.ZDirection);
+            double yz = dvf.YDirection.Dot(dvf.ZDirection);
+            return Math.Abs(xy) < tol && Math.Abs(xz) < tol && Math.Abs(yz) < tol;
+        }
 
         public void Dispose()
         {

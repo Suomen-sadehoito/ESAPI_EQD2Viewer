@@ -1,4 +1,4 @@
-using EQD2Viewer.Services.Rendering;
+using EQD2Viewer.App.UI.Rendering;
 using EQD2Viewer.Services;
 using EQD2Viewer.Core.Interfaces;
 using EQD2Viewer.Core.Data;
@@ -76,26 +76,55 @@ namespace EQD2Viewer.App
         /// <summary>
         /// Probes the application directory for EQD2Viewer.Registration.ITK.dll and
         /// attempts to instantiate ItkRegistrationService via reflection.
-        /// Returns null silently if the assembly is absent (standard Release build).
+        /// Logs every step so "Why is DIR disabled?" is answerable from the log file.
         /// </summary>
         private static IRegistrationService? TryLoadItkService()
         {
+            string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+            string path = Path.Combine(baseDir, "EQD2Viewer.Registration.ITK.dll");
+            SimpleLogger.Info($"[DIR-probe] Looking for '{path}'");
+
+            if (!File.Exists(path))
+            {
+                SimpleLogger.Info("[DIR-probe] Registration.ITK.dll not found. DIR requires Release-WithITK build OR " +
+                    "manual copy of Registration.ITK + SimpleITK DLLs next to the plugin/executable.");
+                return null;
+            }
+
+            // Verify the SimpleITK native DLL is also adjacent — otherwise reflection load will
+            // fail later with a cryptic FileNotFoundException. Surface that early.
+            string nativeDll = Path.Combine(baseDir, "SimpleITKCSharpNative.dll");
+            string nativeDllLegacy = Path.Combine(baseDir, "SimpleITKCSharp.dll");
+            bool hasNative = File.Exists(nativeDll) || File.Exists(nativeDllLegacy);
+            if (!hasNative)
+            {
+                SimpleLogger.Warning($"[DIR-probe] Registration.ITK.dll found but SimpleITK native DLL is missing " +
+                    $"from '{baseDir}'. Expected 'SimpleITKCSharpNative.dll' (or legacy 'SimpleITKCSharp.dll'). " +
+                    "Copy all SimpleITK DLLs alongside the plugin.");
+                return null;
+            }
+
             try
             {
-                string dir  = AppDomain.CurrentDomain.BaseDirectory;
-                string path = Path.Combine(dir, "EQD2Viewer.Registration.ITK.dll");
-                if (!File.Exists(path)) return null;
-
-                var asm  = Assembly.LoadFrom(path);
+                var asm = Assembly.LoadFrom(path);
                 var type = asm.GetType("EQD2Viewer.Registration.ITK.Services.ItkRegistrationService");
-                if (type == null) return null;
+                if (type == null)
+                {
+                    SimpleLogger.Warning("[DIR-probe] Registration.ITK.dll loaded but ItkRegistrationService type " +
+                        "not found — possible version mismatch. Rebuild Release-WithITK.");
+                    return null;
+                }
 
-                var instance = Activator.CreateInstance(type);
-                return instance as IRegistrationService;
+                var instance = Activator.CreateInstance(type) as IRegistrationService;
+                if (instance != null)
+                    SimpleLogger.Info("[DIR-probe] ItkRegistrationService instantiated successfully.");
+                else
+                    SimpleLogger.Warning("[DIR-probe] Activator returned null for ItkRegistrationService.");
+                return instance;
             }
             catch (Exception ex)
             {
-                SimpleLogger.Warning($"ITK registration service not loaded: {ex.Message}");
+                SimpleLogger.Error($"[DIR-probe] Failed to load Registration.ITK: {ex.GetType().Name}: {ex.Message}", ex);
                 return null;
             }
         }
