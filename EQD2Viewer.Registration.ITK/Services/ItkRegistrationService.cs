@@ -32,18 +32,28 @@ namespace EQD2Viewer.Registration.ITK.Services
     ///   the log tells us whether a phase converged, hit the iteration cap, or was aborted.
     ///   Per-iteration log emits every 10th iter to avoid spam on large volumes.
     ///
-    /// Performance tuning (clinical fast settings, sub-voxel accuracy vs. slow settings):
-    ///   B-spline mesh 6x6x6  - 3 times fewer control points than 8x8x8
-    ///   B-spline iterations 30 - LBFGS-B converges in ~20 typically
-    ///   Metric sampling 5 %  - still plenty for Mattes MI statistics
+    /// Tuning rationale (Package 2 — matches ESTRO / Bosma 2024 guidance):
+    ///   B-spline mesh 10x10x10 (was 6) — denser control grid for thorax-scale anatomy,
+    ///     control-point spacing drops roughly 90 mm -> 55 mm for a typical CT.
+    ///   B-spline iterations 20 (was 30) and LBFGS-B func-eval cap 200 (was 1000) —
+    ///     tighter budget prevents the optimizer from drifting on a noisy metric.
+    ///   Cost-function convergence factor 1e9 (was 1e7) — stop earlier once relative
+    ///     improvement is small; sub-voxel accuracy is not required for dose summation.
+    ///   Pyramid 2 levels {2, 1} (was 3 levels {4, 2, 1}) — skips the costly shrink-4
+    ///     tier; affine still converges, B-spline spends time where it matters.
+    ///   Affine keeps RANDOM sampling (good fit for gradient descent); B-spline switches
+    ///     to REGULAR sampling so LBFGS-B sees a deterministic metric, which it requires
+    ///     for its line search to converge instead of drifting on stochastic noise.
     /// </summary>
     public class ItkRegistrationService : IRegistrationService
     {
-        private const uint BsplineMeshSize = 6;
-        private const uint BsplineIterations = 30;
+        private const uint BsplineMeshSize = 10;
+        private const uint BsplineIterations = 20;
         private const uint AffineIterations = 100;
         private const double MetricSamplingFraction = 0.05;
-        private const int PyramidLevels = 3;
+        private const uint BsplineMaxFunctionEvaluations = 200;
+        private const double BsplineCostFunctionConvergenceFactor = 1e9;
+        private const int PyramidLevels = 2;
 
         public Task<DeformationField?> RegisterAsync(
             VolumeData fixed_,
@@ -63,7 +73,10 @@ namespace EQD2Viewer.Registration.ITK.Services
                 SimpleLogger.Info(
                     $"[DIR] Settings: mesh={BsplineMeshSize}^3, bsplineIter={BsplineIterations}, " +
                     $"affineIter={AffineIterations}, sampling={MetricSamplingFraction:F3}, " +
-                    $"pyramidLevels={PyramidLevels}");
+                    $"pyramidLevels={PyramidLevels}, " +
+                    $"bsplineMaxFuncEvals={BsplineMaxFunctionEvaluations}, " +
+                    $"bsplineConvergenceFactor={BsplineCostFunctionConvergenceFactor:E1}, " +
+                    $"affineSampling=RANDOM, bsplineSampling=REGULAR");
 
                 ct.ThrowIfCancellationRequested();
                 progress?.Report(5);
@@ -80,13 +93,16 @@ namespace EQD2Viewer.Registration.ITK.Services
 
                 var reg = new ImageRegistrationMethod();
                 reg.SetMetricAsMattesMutualInformation(numberOfHistogramBins: 50);
+                // Phase 1 (affine): RANDOM sampling pairs well with gradient descent.
                 reg.SetMetricSamplingStrategy(ImageRegistrationMethod.MetricSamplingStrategyType.RANDOM);
                 reg.SetMetricSamplingPercentage(MetricSamplingFraction);
 
                 reg.SetInterpolator(InterpolatorEnum.sitkLinear);
 
-                reg.SetShrinkFactorsPerLevel(new VectorUInt32(new uint[] { 4, 2, 1 }));
-                reg.SetSmoothingSigmasPerLevel(new VectorDouble(new double[] { 4, 2, 0 }));
+                // 2-level pyramid: coarse half-resolution pass then full resolution.
+                // Paired with the per-level progress mapping in ProgressReportingCommand.
+                reg.SetShrinkFactorsPerLevel(new VectorUInt32(new uint[] { 2, 1 }));
+                reg.SetSmoothingSigmasPerLevel(new VectorDouble(new double[] { 1, 0 }));
                 reg.SmoothingSigmasAreSpecifiedInPhysicalUnitsOn();
 
                 var initialTx = SimpleITK.CenteredTransformInitializer(
@@ -149,8 +165,14 @@ namespace EQD2Viewer.Registration.ITK.Services
                     gradientConvergenceTolerance: 1e-5,
                     numberOfIterations: BsplineIterations,
                     maximumNumberOfCorrections: 5,
-                    maximumNumberOfFunctionEvaluations: 1000,
-                    costFunctionConvergenceFactor: 1e7);
+                    maximumNumberOfFunctionEvaluations: BsplineMaxFunctionEvaluations,
+                    costFunctionConvergenceFactor: BsplineCostFunctionConvergenceFactor);
+
+                // Switch to REGULAR sampling for LBFGS-B: the line search requires a
+                // deterministic metric. RANDOM sampling re-draws per iteration and was
+                // the documented cause of the L2 metric drift we saw in Package 1 logs.
+                reg.SetMetricSamplingStrategy(ImageRegistrationMethod.MetricSamplingStrategyType.REGULAR);
+                reg.SetMetricSamplingPercentage(MetricSamplingFraction);
 
                 reg.RemoveAllCommands();
 
