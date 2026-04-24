@@ -24,6 +24,7 @@
 		<ProjectReference Include="..\EQD2Viewer.Core\EQD2Viewer.Core.csproj" />
 		<ProjectReference Include="..\EQD2Viewer.Fixtures\EQD2Viewer.Fixtures.csproj" />
 		<ProjectReference Include="..\EQD2Viewer.Services\EQD2Viewer.Services.csproj" />
+		<ProjectReference Include="..\EQD2Viewer.Registration\EQD2Viewer.Registration.csproj" />
 		<ProjectReference Include="..\EQD2Viewer.App\EQD2Viewer.App.csproj">
 			<PrivateAssets>all</PrivateAssets>
 		</ProjectReference>
@@ -50,5 +51,11 @@
 	<ItemGroup>
 	  <Folder Include="Properties\" />
 	</ItemGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release-WithITK|x64'">
+    <Optimize>true</Optimize>
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+  </PropertyGroup>
 
 </Project>

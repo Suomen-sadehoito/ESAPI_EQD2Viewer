@@ -1,8 +1,7 @@
-﻿using EQD2Viewer.Core.Logging;
+using EQD2Viewer.Core.Logging;
 using EQD2Viewer.Core.Calculations;
 using EQD2Viewer.Core.Models;
 using EQD2Viewer.Core.Data;
-using EQD2Viewer.Services.Rendering;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -10,7 +9,7 @@ using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 
-namespace EQD2Viewer.Services
+namespace EQD2Viewer.App.UI.Rendering
 {
     public class ImageRenderingService : IImageRenderingService
     {

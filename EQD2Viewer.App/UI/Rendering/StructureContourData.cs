@@ -1,7 +1,7 @@
-﻿using EQD2Viewer.Core.Models;
+using EQD2Viewer.Core.Models;
 using System.Windows.Media;
 
-namespace EQD2Viewer.Services.Rendering
+namespace EQD2Viewer.App.UI.Rendering
 {
     /// <summary>
     /// One structure's contour data for WPF rendering on a single CT slice.

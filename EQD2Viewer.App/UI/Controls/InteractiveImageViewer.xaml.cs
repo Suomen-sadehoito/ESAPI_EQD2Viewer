@@ -1,5 +1,5 @@
-﻿using EQD2Viewer.Core.Models;
-using EQD2Viewer.Services.Rendering;
+using EQD2Viewer.Core.Models;
+using EQD2Viewer.App.UI.Rendering;
 using System;
 using System.Collections.ObjectModel;
 using System.Windows;

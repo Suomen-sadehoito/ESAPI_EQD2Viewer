@@ -1,10 +1,10 @@
-﻿using EQD2Viewer.Core.Interfaces;
+using EQD2Viewer.Core.Interfaces;
 using EQD2Viewer.Core.Data;
 using System;
 using System.IO;
 using System.Windows;
 
-namespace EQD2Viewer.Services
+namespace EQD2Viewer.App.UI.Rendering
 {
     public class DebugExportService : IDebugExportService
     {

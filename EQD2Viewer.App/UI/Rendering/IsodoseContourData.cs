@@ -1,6 +1,6 @@
-﻿using System.Windows.Media;
+using System.Windows.Media;
 
-namespace EQD2Viewer.Services.Rendering
+namespace EQD2Viewer.App.UI.Rendering
 {
     public class IsodoseContourData
     {

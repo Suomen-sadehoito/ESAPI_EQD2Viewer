@@ -1,9 +1,9 @@
-﻿using EQD2Viewer.Core.Data;
+using EQD2Viewer.Core.Data;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Media;
 
-namespace EQD2Viewer.Services.Rendering
+namespace EQD2Viewer.App.UI.Rendering
 {
     /// <summary>
     /// Represents a single isodose level with dual-mode threshold support, color, and visibility.

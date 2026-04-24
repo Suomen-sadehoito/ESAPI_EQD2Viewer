@@ -1,5 +1,6 @@
 ﻿using EQD2Viewer.Core.Data;
 using EQD2Viewer.Core.Models;
+using System;
 using System.Collections.Generic;
 
 namespace EQD2Viewer.Core.Calculations
@@ -7,6 +8,14 @@ namespace EQD2Viewer.Core.Calculations
     /// <summary>
     /// Marching squares algorithm for generating smooth isodose contour polylines.
     /// Operates on a CT-resolution dose map and outputs polylines in CT pixel coordinates.
+    ///
+    /// Saddle-point disambiguation uses Nielson & Hamann's asymptotic decider (1991):
+    /// the value of the bilinear interpolant at its saddle point (critical point) is
+    /// f* = (tl·br - tr·bl) / (tl - tr - bl + br). Comparing f* to the threshold gives
+    /// a topologically consistent choice that matches how the bilinear surface actually
+    /// partitions the cell. The previous implementation used the arithmetic mean of the
+    /// four corners, which is biased for asymmetric intensity fields and produces visibly
+    /// uneven contours near isodose-threshold boundaries.
     /// </summary>
     public static class MarchingSquares
     {
@@ -49,7 +58,9 @@ namespace EQD2Viewer.Core.Calculations
                         case 3: segments.Add(new Segment(left, right)); break;
                         case 4: segments.Add(new Segment(top, right)); break;
                         case 5:
-                            if ((tl + tr + br + bl) / 4.0 >= threshold)
+                            // Saddle: tr & bl above threshold, tl & br below.
+                            // "Inside" (saddle above) → wrap contours around tl and br (the two low corners).
+                            if (BilinearSaddleAtOrAbove(tl, tr, br, bl, threshold))
                             { segments.Add(new Segment(top, left)); segments.Add(new Segment(bottom, right)); }
                             else
                             { segments.Add(new Segment(top, right)); segments.Add(new Segment(left, bottom)); }
@@ -59,7 +70,8 @@ namespace EQD2Viewer.Core.Calculations
                         case 8: segments.Add(new Segment(top, left)); break;
                         case 9: segments.Add(new Segment(top, bottom)); break;
                         case 10:
-                            if ((tl + tr + br + bl) / 4.0 >= threshold)
+                            // Saddle: tl & br above threshold, tr & bl below. Mirror of case 5.
+                            if (BilinearSaddleAtOrAbove(tl, tr, br, bl, threshold))
                             { segments.Add(new Segment(top, right)); segments.Add(new Segment(left, bottom)); }
                             else
                             { segments.Add(new Segment(top, left)); segments.Add(new Segment(bottom, right)); }
@@ -83,6 +95,23 @@ namespace EQD2Viewer.Core.Calculations
             if (t < 0) t = 0;
             if (t > 1) t = 1;
             return new Point2D(x1 + t * (x2 - x1), y1 + t * (y2 - y1));
+        }
+
+        /// <summary>
+        /// Value of the bilinear interpolant at its saddle point (Nielson &amp; Hamann asymptotic decider).
+        /// Returns true when the bilinear surface crosses the threshold through the cell's interior
+        /// such that the "above-threshold" region is topologically connected through the center.
+        /// Falls back to the arithmetic mean when the bilinear surface is degenerate
+        /// (parallel iso-lines, D = 0) — in that case the saddle is ill-defined and the mean
+        /// is as good as any tie-break.
+        /// </summary>
+        private static bool BilinearSaddleAtOrAbove(double tl, double tr, double br, double bl, double threshold)
+        {
+            double d = tl - tr - bl + br;
+            if (Math.Abs(d) < 1e-12)
+                return (tl + tr + br + bl) * 0.25 >= threshold;
+            double saddle = (tl * br - tr * bl) / d;
+            return saddle >= threshold;
         }
 
         #region Segment Chaining
