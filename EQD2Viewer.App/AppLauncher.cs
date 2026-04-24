@@ -8,7 +8,9 @@ using EQD2Viewer.App.UI.Views;
 using EQD2Viewer.Registration.Services;
 using System;
 using System.IO;
+using System.Linq;
 using System.Reflection;
+using System.Runtime.InteropServices;
 
 namespace EQD2Viewer.App
 {
@@ -74,34 +76,80 @@ namespace EQD2Viewer.App
         }
 
         /// <summary>
-        /// Probes the application directory for EQD2Viewer.Registration.ITK.dll and
-        /// attempts to instantiate ItkRegistrationService via reflection.
-        /// Logs every step so "Why is DIR disabled?" is answerable from the log file.
+        /// Resolves the directory containing the currently running plugin.
+        ///
+        /// In ESAPI: scans loaded assemblies for one ending in <c>.esapi.dll</c>; Eclipse loaded
+        /// it from the scripts folder so its <c>Location</c> points at exactly where we want.
+        /// <see cref="AppDomain.CurrentDomain.BaseDirectory"/> would instead return Eclipse's
+        /// own <c>bin</c> directory — the classic ESAPI-gotcha this method exists to avoid.
+        ///
+        /// In DevRunner / tests: no <c>.esapi.dll</c> is loaded, so we fall through to
+        /// <c>BaseDirectory</c> which correctly points at the exe's folder.
+        /// </summary>
+        private static string ResolvePluginDirectory()
+        {
+            foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
+            {
+                string loc;
+                try { loc = asm.Location; } catch { continue; } // Dynamic / in-memory throws
+                if (string.IsNullOrEmpty(loc)) continue;
+                if (loc.EndsWith(".esapi.dll", StringComparison.OrdinalIgnoreCase))
+                {
+                    string? dir = Path.GetDirectoryName(loc);
+                    if (!string.IsNullOrEmpty(dir)) return dir!;
+                }
+            }
+            return AppDomain.CurrentDomain.BaseDirectory;
+        }
+
+        /// <summary>
+        /// Probes the plugin directory for <c>EQD2Viewer.Registration.ITK.dll</c> and attempts
+        /// to instantiate <c>ItkRegistrationService</c> via reflection. Logs every step so
+        /// "Why is DIR disabled?" is answerable from the log file.
         /// </summary>
         private static IRegistrationService? TryLoadItkService()
         {
-            string baseDir = AppDomain.CurrentDomain.BaseDirectory;
-            string path = Path.Combine(baseDir, "EQD2Viewer.Registration.ITK.dll");
+            string pluginDir = ResolvePluginDirectory();
+            string path = Path.Combine(pluginDir, "EQD2Viewer.Registration.ITK.dll");
+            SimpleLogger.Info($"[DIR-probe] Plugin directory: '{pluginDir}'");
             SimpleLogger.Info($"[DIR-probe] Looking for '{path}'");
 
             if (!File.Exists(path))
             {
-                SimpleLogger.Info("[DIR-probe] Registration.ITK.dll not found. DIR requires Release-WithITK build OR " +
-                    "manual copy of Registration.ITK + SimpleITK DLLs next to the plugin/executable.");
+                SimpleLogger.Info("[DIR-probe] Registration.ITK.dll not found next to the plugin. " +
+                    "Copy all 5 DLLs from BuildOutput\\02_Eclipse_With_ITK\\ to the Eclipse scripts " +
+                    "folder (the same folder that contains the .esapi.dll).");
                 return null;
             }
 
-            // Verify the SimpleITK native DLL is also adjacent — otherwise reflection load will
-            // fail later with a cryptic FileNotFoundException. Surface that early.
-            string nativeDll = Path.Combine(baseDir, "SimpleITKCSharpNative.dll");
-            string nativeDllLegacy = Path.Combine(baseDir, "SimpleITKCSharp.dll");
+            // Verify the SimpleITK native DLL is also adjacent. This is where the plugin-directory
+            // fix matters most: SimpleITKCSharpManaged P/Invokes into the native, and without the
+            // native sitting beside it the reflection load succeeds but the first DIR call throws.
+            string nativeDll = Path.Combine(pluginDir, "SimpleITKCSharpNative.dll");
+            string nativeDllLegacy = Path.Combine(pluginDir, "SimpleITKCSharp.dll");
             bool hasNative = File.Exists(nativeDll) || File.Exists(nativeDllLegacy);
             if (!hasNative)
             {
-                SimpleLogger.Warning($"[DIR-probe] Registration.ITK.dll found but SimpleITK native DLL is missing " +
-                    $"from '{baseDir}'. Expected 'SimpleITKCSharpNative.dll' (or legacy 'SimpleITKCSharp.dll'). " +
-                    "Copy all SimpleITK DLLs alongside the plugin.");
+                SimpleLogger.Warning($"[DIR-probe] Registration.ITK.dll found in '{pluginDir}' but the " +
+                    "SimpleITK native DLL is missing (expected 'SimpleITKCSharpNative.dll' or legacy " +
+                    "'SimpleITKCSharp.dll'). Copy ALL SimpleITK DLLs into the same folder.");
                 return null;
+            }
+
+            // Windows' native LoadLibrary (used by P/Invoke) does NOT search the managed caller's
+            // folder by default — only the process exe's folder, System32, CWD, and PATH. In ESAPI
+            // this means the native DLL next to our plugin is invisible to LoadLibrary. SetDllDirectory
+            // adds pluginDir to the Windows DLL search path WITHOUT removing defaults, so ESAPI's own
+            // dependencies (loaded from Eclipse's bin) continue to resolve normally.
+            if (!SetDllDirectory(pluginDir))
+            {
+                int lastErr = Marshal.GetLastWin32Error();
+                SimpleLogger.Warning($"[DIR-probe] SetDllDirectory('{pluginDir}') failed (Win32 error {lastErr}). " +
+                    "Native DLL lookup may still find the DLL if CWD or PATH covers it, but the ESAPI path usually won't.");
+            }
+            else
+            {
+                SimpleLogger.Info($"[DIR-probe] SetDllDirectory('{pluginDir}') primed — SimpleITK native DLL is discoverable.");
             }
 
             try
@@ -110,8 +158,9 @@ namespace EQD2Viewer.App
                 var type = asm.GetType("EQD2Viewer.Registration.ITK.Services.ItkRegistrationService");
                 if (type == null)
                 {
-                    SimpleLogger.Warning("[DIR-probe] Registration.ITK.dll loaded but ItkRegistrationService type " +
-                        "not found — possible version mismatch. Rebuild Release-WithITK.");
+                    SimpleLogger.Warning("[DIR-probe] Registration.ITK.dll loaded but ItkRegistrationService " +
+                        "type not found — likely version mismatch. Rebuild Release-WithITK and re-deploy " +
+                        "ALL 5 DLLs together from the same build.");
                     return null;
                 }
 
@@ -122,11 +171,31 @@ namespace EQD2Viewer.App
                     SimpleLogger.Warning("[DIR-probe] Activator returned null for ItkRegistrationService.");
                 return instance;
             }
+            catch (FileLoadException ex)
+            {
+                // Network-share deployments can hit Windows mark-of-the-web blocking.
+                SimpleLogger.Error($"[DIR-probe] FileLoadException — often caused by Windows mark-of-the-web " +
+                    $"on a network share. Right-click the DLL → Properties → Unblock, or deploy locally. " +
+                    $"Detail: {ex.Message}", ex);
+                return null;
+            }
+            catch (BadImageFormatException ex)
+            {
+                // x86/x64 mismatch. SimpleITKCSharpNative is x64-only.
+                SimpleLogger.Error($"[DIR-probe] BadImageFormatException — architecture mismatch. " +
+                    $"Ensure the Eclipse process is running as x64 (SimpleITK native is x64-only). " +
+                    $"Detail: {ex.Message}", ex);
+                return null;
+            }
             catch (Exception ex)
             {
                 SimpleLogger.Error($"[DIR-probe] Failed to load Registration.ITK: {ex.GetType().Name}: {ex.Message}", ex);
                 return null;
             }
         }
+
+        [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool SetDllDirectory(string lpPathName);
     }
 }
