@@ -110,8 +110,7 @@ namespace EQD2Viewer.App.UI.ViewModels
             _contourLines = new ObservableCollection<IsodoseContourData>();
             _structureContourLines = new ObservableCollection<StructureContourData>();
 
-            // == Legacy property sync (bridge until XAML migrates to DoseOverlay.xxx) ==
-            _isodoseLevelArray = _doseOverlay._isodoseLevelArray;
+            // XAML-bound collection re-exposed from the DoseOverlay child VM.
             IsodoseLevels = _doseOverlay.IsodoseLevels;
 
             int width = snapshot.CtImage.XSize;
@@ -140,41 +139,6 @@ namespace EQD2Viewer.App.UI.ViewModels
                     System.Windows.Threading.DispatcherPriority.ContextIdle);
             else
                 ComputeSinglePlanHotspot();
-        }
-
-        private void WireIsodoseLevelEvents()
-        {
-            IsodoseLevels.CollectionChanged += (s, e) =>
-            {
-                RebuildIsodoseArray();
-                if (e.NewItems != null)
-                    foreach (IsodoseLevel item in e.NewItems)
-                        item.PropertyChanged += OnIsodoseLevelChanged;
-                if (e.OldItems != null)
-                    foreach (IsodoseLevel item in e.OldItems)
-                        item.PropertyChanged -= OnIsodoseLevelChanged;
-            };
-            foreach (var level in IsodoseLevels)
-                level.PropertyChanged += OnIsodoseLevelChanged;
-        }
-
-        private void OnIsodoseLevelChanged(object sender, PropertyChangedEventArgs e)
-        {
-            if (e.PropertyName == nameof(IsodoseLevel.IsVisible) ||
-                e.PropertyName == nameof(IsodoseLevel.Fraction) ||
-                e.PropertyName == nameof(IsodoseLevel.Alpha) ||
-                e.PropertyName == nameof(IsodoseLevel.AbsoluteDoseGy) ||
-                e.PropertyName == nameof(IsodoseLevel.Color))
-            {
-                RebuildIsodoseArray();
-                RequestRender();
-            }
-        }
-
-        internal void RebuildIsodoseArray()
-        {
-            _doseOverlay.RebuildIsodoseArray();
-            _isodoseLevelArray = _doseOverlay._isodoseLevelArray;
         }
 
         internal double GetPrescriptionGy()

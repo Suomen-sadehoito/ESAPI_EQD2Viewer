@@ -141,7 +141,6 @@ namespace EQD2Viewer.App.UI.ViewModels
         public double ReferenceDoseGy => _doseOverlay.ReferenceDoseGy;
 
         public ObservableCollection<IsodoseLevel> IsodoseLevels { get; }
-        internal IsodoseLevel[] _isodoseLevelArray;
 
         public string IsodosePresetName { get => _doseOverlay.IsodosePresetName; set => _doseOverlay.IsodosePresetName = value; }
 
