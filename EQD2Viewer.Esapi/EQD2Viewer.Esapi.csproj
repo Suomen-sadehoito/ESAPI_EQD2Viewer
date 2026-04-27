@@ -75,6 +75,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Adapters\EsapiContourExtractor.cs" />
     <Compile Include="Adapters\EsapiDataSource.cs" />
     <Compile Include="Adapters\EsapiGeometryConverter.cs" />
     <Compile Include="Adapters\EsapiSummationDataLoader.cs" />

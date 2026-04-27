@@ -195,31 +195,8 @@ namespace EQD2Viewer.Esapi.Adapters
                         HasMesh = structure.MeshGeometry != null
                     };
 
-                    // Iterate through all slices to retrieve available contour polygons.
-                    for (int z = 0; z < imageZSize; z++)
-                    {
-                        try
-                        {
-                            var contours = structure.GetContoursOnImagePlane(z);
-                            if (contours == null || contours.Length == 0) continue;
-
-                            var sliceContours = new List<double[][]>();
-                            foreach (var contour in contours)
-                            {
-                                if (contour.Length < 3) continue;
-                                var points = new double[contour.Length][];
-
-                                for (int i = 0; i < contour.Length; i++)
-                                    points[i] = new double[] { contour[i].x, contour[i].y, contour[i].z };
-
-                                sliceContours.Add(points);
-                            }
-
-                            if (sliceContours.Count > 0)
-                                sd.ContoursBySlice[z] = sliceContours;
-                        }
-                        catch { /* Intentionally ignored: Structures may legitimately lack contours on specific slices. */ }
-                    }
+                    foreach (var kvp in EsapiContourExtractor.ExtractContoursBySlice(structure, imageZSize))
+                        sd.ContoursBySlice[kvp.Key] = kvp.Value;
 
                     result.Add(sd);
                 }
