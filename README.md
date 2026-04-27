@@ -2,9 +2,8 @@
 
 > ## ⚠️ Research prototype / Not a medical device
 >
-> **This repository contains a research prototype for studying EQD2 dose transformations,
-> deformable image registration (DIR), and dose-volume histogram (DVH) analysis on
-> radiotherapy data.**
+> **This repository contains a research prototype for studying EQD2 dose transformations
+> and dose-volume histogram (DVH) analysis on radiotherapy data.**
 >
 > - **This software is not a medical device** within the meaning of Regulation (EU) 2017/745 (MDR) or 21 CFR 820.
 > - **This software has not been CE-marked, FDA-cleared, or otherwise certified for any medical purpose.**
@@ -18,8 +17,8 @@
 >
 > ### Tutkimusprototyyppi / Ei lääkinnällinen laite
 >
-> **Tämä repository sisältää tutkimusprototyypin EQD2-annosmuunnosten, deformable image
-> registrationin ja DVH-analyysin tutkimiseen säteilyhoitodatalla.**
+> **Tämä repository sisältää tutkimusprototyypin EQD2-annosmuunnosten ja DVH-analyysin
+> tutkimiseen säteilyhoitodatalla.**
 >
 > - **Tämä ohjelmisto ei ole lääkinnällinen laite** EU:n MDR 2017/745 tarkoittamassa mielessä.
 > - **Ohjelmaa ei ole CE-merkitty** eikä muuten sertifioitu kliiniseen käyttöön.
@@ -38,15 +37,13 @@ accumulation:
 
 - EQD2 (Equivalent Dose in 2 Gy fractions) transformation with per-structure α/β
 - Dose-volume histogram (DVH) computation
-- B-spline deformable image registration via SimpleITK
-- TG-132 / Bosma 2024 style DIR quality metrics (Jacobian determinant, curl, bending
-  energy, FOV overlap)
+- Multi-plan dose summation on a reference CT grid using affine spatial registrations
 - Clean-Architecture split between domain logic, rendering, and data adapters so the
   algorithms can be exercised offline from JSON fixtures without any clinical system
 
 ## What this repository is *not*
 
-- Not a replacement for validated clinical dose-summation or DIR software
+- Not a replacement for validated clinical dose-summation software
 - Not a recommended toolchain for any clinical or regulatory workflow
 - Not a turn-key plugin ready for deployment
 
@@ -57,14 +54,11 @@ no dependency on the Varian ESAPI environment. This makes the algorithms easy to
 and test in isolation:
 
 - `EQD2Viewer.Core` — domain types, EQD2 math, DVH, rendering math, colour maps
-- `EQD2Viewer.Calculations` — image-processing primitives
 - `EQD2Viewer.Services` — service layer (DVH service, summation service)
-- `EQD2Viewer.Registration` — DIR interfaces + MHA deformation-field reader
-- `EQD2Viewer.Registration.ITK` — optional SimpleITK-based B-spline DIR implementation
 - `EQD2Viewer.App` — WPF UI for exploring the outputs
 - `EQD2Viewer.DevRunner` — standalone WPF host for offline exploration via JSON fixtures
 - `EQD2Viewer.Fixtures` — JSON fixture schema and loader
-- `EQD2Viewer.Tests` — 300+ unit and integration tests against the core algorithms
+- `EQD2Viewer.Tests` — unit and integration tests against the core algorithms
 
 The ESAPI-dependent adapter layer (`EQD2Viewer.Esapi`, `EQD2Viewer.FixtureGenerator`) exists
 solely for generating offline JSON fixtures from consented/anonymised data so that the
@@ -79,23 +73,9 @@ Development environment:
 - Visual Studio 2022 or MSBuild 17+
 - x64 target
 
-### Basic build (no DIR)
-
 ```
 dotnet build EQD2Viewer.sln -c Debug
 ```
-
-### Build with DIR algorithms (SimpleITK)
-
-SimpleITK is not on NuGet and must be downloaded separately:
-
-1. Download `SimpleITK-2.5.3-CSharp-win64-x64.zip` from
-   `https://github.com/SimpleITK/SimpleITK/releases/tag/v2.5.3`
-2. Extract DLLs to `lib/SimpleITK/` in the repo
-3. Build with the `Release-WithITK` configuration
-
-The DIR module is loaded at runtime by reflection; if the DLL is absent the application
-runs without that feature.
 
 ## Running the research sandbox offline
 
@@ -117,18 +97,11 @@ dotnet test EQD2Viewer.Tests/EQD2Viewer.Tests.csproj
 ```
 
 The test suite covers the algorithmic core (EQD2 transform, DVH integration, rasterisation,
-matrix math, marching squares, colour maps, rendering pipeline, serialization, DIR QA
-metrics). It is **not** a clinical validation — passing tests indicate implementation matches
-specification, not that outputs are clinically accurate.
+matrix math, marching squares, colour maps, rendering pipeline, serialization). It is **not**
+a clinical validation — passing tests indicate implementation matches specification, not that
+outputs are clinically accurate.
 
-## Third-party licences
-
-| Library | Version | Licence | Used for |
-|---|---|---|---|
-| SimpleITK | 2.5.3 | Apache 2.0 | DIR (optional, `Release-WithITK`) |
-| ITK | 5.4.5 | Apache 2.0 | SimpleITK backend |
-
-See [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) for the full notices.
+## Third-party libraries
 
 Varian ESAPI libraries are **not** redistributed with this repository. Reproducing the
 ESAPI-dependent adapter projects requires a user to obtain those binaries under their own
@@ -138,8 +111,9 @@ Varian licence.
 
 | Version | Date | Notes |
 |---|---|---|
-| 0.9.3-beta | 2026-04 | DIR quality pass: SimpleITK BSpline3 canonical pattern (small initial mesh + scale factors + GradientDescentLineSearch). Body-mask preprocessing (HU threshold + largest CC + fillhole) cuts registration time ~9x and eliminates fold artifacts. TG-132 / Bosma 2024 style QA report (Jacobian, curl, bending energy, displacement, histograms). FOV overlap analyser with axis-aligned AABB. Per-level convergence logging including optimiser stop-condition. Monotonic progress mapping across pyramid levels. Research-prototype positioning in UI titles, startup log, and README. First draft of regulatory technical documentation under `docs/regulatory/`. |
-| 0.9.2-beta | 2026-04 | SimpleITK-based B-spline DIR added as optional module. MHA/MHD deformation-field reader. |
+| 0.9.4-beta | 2026-04 | Removed ITK / SimpleITK-based deformable image registration (DIR) and all related QA, body-mask, and FOV-overlap analysis code. The viewer is now a focused EQD2 / DVH research prototype with affine-only multi-plan summation. |
+| 0.9.3-beta | 2026-04 | (Withdrawn) Added SimpleITK B-spline DIR with TG-132 / Bosma 2024 style QA, body-mask preprocessing, and FOV overlap analysis. Removed in 0.9.4-beta. |
+| 0.9.2-beta | 2026-04 | (Withdrawn) Initial SimpleITK-based DIR module. Removed in 0.9.4-beta. |
 | 0.9.1-beta | 2026-04 | Clean Architecture refactor. Offline DevRunner, centralised BuildOutput, dependency management. |
 | 0.9.0-beta | 2026-03 | Feature and calculation stabilisation. |
 | 0.3.0-alpha | 2026-03 | Automatic `.esapi.dll` naming via project metadata. |

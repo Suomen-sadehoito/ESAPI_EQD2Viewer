@@ -427,9 +427,8 @@ FodyWeavers.xsd
 *.msm
 *.msp
 
-# Proprietary / downloaded third-party DLLs� proprietary Varian files, never commit
-# lib/ESAPI/     -- Varian ESAPI (copy from Eclipse installation)
-# lib/SimpleITK/ -- SimpleITK C# binaries (download from GitHub releases)
+# Proprietary / downloaded third-party DLLs — proprietary Varian files, never commit
+# lib/ESAPI/ -- Varian ESAPI (copy from Eclipse installation)
 lib/**/*.dll
 lib/**/*.pdb
 !lib/**/.gitkeep

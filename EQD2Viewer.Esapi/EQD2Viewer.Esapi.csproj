@@ -35,15 +35,6 @@
     <WarningLevel>4</WarningLevel>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release-WithITK|AnyCPU'">
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <OutputPath>bin\Release-WithITK\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
     <DebugSymbols>true</DebugSymbols>
     <OutputPath>bin\Debug\</OutputPath>
@@ -56,16 +47,6 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
     <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
-    <Optimize>true</Optimize>
-    <DebugType>pdbonly</DebugType>
-    <PlatformTarget>x64</PlatformTarget>
-    <LangVersion>latest</LangVersion>
-    <ErrorReport>prompt</ErrorReport>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release-WithITK|x64'">
-    <OutputPath>bin\Release-WithITK\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
     <Optimize>true</Optimize>
     <DebugType>pdbonly</DebugType>
@@ -132,10 +113,6 @@
       <Project>{CB47C100-C47F-436D-8596-8005AB5B13A8}</Project>
       <Name>EQD2Viewer.App</Name>
     </ProjectReference>
-    <ProjectReference Include="..\EQD2Viewer.Registration\EQD2Viewer.Registration.csproj">
-      <Project>{A2B3C4D5-E6F7-8901-ABCD-EF0123456789}</Project>
-      <Name>EQD2Viewer.Registration</Name>
-    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <!-- Explicit references for bundling (Composition Root / Deployment concern) -->
@@ -147,15 +124,6 @@
       <HintPath>..\BuildOutput\$(Configuration)\OxyPlot.Wpf.Shared.dll</HintPath>
       <Private>True</Private>
     </Reference>
-  </ItemGroup>
-  <!-- Include ITK registration only when building Release-WithITK -->
-  <!-- Native SimpleITK DLLs are NOT embedded via Costura: they're deployed alongside
-       EQD2Viewer.Registration.ITK.dll by the DeployItkAssembly target (see Directory.Build.targets). -->
-  <ItemGroup Condition="'$(Configuration)' == 'Release-WithITK'">
-    <ProjectReference Include="..\EQD2Viewer.Registration.ITK\EQD2Viewer.Registration.ITK.csproj">
-      <Project>{B3C4D5E6-F7A8-9012-BCDE-F01234567890}</Project>
-      <Name>EQD2Viewer.Registration.ITK</Name>
-    </ProjectReference>
   </ItemGroup>
   <!-- Local: use real ESAPI DLLs from lib/ -->
   <ItemGroup Condition="'$(HasRealEsapi)' == 'true'">
@@ -176,15 +144,8 @@
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  
-  <Target Name="SelectFodyWeavers" BeforeTargets="BeforeBuild">
-    <PropertyGroup>
-      <FodyWeaversSource>FodyWeavers.xml</FodyWeaversSource>
-      <FodyWeaversSource Condition="'$(Configuration)' == 'Release-WithITK'">FodyWeavers.WithITK.xml</FodyWeaversSource>
-    </PropertyGroup>
-    <Message Text="[ESAPI Build] Using FodyWeavers source: $(FodyWeaversSource)" Importance="high" />
-    <Copy SourceFiles="$(FodyWeaversSource)" DestinationFiles="FodyWeavers.xml" OverwriteReadOnlyFiles="true" Condition="'$(FodyWeaversSource)' != 'FodyWeavers.xml'" />
-    
+
+  <Target Name="CopyUiDependenciesForCostura" BeforeTargets="BeforeBuild">
     <!-- Infrastructure: Copy UI dependencies for Costura bundling -->
     <ItemGroup>
       <UiDependencies Include="$(MSBuildThisFileDirectory)..\BuildOutput\$(Configuration)\OxyPlot*.dll" />

@@ -26,8 +26,7 @@ namespace EQD2Viewer.Tests.Smoke
             {
                 string candidate1 = Path.Combine(dir, "BuildOutput", "Debug", "EQD2Viewer.DevRunner.exe");
                 string candidate2 = Path.Combine(dir, "BuildOutput", "Release", "EQD2Viewer.DevRunner.exe");
-                string candidate3 = Path.Combine(dir, "BuildOutput", "Release-WithITK", "EQD2Viewer.DevRunner.exe");
-                foreach (var c in new[] { candidate1, candidate2, candidate3 })
+                foreach (var c in new[] { candidate1, candidate2 })
                     if (File.Exists(c)) return c;
 
                 var parent = Directory.GetParent(dir);

@@ -2,7 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Dose Summation — Research Prototype (not for clinical use)"
-        Height="700" Width="1050"
+        Height="640" Width="1050"
         WindowStartupLocation="CenterOwner"
         Background="#0C0E12" Foreground="#F0F2F5" FontFamily="Segoe UI">
 
@@ -20,10 +20,9 @@
             <RowDefinition Height="Auto"/>  <!-- 0: Header -->
             <RowDefinition Height="Auto"/>  <!-- 1: Method + α/β -->
             <RowDefinition Height="*"/>     <!-- 2: Plan table -->
-            <RowDefinition Height="Auto"/>  <!-- 3: Registration progress -->
-            <RowDefinition Height="Auto"/>  <!-- 4: Formula -->
-            <RowDefinition Height="Auto"/>  <!-- 5: Debug expander -->
-            <RowDefinition Height="Auto"/>  <!-- 6: Action buttons -->
+            <RowDefinition Height="Auto"/>  <!-- 3: Formula -->
+            <RowDefinition Height="Auto"/>  <!-- 4: Debug expander -->
+            <RowDefinition Height="Auto"/>  <!-- 5: Action buttons -->
         </Grid.RowDefinitions>
 
         <!-- HEADER -->
@@ -112,7 +111,7 @@
                             <DataGridTextColumn.ElementStyle><Style TargetType="TextBlock"><Setter Property="Foreground" Value="#F0F2F5"/></Style></DataGridTextColumn.ElementStyle>
                             <DataGridTextColumn.EditingElementStyle><Style TargetType="TextBox"><Setter Property="Background" Value="#222830"/><Setter Property="Foreground" Value="#F0F2F5"/></Style></DataGridTextColumn.EditingElementStyle>
                         </DataGridTextColumn>
-                        <DataGridTemplateColumn Header="Registration" Width="170" MinWidth="140">
+                        <DataGridTemplateColumn Header="Registration" Width="*" MinWidth="170">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <Grid>
@@ -130,92 +129,13 @@
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
-                        <DataGridTemplateColumn Header="Deformable (DIR)" Width="*" MinWidth="160">
-                            <DataGridTemplateColumn.CellTemplate>
-                                <DataTemplate>
-                                    <Grid>
-                                        <!-- Reference row: no DIR needed -->
-                                        <TextBlock Text="N/A (reference)" Foreground="#3A4050" FontSize="10" FontStyle="Italic" VerticalAlignment="Center" Padding="6,0"
-                                                   ToolTip="DIR maps moving plans onto the reference CT grid, so the reference itself has no DIR.">
-                                            <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed"/>
-                                                <Style.Triggers><DataTrigger Binding="{Binding IsReference}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers>
-                                            </Style></TextBlock.Style>
-                                        </TextBlock>
-                                        <!-- Non-reference row: Calculate button or Status -->
-                                        <Grid>
-                                            <Grid.Style><Style TargetType="Grid"><Setter Property="Visibility" Value="Visible"/>
-                                                <Style.Triggers><DataTrigger Binding="{Binding IsReference}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers>
-                                            </Style></Grid.Style>
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="Auto"/>
-                                            </Grid.ColumnDefinitions>
-                                            
-                                            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="6,0">
-                                                <TextBlock Text="{Binding DirStatus}" FontSize="10.5" VerticalAlignment="Center">
-                                                    <TextBlock.Style>
-                                                        <Style TargetType="TextBlock">
-                                                            <Setter Property="Foreground" Value="#9BA3B0"/>
-                                                            <Style.Triggers>
-                                                                <DataTrigger Binding="{Binding HasDeformationField}" Value="True">
-                                                                    <Setter Property="Foreground" Value="#4CAF6E"/>
-                                                                    <Setter Property="FontWeight" Value="SemiBold"/>
-                                                                </DataTrigger>
-                                                            </Style.Triggers>
-                                                        </Style>
-                                                    </TextBlock.Style>
-                                                </TextBlock>
-                                            </StackPanel>
-
-                                            <Button Grid.Column="1" Content="Calculate DIR"
-                                                    Click="CalculateDir_Click"
-                                                    Padding="8,2" Margin="2,0,4,0"
-                                                    Background="#1A2A3A" Foreground="#4C9EEB"
-                                                    BorderBrush="#2A3A5A" FontSize="10.5" Cursor="Hand"
-                                                    IsEnabled="{Binding IsDirCalculationEnabled}">
-                                                <Button.Style>
-                                                    <Style TargetType="Button">
-                                                        <Setter Property="ToolTip" Value="Run deformable image registration (SimpleITK B-spline) between this plan's CT and the reference CT. Takes 30 s – 3 min depending on volume size."/>
-                                                        <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding IsCalculating}" Value="True">
-                                                                <Setter Property="Content" Value="Calculating..."/>
-                                                                <Setter Property="ToolTip" Value="Registration running — click Cancel below to abort."/>
-                                                            </DataTrigger>
-                                                            <DataTrigger Binding="{Binding IsDirCalculationEnabled}" Value="False">
-                                                                <Setter Property="ToolTip" Value="DIR module (EQD2Viewer.Registration.ITK.dll) not loaded. Build with the Release-WithITK configuration and deploy SimpleITK DLLs alongside the plugin."/>
-                                                            </DataTrigger>
-                                                        </Style.Triggers>
-                                                    </Style>
-                                                </Button.Style>
-                                            </Button>
-                                        </Grid>
-                                    </Grid>
-                                </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
-                        </DataGridTemplateColumn>
                     </DataGrid.Columns>
                 </DataGrid>
             </Grid>
         </Border>
 
-        <!-- PROGRESS (Registration) -->
-        <Border Grid.Row="3" Background="#12151B" BorderBrush="#2A3040" BorderThickness="1" CornerRadius="4" Margin="0,0,0,8"
-                Visibility="{Binding IsAnyCalculating, Converter={StaticResource BoolToVis}, RelativeSource={RelativeSource AncestorType=Window}}">
-            <Grid Margin="12,8">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-                <StackPanel Grid.Column="0">
-                    <TextBlock x:Name="TbRegistrationStatus" Text="Computing deformable registration..." Foreground="#F0F2F5" FontSize="11" Margin="0,0,0,4"/>
-                    <ProgressBar x:Name="PbRegistration" Height="4" Minimum="0" Maximum="100" Value="0" Background="#1A1E26" Foreground="#4C9EEB" BorderThickness="0"/>
-                </StackPanel>
-                <Button Grid.Column="1" Content="Cancel" Click="CancelRegistration_Click" Style="{StaticResource Btn}" Margin="12,0,0,0" VerticalAlignment="Center"/>
-            </Grid>
-        </Border>
-
         <!-- FORMULA -->
-        <Border Grid.Row="4" Style="{StaticResource Card}" Margin="0,0,0,8">
+        <Border Grid.Row="3" Style="{StaticResource Card}" Margin="0,0,0,8">
             <Grid>
                 <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                 <StackPanel>
@@ -234,7 +154,7 @@
         </Border>
 
         <!-- DEBUG -->
-        <Expander Grid.Row="5" Header="Registration diagnostics" Foreground="#5C6475" FontSize="10" Margin="0,0,0,8" IsExpanded="False">
+        <Expander Grid.Row="4" Header="Registration diagnostics" Foreground="#5C6475" FontSize="10" Margin="0,0,0,8" IsExpanded="False">
             <Border Background="#12151B" BorderBrush="#2A3040" BorderThickness="1" CornerRadius="0,0,6,6" Padding="10,8">
                 <Grid>
                     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
@@ -248,21 +168,11 @@
         </Expander>
 
         <!-- ACTIONS -->
-        <Grid Grid.Row="6">
+        <Grid Grid.Row="5">
             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
             <Button Grid.Column="1" Content="Compute summation" Click="Compute_Click" IsDefault="True" Width="160" Margin="0,0,8,0" FontWeight="SemiBold"
-                    ToolTip="Close this dialog and run the voxel-by-voxel summation using the selected plans, registrations, DIRs and α/β.">
-                <Button.Style>
-                    <Style TargetType="Button" BasedOn="{StaticResource BtnPrimary}">
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding IsAnyCalculating, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
-                                <Setter Property="IsEnabled" Value="False"/>
-                                <Setter Property="ToolTip" Value="A DIR registration is running — wait for it to finish before computing the summation."/>
-                            </DataTrigger>
-                        </Style.Triggers>
-                    </Style>
-                </Button.Style>
-            </Button>
+                    Style="{StaticResource BtnPrimary}"
+                    ToolTip="Close this dialog and run the voxel-by-voxel summation using the selected plans, registrations and α/β."/>
             <Button Grid.Column="2" Content="Cancel" Style="{StaticResource Btn}" IsCancel="True" Width="80"
                     ToolTip="Discard these settings and close the dialog. No summation is run."/>
         </Grid>

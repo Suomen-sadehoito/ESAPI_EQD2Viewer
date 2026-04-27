@@ -1,43 +1,16 @@
 <Project>
-    <Target Name="DeployItkAssembly" AfterTargets="Build"
-            Condition="'$(AssemblyName)' == 'EQD2Viewer.Registration.ITK' And '$(Configuration)' == 'Release-WithITK'">
-        <PropertyGroup>
-            <ItkDir>$(MSBuildThisFileDirectory)BuildOutput\03_ITK_Registration\</ItkDir>
-        </PropertyGroup>
-        <MakeDir Directories="$(ItkDir)" />
-        <Copy SourceFiles="$(OutputPath)$(TargetFileName)" DestinationFolder="$(ItkDir)" />
-        
-        <ItemGroup>
-            <NativeDlls Include="$(OutputPath)SimpleITKCSharpNative.dll" />
-            <NativeDlls Include="$(OutputPath)SimpleITKCSharpManaged.dll" />
-        </ItemGroup>
-        <Copy SourceFiles="@(NativeDlls)" DestinationFolder="$(ItkDir)" Condition="Exists('%(Identity)')" />
-    </Target>
-
-    <Target Name="OrganizeDeliverables" AfterTargets="Build" 
-            Condition="'$(Configuration)' == 'Release' Or '$(Configuration)' == 'Release-WithITK'">
+    <Target Name="OrganizeDeliverables" AfterTargets="Build"
+            Condition="'$(Configuration)' == 'Release'">
 
         <PropertyGroup Condition="$(AssemblyName.EndsWith('.esapi'))">
-            <DeployDir Condition="'$(Configuration)' == 'Release'">$(MSBuildThisFileDirectory)BuildOutput\01_Eclipse_ESAPI_Plugins\</DeployDir>
-            <DeployDir Condition="'$(Configuration)' == 'Release-WithITK'">$(MSBuildThisFileDirectory)BuildOutput\02_Eclipse_With_ITK\</DeployDir>
+            <DeployDir>$(MSBuildThisFileDirectory)BuildOutput\01_Eclipse_ESAPI_Plugins\</DeployDir>
         </PropertyGroup>
 
         <MakeDir Directories="$(DeployDir)" Condition="$(AssemblyName.EndsWith('.esapi'))" />
         <Copy SourceFiles="$(OutputPath)$(TargetFileName)" DestinationFolder="$(DeployDir)" Condition="$(AssemblyName.EndsWith('.esapi'))" />
 
-        <!-- Release-WithITK: also drop Registration.ITK + SimpleITK binaries next to the ESAPI plugin,
-             so AppLauncher's reflection load finds EQD2Viewer.Registration.ITK.dll at runtime. -->
-        <PropertyGroup Condition="$(AssemblyName.EndsWith('.esapi')) And '$(Configuration)' == 'Release-WithITK'">
-            <ItkStagedDir>$(MSBuildThisFileDirectory)BuildOutput\03_ITK_Registration\</ItkStagedDir>
-        </PropertyGroup>
-        <ItemGroup Condition="$(AssemblyName.EndsWith('.esapi')) And '$(Configuration)' == 'Release-WithITK' And Exists('$(ItkStagedDir)')">
-            <ItkFilesToDeploy Include="$(ItkStagedDir)*.dll" />
-        </ItemGroup>
-        <Copy SourceFiles="@(ItkFilesToDeploy)" DestinationFolder="$(DeployDir)"
-              Condition="$(AssemblyName.EndsWith('.esapi')) And '$(Configuration)' == 'Release-WithITK' And @(ItkFilesToDeploy-&gt;Count()) &gt; 0" />
-
         <PropertyGroup Condition="'$(AssemblyName)' == 'EQD2Viewer.DevRunner'">
-            <AppDir>$(MSBuildThisFileDirectory)BuildOutput\04_Standalone_Runner\</AppDir>
+            <AppDir>$(MSBuildThisFileDirectory)BuildOutput\02_Standalone_Runner\</AppDir>
         </PropertyGroup>
 
         <MakeDir Directories="$(AppDir)" Condition="'$(AssemblyName)' == 'EQD2Viewer.DevRunner'" />

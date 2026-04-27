@@ -13,16 +13,6 @@
         public const double PointQuantization = 1000.0;
         public const long PointHashMultiplier = 100000000L;
 
-        // ── Geometric / numerical tolerances ──────────────────────────────
-        /// <summary>Tolerance (mm and unit-vector components) for comparing two volume
-        /// geometries in SummationService. Treats sub-micron / sub-ppm differences as equal.</summary>
-        public const double GeometryMatchTolerance = 1e-4;
-
-        /// <summary>Tolerance for the orthonormality check on direction vectors. DICOM
-        /// images always have orthonormal directions; tighter than this is meaningless
-        /// under IEEE-754 round-off but looser wouldn't catch a real shear.</summary>
-        public const double OrthonormalityTolerance = 1e-3;
-
         /// <summary>α/β difference below which the "isodose and summation agree" label is
         /// shown. Below 0.05 Gy the physical EQD2 curve is indistinguishable numerically.</summary>
         public const double AlphaBetaMatchTolerance = 0.05;

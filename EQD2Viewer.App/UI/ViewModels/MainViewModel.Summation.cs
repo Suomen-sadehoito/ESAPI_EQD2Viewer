@@ -57,9 +57,7 @@ namespace EQD2Viewer.App.UI.ViewModels
             var dialog = new PlanSummationDialog(
                 _snapshot.AllCourses,
                 _snapshot.Registrations,
-                _snapshot.ActivePlan,
-                _registrationService,
-                _summationDataLoader);
+                _snapshot.ActivePlan);
             dialog.Owner = Application.Current.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive);
             if (dialog.ShowDialog() == true && dialog.ResultConfig != null)
                 await ExecuteSummationAsync(dialog.ResultConfig);
