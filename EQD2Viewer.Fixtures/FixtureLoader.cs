@@ -1,9 +1,9 @@
-﻿using EQD2Viewer.Fixtures.Models;
+using EQD2Viewer.Core.Serialization;
+using EQD2Viewer.Fixtures.Models;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Text.Json;
 
 namespace EQD2Viewer.Fixtures
@@ -11,7 +11,7 @@ namespace EQD2Viewer.Fixtures
     /// <summary>
     /// Universal fixture loader for both test fixtures and development runtime.
     /// Discovers fixture directories and deserializes them into strongly-typed models.
-    /// 
+    ///
     /// Fixture directory layout:
     ///   TestFixtures/
     ///     sample_standard_2gy/     ← synthetic fixture (always present)
@@ -104,7 +104,7 @@ namespace EQD2Viewer.Fixtures
             return Directory.GetFiles(dir, "dose_slice_*.json")
                 .OrderBy(f => f)
                 .Select(f => JsonSerializer.Deserialize<DoseSlice>(
-                    ReadJsonFile(f), JsonOpts)!)     // <--- null-forgiving operator added
+                    JsonFileHelper.ReadStripBom(f), JsonOpts)!)
                 .ToArray();
         }
 
@@ -117,7 +117,7 @@ namespace EQD2Viewer.Fixtures
             return Directory.GetFiles(dir, "structure_*.json")
                 .OrderBy(f => f)
                 .Select(f => JsonSerializer.Deserialize<StructureFixture>(
-                    ReadJsonFile(f), JsonOpts)!)    // <--- null-forgiving operator added
+                    JsonFileHelper.ReadStripBom(f), JsonOpts)!)
                 .ToArray();
         }
 
@@ -130,7 +130,7 @@ namespace EQD2Viewer.Fixtures
             return Directory.GetFiles(dir, "dvh_*.json")
                 .OrderBy(f => f)
                 .Select(f => JsonSerializer.Deserialize<DvhFixture>(
-                    ReadJsonFile(f), JsonOpts)!)    // <--- null-forgiving operator added
+                    JsonFileHelper.ReadStripBom(f), JsonOpts)!)
                 .ToArray();
         }
 
@@ -176,32 +176,19 @@ namespace EQD2Viewer.Fixtures
         // PRIVATE
         // ════════════════════════════════════════════════════════
 
-        /// <summary>
-        /// Reads file text with BOM-safe encoding.
-        /// C# Encoding.UTF8 writes BOM by default; System.Text.Json doesn't accept it.
-        /// </summary>
-        private static string ReadJsonFile(string path)
-        {
-            string text = File.ReadAllText(path, Encoding.UTF8);
-            // Strip UTF-8 BOM if present (EF BB BF → char 0xFEFF)
-            if (text.Length > 0 && text[0] == '\uFEFF')
-                text = text.Substring(1);
-            return text;
-        }
-
         private static T Load<T>(string fixtureName, string fileName)
         {
             string path = Path.Combine(FixturePath(fixtureName), fileName);
             if (!File.Exists(path))
                 throw new FileNotFoundException($"Fixture file not found: {path}");
-            return JsonSerializer.Deserialize<T>(ReadJsonFile(path), JsonOpts)!;
+            return JsonSerializer.Deserialize<T>(JsonFileHelper.ReadStripBom(path), JsonOpts)!;
         }
 
         private static T? LoadOptional<T>(string fixtureName, string fileName) where T : class
         {
             string path = Path.Combine(FixturePath(fixtureName), fileName);
             if (!File.Exists(path)) return null;
-            return JsonSerializer.Deserialize<T>(ReadJsonFile(path), JsonOpts);
+            return JsonSerializer.Deserialize<T>(JsonFileHelper.ReadStripBom(path), JsonOpts);
         }
     }
 }

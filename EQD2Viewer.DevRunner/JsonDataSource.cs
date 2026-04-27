@@ -1,12 +1,12 @@
-﻿using EQD2Viewer.Core.Data;
+using EQD2Viewer.Core.Data;
 using EQD2Viewer.Core.Interfaces;
 using EQD2Viewer.Core.Logging;
+using EQD2Viewer.Core.Serialization;
 using EQD2Viewer.Fixtures;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Text.Json;
 
 namespace EQD2Viewer.DevRunner
@@ -163,7 +163,7 @@ namespace EQD2Viewer.DevRunner
             {
                 try
                 {
-                    var slice = JsonSerializer.Deserialize<DoseSliceJson>(ReadJson(file), JsonOpts);
+                    var slice = JsonSerializer.Deserialize<DoseSliceJson>(JsonFileHelper.ReadStripBom(file), JsonOpts);
                     if (slice?.sliceIndex >= 0 && slice.sliceIndex < zSize && slice.rawValues != null)
                     {
                         for (int y = 0; y < slice.height && y < ySize; y++)
@@ -233,7 +233,7 @@ namespace EQD2Viewer.DevRunner
             {
                 try
                 {
-                    var sf = JsonSerializer.Deserialize<StructureFixtureJson>(ReadJson(file), JsonOpts);
+                    var sf = JsonSerializer.Deserialize<StructureFixtureJson>(JsonFileHelper.ReadStripBom(file), JsonOpts);
                     if (sf == null) continue;
 
                     var sd = new StructureData
@@ -285,7 +285,7 @@ namespace EQD2Viewer.DevRunner
             {
                 try
                 {
-                    var df = JsonSerializer.Deserialize<DvhFixtureJson>(ReadJson(file), JsonOpts);
+                    var df = JsonSerializer.Deserialize<DvhFixtureJson>(JsonFileHelper.ReadStripBom(file), JsonOpts);
                     if (df == null) continue;
 
                     result.Add(new DvhCurveData
@@ -358,7 +358,7 @@ namespace EQD2Viewer.DevRunner
             if (!File.Exists(path))
                 throw new FileNotFoundException($"Required fixture file not found: {path}");
 
-            return JsonSerializer.Deserialize<T>(ReadJson(path), JsonOpts)!;
+            return JsonSerializer.Deserialize<T>(JsonFileHelper.ReadStripBom(path), JsonOpts)!;
         }
 
         /// <summary>
@@ -371,23 +371,12 @@ namespace EQD2Viewer.DevRunner
 
             try
             {
-                return JsonSerializer.Deserialize<T>(ReadJson(path), JsonOpts);
+                return JsonSerializer.Deserialize<T>(JsonFileHelper.ReadStripBom(path), JsonOpts);
             }
             catch
             {
                 return null;
             }
-        }
-
-        /// <summary>
-        /// Reads file text with UTF-8 encoding and strips the Byte Order Mark (BOM) if present.
-        /// </summary>
-        private static string ReadJson(string path)
-        {
-            string text = File.ReadAllText(path, Encoding.UTF8);
-            if (text.Length > 0 && text[0] == '\uFEFF')
-                text = text.Substring(1);
-            return text;
         }
 
         // Internal Data Transfer Objects (DTOs) for JSON deserialization. Properties are nullable to handle incomplete fixture data.
