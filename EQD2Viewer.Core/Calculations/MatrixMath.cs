@@ -1,4 +1,5 @@
-﻿using System;
+﻿using EQD2Viewer.Core.Data;
+using System;
 
 namespace EQD2Viewer.Core.Calculations
 {
@@ -8,6 +9,39 @@ namespace EQD2Viewer.Core.Calculations
     /// </summary>
     public static class MatrixMath
     {
+        /// <summary>
+        /// Packs an affine 4x4 transform from the images of the origin and the
+        /// three unit basis vectors into a flat 16-element row-major array.
+        ///
+        /// Given a transform T, callers pass <paramref name="origin"/>=T(0,0,0),
+        /// <paramref name="xImage"/>=T(1,0,0), <paramref name="yImage"/>=T(0,1,0),
+        /// <paramref name="zImage"/>=T(0,0,1). The packed layout is:
+        ///
+        ///   [ xImg.x-o.x   yImg.x-o.x   zImg.x-o.x   o.x ]
+        ///   [ xImg.y-o.y   yImg.y-o.y   zImg.y-o.y   o.y ]
+        ///   [ xImg.z-o.z   yImg.z-o.z   zImg.z-o.z   o.z ]
+        ///   [          0            0            0     1 ]
+        ///
+        /// — i.e. columns 0-2 hold the basis-image deltas, column 3 holds the
+        /// translation, and the bottom row is the homogeneous [0 0 0 1].
+        ///
+        /// Centralises the math previously inlined at three sites that consume
+        /// Varian ESAPI <c>VVector reg.TransformPoint(...)</c> calls. Each call
+        /// site retains its own try/catch fallback policy; only the packing
+        /// math is shared.
+        /// </summary>
+        public static double[] BuildAffineFromBasisImages(
+            Vec3 origin, Vec3 xImage, Vec3 yImage, Vec3 zImage)
+        {
+            return new double[]
+            {
+                xImage.X - origin.X, yImage.X - origin.X, zImage.X - origin.X, origin.X,
+                xImage.Y - origin.Y, yImage.Y - origin.Y, zImage.Y - origin.Y, origin.Y,
+                xImage.Z - origin.Z, yImage.Z - origin.Z, zImage.Z - origin.Z, origin.Z,
+                0,                   0,                   0,                   1
+            };
+        }
+
         /// <summary>
         /// Inverts a 4x4 affine transformation matrix.
         /// First tries the fast rigid shortcut (R^T, -R^T*t).
