@@ -338,19 +338,19 @@ namespace EQD2Viewer.Services
                 factors[p] = (q, l, cp.Weight, useEqd2);
             }
 
-            int numBins = DomainConstants.DvhHistogramBins;
-            double binWidth = maxDoseGy * 1.1 / numBins;
-            long[] histogram = new long[numBins];
-            long totalVoxels = 0;
-
+            // Aggregate per-plan physical doses into a per-voxel EQD2 sum, then
+            // delegate to the shared cumulative-DVH binner. The intermediate
+            // double[][] is allocated only across slices the structure intersects.
+            var eqd2Slices = new double[sliceCount][];
             for (int z = 0; z < sliceCount; z++)
             {
                 bool[] mask = masks[z];
                 if (mask == null) continue;
-                for (int i = 0; i < mask.Length; i++)
+                int len = mask.Length;
+                double[] eqd2Slice = new double[len];
+                for (int i = 0; i < len; i++)
                 {
                     if (!mask[i]) continue;
-                    totalVoxels++;
                     double eqd2Sum = 0;
                     for (int p = 0; p < planCount; p++)
                     {
@@ -362,23 +362,12 @@ namespace EQD2Viewer.Services
                         double eqd2 = useEqd2 ? (d * d * eq + d * el) : d;
                         eqd2Sum += eqd2 * weight;
                     }
-                    if (eqd2Sum <= 0) continue;
-                    int bin = (int)(eqd2Sum / binWidth);
-                    if (bin >= numBins) bin = numBins - 1;
-                    histogram[bin]++;
+                    eqd2Slice[i] = eqd2Sum;
                 }
+                eqd2Slices[z] = eqd2Slice;
             }
 
-            if (totalVoxels == 0) return new DoseVolumePoint[0];
-
-            var points = new DoseVolumePoint[numBins];
-            long cumulative = totalVoxels;
-            for (int i = 0; i < numBins; i++)
-            {
-                points[i] = new DoseVolumePoint(i * binWidth, cumulative * 100.0 / totalVoxels);
-                cumulative -= histogram[i];
-            }
-            return points;
+            return DVHCalculator.BinToHistogram(eqd2Slices, masks, maxDoseGy);
         }
 
         private double ComputeReferenceDose(SummationConfig config, double alphaBeta)

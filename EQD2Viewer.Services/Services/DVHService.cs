@@ -56,42 +56,9 @@ namespace EQD2Viewer.Services
                double[][] summedSlices, bool[][] structureMasks,
           double voxelVolumeCc, double maxDoseGy)
         {
-            if (summedSlices == null || structureMasks == null || maxDoseGy <= 0)
-                return new DoseVolumePoint[0];
-
-            int numBins = DomainConstants.DvhHistogramBins;
-            double binWidth = maxDoseGy * 1.1 / numBins;
-            long[] histogram = new long[numBins];
-            long totalVoxels = 0;
-            int sliceCount = Math.Min(summedSlices.Length, structureMasks.Length);
-
-            for (int z = 0; z < sliceCount; z++)
-            {
-                double[] doseSlice = summedSlices[z];
-                bool[] mask = structureMasks[z];
-                if (doseSlice == null || mask == null) continue;
-                int len = Math.Min(doseSlice.Length, mask.Length);
-                for (int i = 0; i < len; i++)
-                {
-                    if (!mask[i]) continue;
-                    totalVoxels++;
-                    if (doseSlice[i] <= 0) continue;
-                    int bin = (int)(doseSlice[i] / binWidth);
-                    if (bin >= numBins) bin = numBins - 1;
-                    histogram[bin]++;
-                }
-            }
-
-            if (totalVoxels == 0) return new DoseVolumePoint[0];
-
-            var points = new DoseVolumePoint[numBins];
-            long cumulative = totalVoxels;
-            for (int i = 0; i < numBins; i++)
-            {
-                points[i] = new DoseVolumePoint(i * binWidth, cumulative * 100.0 / totalVoxels);
-                cumulative -= histogram[i];
-            }
-            return points;
+            // voxelVolumeCc is intentionally unused — the curve is volume-percent,
+            // not absolute cc. Kept on the signature for API stability.
+            return DVHCalculator.BinToHistogram(summedSlices, structureMasks, maxDoseGy);
         }
 
         public DVHSummary BuildSummaryFromCurve(string structureId, string label, string type,
