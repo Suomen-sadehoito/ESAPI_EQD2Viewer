@@ -2,6 +2,7 @@ using EQD2Viewer.Core.Data;
 using EQD2Viewer.Core.Interfaces;
 using EQD2Viewer.Core.Models;
 using EQD2Viewer.Services;
+using EQD2Viewer.Tests.Common;
 using FluentAssertions;
 using Moq;
 using System.Collections.Generic;
@@ -23,61 +24,16 @@ namespace EQD2Viewer.Tests.Services
     {
         private const int RefX = 4, RefY = 4, RefZ = 2;
 
-        // ── Test fixtures ─────────────────────────────────────────────────
+        // ── Test fixtures (delegate to shared TestVolumeFactory) ──────────
 
         private static VolumeData MakeReferenceCt()
-        {
-            var vox = new int[RefZ][,];
-            for (int z = 0; z < RefZ; z++) vox[z] = new int[RefX, RefY];
-            return new VolumeData
-            {
-                Geometry = new VolumeGeometry
-                {
-                    XSize = RefX, YSize = RefY, ZSize = RefZ,
-                    XRes = 1.0, YRes = 1.0, ZRes = 1.0,
-                    Origin = new Vec3(0, 0, 0),
-                    XDirection = new Vec3(1, 0, 0),
-                    YDirection = new Vec3(0, 1, 0),
-                    ZDirection = new Vec3(0, 0, 1),
-                    FrameOfReference = "FOR_REF"
-                },
-                Voxels = vox,
-                HuOffset = 0
-            };
-        }
+            => TestVolumeFactory.MakeCt(RefX, RefY, RefZ, "FOR_REF");
 
-        /// <summary>
-        /// Builds a dose grid co-located with the reference CT, with the specified per-voxel
-        /// dose in Gy stored in raw voxels (RawScale=1, offset=0, unit=Gy).
-        /// </summary>
         private static SummationPlanDoseData MakeDoseData(int[][,] doseGy)
-            => new SummationPlanDoseData
-            {
-                DoseVoxels = doseGy,
-                DoseGeometry = new VolumeGeometry
-                {
-                    XSize = RefX, YSize = RefY, ZSize = RefZ,
-                    XRes = 1.0, YRes = 1.0, ZRes = 1.0,
-                    Origin = new Vec3(0, 0, 0),
-                    XDirection = new Vec3(1, 0, 0),
-                    YDirection = new Vec3(0, 1, 0),
-                    ZDirection = new Vec3(0, 0, 1)
-                },
-                Scaling = new DoseScaling { RawScale = 1.0, RawOffset = 0, UnitToGy = 1.0, DoseUnit = "Gy" }
-            };
+            => TestVolumeFactory.MakeSummationDoseData(doseGy, RefX, RefY, RefZ);
 
         private static int[][,] FillDose(int value)
-        {
-            var data = new int[RefZ][,];
-            for (int z = 0; z < RefZ; z++)
-            {
-                data[z] = new int[RefX, RefY];
-                for (int y = 0; y < RefY; y++)
-                    for (int x = 0; x < RefX; x++)
-                        data[z][x, y] = value;
-            }
-            return data;
-        }
+            => TestVolumeFactory.FillDose(RefX, RefY, RefZ, value);
 
         private static Mock<ISummationDataLoader> MakeLoader(
             int refDoseGy,

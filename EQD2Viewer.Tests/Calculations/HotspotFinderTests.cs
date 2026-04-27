@@ -1,5 +1,6 @@
 using EQD2Viewer.Core.Calculations;
 using EQD2Viewer.Core.Data;
+using EQD2Viewer.Tests.Common;
 using FluentAssertions;
 
 namespace EQD2Viewer.Tests.Calculations
@@ -12,30 +13,7 @@ namespace EQD2Viewer.Tests.Calculations
     public class HotspotFinderTests
     {
         private static DoseVolumeData MakeDose(int xs, int ys, int zs, double value)
-        {
-            var vox = new int[zs][,];
-            for (int z = 0; z < zs; z++)
-            {
-                vox[z] = new int[xs, ys];
-                for (int y = 0; y < ys; y++)
-                    for (int x = 0; x < xs; x++)
-                        vox[z][x, y] = (int)value;
-            }
-            return new DoseVolumeData
-            {
-                Geometry = new VolumeGeometry
-                {
-                    XSize = xs, YSize = ys, ZSize = zs,
-                    XRes = 1, YRes = 1, ZRes = 1,
-                    Origin = new Vec3(0, 0, 0),
-                    XDirection = new Vec3(1, 0, 0),
-                    YDirection = new Vec3(0, 1, 0),
-                    ZDirection = new Vec3(0, 0, 1),
-                },
-                Voxels = vox,
-                Scaling = new DoseScaling { RawScale = 1.0, RawOffset = 0, UnitToGy = 1.0, DoseUnit = "Gy" }
-            };
-        }
+            => TestVolumeFactory.MakeDoseVolume(xs, ys, zs, value);
 
         [Fact]
         public void FindInDoseVolume_Null_ReturnsInvalid()
