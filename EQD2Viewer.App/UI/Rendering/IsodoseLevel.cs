@@ -125,28 +125,6 @@ namespace EQD2Viewer.App.UI.Rendering
             _alpha = alpha;
         }
 
-        /// <summary>
-        /// Creates an isodose level from a Core data transfer object.
-        /// Bridges the pure data layer with the WPF-bindable layer.
-        /// </summary>
-        public IsodoseLevel(IsodoseLevelData data)
-        {
-            _fraction = data.Fraction;
-            _absoluteDoseGy = data.AbsoluteDoseGy;
-            _label = "";
-            _color = data.Color;
-            _alpha = data.Alpha;
-            _isVisible = data.IsVisible;
-        }
-
-        /// <summary>
-        /// Converts to a Core data transfer object (no WPF dependencies).
-        /// </summary>
-        public IsodoseLevelData ToData()
-        {
-            return new IsodoseLevelData(_fraction, _absoluteDoseGy, _color, _alpha, _isVisible);
-        }
-
         // =================================================================
         // RELATIVE MODE PRESETS (single-plan viewing)
         // =================================================================
